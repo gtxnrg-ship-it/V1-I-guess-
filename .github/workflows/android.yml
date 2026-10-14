@@ -1,0 +1,39 @@
+name: Build Kuro-chan APK
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: apk
+  cancel-in-progress: true
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - run: npm ci
+      - run: npm install --no-save @capacitor/core@7 @capacitor/cli@7 @capacitor/android@7
+      - run: npm run build
+      - run: npx cap add android
+      - name: Allow microphone (voice typing)
+        run: |
+          sed -i 's#<uses-permission android:name="android.permission.INTERNET" />#<uses-permission android:name="android.permission.INTERNET" />\n    <uses-permission android:name="android.permission.RECORD_AUDIO" />\n    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />#' android/app/src/main/AndroidManifest.xml
+      - run: npx cap sync android
+      - run: cd android && chmod +x gradlew && ./gradlew assembleDebug
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: build-${{ github.run_number }}
+          name: Kuro-chan Android build ${{ github.run_number }}
+          body: Install app-debug.apk on your Android phone (allow "install from unknown sources" when asked).
+          files: android/app/build/outputs/apk/debug/app-debug.apk
+          make_latest: true

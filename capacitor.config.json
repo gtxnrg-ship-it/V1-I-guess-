@@ -1,0 +1,6 @@
+{
+  "appId": "com.kurochan.app",
+  "appName": "Kuro-chan",
+  "webDir": "dist",
+  "android": { "allowMixedContent": false }
+}
