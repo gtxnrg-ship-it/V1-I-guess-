@@ -5,7 +5,7 @@ An AI app builder that talks it through with you first, researches, then builds 
 ## Get her
 
 - **Website:** https://gtxnrg-ship-it.github.io/V1-I-guess-/
-- **Android APK:** [Download the latest build](https://github.com/gtxnrg-ship-it/V1-I-guess-/releases/latest/download/app-debug.apk)
+- **Android APK:** [Download page](https://gtxnrg-ship-it.github.io/V1-I-guess-/download.html) (or [GitHub Releases](https://github.com/gtxnrg-ship-it/V1-I-guess-/releases/latest))
 
 ![Website](https://github.com/gtxnrg-ship-it/V1-I-guess-/actions/workflows/pages.yml/badge.svg) ![Android](https://github.com/gtxnrg-ship-it/V1-I-guess-/actions/workflows/android.yml/badge.svg)
 
