@@ -21,7 +21,7 @@ const SELF_SUGGESTIONS = [
   "Add a keyboard shortcut to stop a build",
 ];
 
-async function speakAssistantReply(text: string, voiceProvider: "browser" | "openai", openaiKey?: string) {
+async function speakAssistantReply(text: string, voiceProvider: "browser" | "openai", openaiKey?: string, onSpeaking: (speaking: boolean) => void = () => {}) {
   const safeText = text
     .replace(/```[\s\S]*?```/g, "Code block omitted.")
     .replace(/[*_#`\[\]()]/g, "")
@@ -47,8 +47,10 @@ async function speakAssistantReply(text: string, voiceProvider: "browser" | "ope
         const blob = await response.blob();
         const url = URL.createObjectURL(blob);
         const audio = new Audio(url);
-        audio.onended = () => URL.revokeObjectURL(url);
-        audio.play().catch(() => URL.revokeObjectURL(url));
+        audio.onplay = () => onSpeaking(true);
+        audio.onended = () => { onSpeaking(false); URL.revokeObjectURL(url); };
+        audio.onerror = () => { onSpeaking(false); URL.revokeObjectURL(url); };
+        audio.play().catch(() => { onSpeaking(false); URL.revokeObjectURL(url); });
         return;
       }
     } catch {
@@ -59,6 +61,9 @@ async function speakAssistantReply(text: string, voiceProvider: "browser" | "ope
   if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
   window.speechSynthesis.cancel();
   const ut = new SpeechSynthesisUtterance(safeText);
+  ut.onstart = () => onSpeaking(true);
+  ut.onend = () => onSpeaking(false);
+  ut.onerror = () => onSpeaking(false);
   ut.rate = 1.05; ut.pitch = 1.1;
   const voices = window.speechSynthesis.getVoices();
   const preferredVoice = voices.find((v) => v.lang.startsWith("en") && (v.name.includes("Female") || v.name.includes("Samantha") || v.name.includes("Victoria") || v.name.includes("Zira") || v.name.includes("Google US English")));
@@ -77,6 +82,7 @@ export function ChatPanel({ scope = "app", onOpenKeys, draft, setDraft, selectio
   const running = st.busy;
   const [images, setImages] = useState<Img[]>([]);
   const [autoVoice, setAutoVoice] = useState(true);
+  const [speaking, setSpeaking] = useState(false);
   const prevRunning = useRef(running);
   const initialMessage = messages[messages.length - 1];
   const lastSpokenId = useRef(initialMessage?.role === "assistant" && initialMessage.data?.done ? initialMessage.id : "");
@@ -99,7 +105,7 @@ export function ChatPanel({ scope = "app", onOpenKeys, draft, setDraft, selectio
     if (last && last.role === "assistant" && last.data?.done && lastSpokenId.current !== last.id) {
       lastSpokenId.current = last.id;
       const text = (last.data.blocks || []).filter((b: any) => b.type === "text").map((b: any) => b.text).join("\n\n");
-      if (text.trim()) void speakAssistantReply(text, voiceProvider, db.keyOf("openai")?.secret);
+      if (text.trim()) void speakAssistantReply(text, voiceProvider, db.keyOf("openai")?.secret, setSpeaking);
     }
   }, [messages, running, autoVoice, voiceProvider]);
   useEffect(() => () => {
@@ -150,9 +156,9 @@ export function ChatPanel({ scope = "app", onOpenKeys, draft, setDraft, selectio
 
   return (
     <div className="studio-chat-panel relative flex h-full min-h-0 flex-col">
-      {!isEmpty && running && (
-        <div className="absolute right-4 top-4 z-50 pointer-events-none">
-          <HerOrb size={32} state="thinking" className="her-orb-glow" />
+      {!isEmpty && (running || speaking || dict.listening) && (
+        <div role="status" aria-live="polite" className="absolute right-4 top-4 z-50 pointer-events-none" aria-label={running ? "Kuro-chan is thinking" : dict.listening ? "Listening" : "Kuro-chan is speaking"}>
+          <HerOrb size={32} state={running ? "thinking" : dict.listening ? "listening" : "speaking"} className="her-orb-glow" />
         </div>
       )}
       <div ref={scroller} onScroll={(e) => { const el = e.currentTarget; stick.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80; }}
