@@ -40,6 +40,13 @@ export default function Studio() {
   const [draft, setDraft] = useState("");
   const [publishOpen, setPublishOpen] = useState(false);
   const running = st.busy;
+  const developerMode = !!st.settings.adminUnlocked;
+  const visibleTabs = TABS.filter((t) => t.id !== "code" || developerMode);
+
+  useEffect(() => {
+    if (!visibleTabs.some((t) => t.id === tab)) setTab("preview");
+    if (!visibleTabs.some((t) => t.id === mobileTab)) setMobileTab("chat");
+  }, [mobileTab, tab, visibleTabs]);
 
   const openTab = useCallback((t: Tab) => { setTab(t); setMobileTab(t); }, []);
   const onPick = useCallback((el: PickedElement) => { setSelection(el); setMobileTab("chat"); }, []);
@@ -107,7 +114,7 @@ export default function Studio() {
               <MessageCircle className="h-[18px] w-[18px]" />Chat
               {running && mobileTab !== "chat" && <span className="absolute right-[30%] top-1.5 h-1.5 w-1.5 animate-pulse rounded-full bg-[hsl(var(--ember))]" />}
             </button>
-            {TABS.map((t) => tabBtn(t, mobileTab === t.id, () => setMobileTab(t.id), true))}
+            {visibleTabs.map((t) => tabBtn(t, mobileTab === t.id, () => setMobileTab(t.id), true))}
           </nav>
         </>
       ) : (
@@ -115,7 +122,7 @@ export default function Studio() {
           <div className="studio-workspace-stage relative z-10 flex h-full flex-col p-2 pl-0">
             <div className="studio-workspace-frame ml-2 flex h-full min-h-0 flex-col overflow-hidden rounded-xl border bg-card">
               <div className="studio-workspace-nav flex items-center gap-0.5 px-2 py-1.5">
-                {TABS.map((t) => tabBtn(t, tab === t.id, () => setTab(t.id)))}
+                {visibleTabs.map((t) => tabBtn(t, tab === t.id, () => setTab(t.id)))}
                 {running && <span className="ml-auto mr-2 inline-flex items-center gap-1.5 text-[12px] text-muted-foreground"><Loader2 className="h-3 w-3 animate-spin" /> Kuro-chan is working</span>}
               </div>
               <div className="min-h-0 flex-1">{pane(tab)}</div>

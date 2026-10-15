@@ -21,6 +21,51 @@ const SELF_SUGGESTIONS = [
   "Add a keyboard shortcut to stop a build",
 ];
 
+async function speakAssistantReply(text: string, voiceProvider: "browser" | "openai", openaiKey?: string) {
+  const safeText = text
+    .replace(/```[\s\S]*?```/g, "Code block omitted.")
+    .replace(/[*_#`\[\]()]/g, "")
+    .trim();
+
+  if (!safeText) return;
+
+  if (voiceProvider === "openai" && openaiKey) {
+    try {
+      const response = await fetch("https://api.openai.com/v1/audio/speech", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${openaiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "gpt-4o-mini-tts",
+          voice: "alloy",
+          input: safeText.slice(0, 4096),
+        }),
+      });
+      if (response.ok) {
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        const audio = new Audio(url);
+        audio.onended = () => URL.revokeObjectURL(url);
+        audio.play().catch(() => URL.revokeObjectURL(url));
+        return;
+      }
+    } catch {
+      // fall back to browser speech below if the premium voice provider is unavailable
+    }
+  }
+
+  if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
+  window.speechSynthesis.cancel();
+  const ut = new SpeechSynthesisUtterance(safeText);
+  ut.rate = 1.05; ut.pitch = 1.1;
+  const voices = window.speechSynthesis.getVoices();
+  const preferredVoice = voices.find((v) => v.lang.startsWith("en") && (v.name.includes("Female") || v.name.includes("Samantha") || v.name.includes("Victoria") || v.name.includes("Zira") || v.name.includes("Google US English")));
+  if (preferredVoice) ut.voice = preferredVoice;
+  window.speechSynthesis.speak(ut);
+}
+
 export function ChatPanel({ scope = "app", onOpenKeys, draft, setDraft, selection, clearSelection, onSent }: {
   scope?: agents.Scope; onOpenKeys: () => void; draft: string; setDraft: (s: string) => void;
   selection?: PickedElement | null; clearSelection?: () => void; onSent?: () => void;
@@ -36,6 +81,8 @@ export function ChatPanel({ scope = "app", onOpenKeys, draft, setDraft, selectio
   const initialMessage = messages[messages.length - 1];
   const lastSpokenId = useRef(initialMessage?.role === "assistant" && initialMessage.data?.done ? initialMessage.id : "");
   const speechAvailable = typeof window !== "undefined" && "speechSynthesis" in window;
+  const premiumVoiceReady = !!db.keyOf("openai");
+  const voiceProvider = st.settings.voiceProvider === "openai" && premiumVoiceReady ? "openai" : "browser";
   const fileRef = useRef<HTMLInputElement>(null);
   const dict = useDictation(draft, setDraft, (m) => { haptic("error"); toast({ title: "Voice input", description: m }); });
 
@@ -52,18 +99,9 @@ export function ChatPanel({ scope = "app", onOpenKeys, draft, setDraft, selectio
     if (last && last.role === "assistant" && last.data?.done && lastSpokenId.current !== last.id) {
       lastSpokenId.current = last.id;
       const text = (last.data.blocks || []).filter((b: any) => b.type === "text").map((b: any) => b.text).join("\n\n");
-      const cleanText = text.replace(/```[\s\S]*?```/g, "Code block omitted.").replace(/[*_#`[\]()]/g, "");
-      if (cleanText.trim() && "speechSynthesis" in window) {
-        window.speechSynthesis.cancel();
-        const ut = new SpeechSynthesisUtterance(cleanText);
-        ut.rate = 1.05; ut.pitch = 1.1;
-        const voices = window.speechSynthesis.getVoices();
-        const femaleVoice = voices.find((v) => v.lang.startsWith("en") && (v.name.includes("Female") || v.name.includes("Samantha") || v.name.includes("Victoria") || v.name.includes("Zira") || v.name.includes("Google US English")));
-        if (femaleVoice) ut.voice = femaleVoice;
-        window.speechSynthesis.speak(ut);
-      }
+      if (text.trim()) void speakAssistantReply(text, voiceProvider, db.keyOf("openai")?.secret);
     }
-  }, [messages, running, autoVoice]);
+  }, [messages, running, autoVoice, voiceProvider]);
   useEffect(() => () => {
     if ("speechSynthesis" in window) window.speechSynthesis.cancel();
   }, []);
@@ -192,14 +230,14 @@ export function ChatPanel({ scope = "app", onOpenKeys, draft, setDraft, selectio
             className="block w-full resize-none bg-transparent px-4 pb-1 pt-3.5 text-[15px] leading-relaxed outline-none placeholder:text-muted-foreground/70"
           />
           <div className="flex items-center gap-2 px-2.5 pb-2.5 pt-1">
-            <span className="pl-1.5 text-[11.5px] text-muted-foreground/80">{running ? "Working…" : !speechAvailable ? "Voice output isn’t supported in this browser." : autoVoice ? "Voice on — she speaks replies back." : "Type or talk — either works."}</span>
+            <span className="pl-1.5 text-[11.5px] text-muted-foreground/80">{running ? "Working…" : !(speechAvailable || premiumVoiceReady) ? "Voice output isn’t supported in this browser." : autoVoice ? (voiceProvider === "openai" ? "Premium voice on — she speaks naturally." : "Voice on — she speaks replies back.") : "Type or talk — either works."}</span>
             <div className="ml-auto flex items-center gap-1">
               <input ref={fileRef} type="file" accept="image/*" multiple hidden data-testid="input-attach" onChange={(e) => { addFiles(e.target.files); e.target.value = ""; }} />
               <button data-testid="button-attach" aria-label="Attach image" title="Attach a screenshot or reference" onClick={() => fileRef.current?.click()}
                 className="grid h-8 w-8 place-items-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"><ImagePlus className="h-4 w-4" /></button>
-              <button data-testid="button-auto-voice" aria-label={speechAvailable ? autoVoice ? "Disable voice output" : "Enable voice output" : "Voice output unavailable"}
-                title={speechAvailable ? autoVoice ? "Kuro-chan will speak replies (Active)" : "Kuro-chan speaks replies" : "This browser does not support spoken replies"}
-                disabled={!speechAvailable}
+              <button data-testid="button-auto-voice" aria-label={(speechAvailable || premiumVoiceReady) ? autoVoice ? "Disable voice output" : "Enable voice output" : "Voice output unavailable"}
+                title={(speechAvailable || premiumVoiceReady) ? autoVoice ? "Kuro-chan will speak replies (Active)" : "Kuro-chan speaks replies" : "This browser does not support spoken replies"}
+                disabled={!(speechAvailable || premiumVoiceReady)}
                 onClick={() => {
                   if (!autoVoice && !running) {
                     const last = messages[messages.length - 1];

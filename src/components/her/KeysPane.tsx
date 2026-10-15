@@ -374,6 +374,21 @@ function HiddenSettings() {
           <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0" />
           <span>{st.persistent ? "Your keys, apps and chats are saved in this browser only. Nothing goes to any server of mine; AI calls go straight from your device to the provider." : "This browser blocked storage, so nothing is saved after you close the page. Open Kuro-chan in its own tab to keep your work."}</span>
         </div>
+        <div className="rounded-xl border border-border bg-background p-2.5">
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <span className="text-[12.5px] font-medium">Voice</span>
+            <span className="text-[11.5px] text-muted-foreground">{db.keyOf("openai") ? "OpenAI TTS ready" : "Browser voice fallback"}</span>
+          </div>
+          <Select value={s.voiceProvider || "browser"} onValueChange={(v) => db.setSettings({ voiceProvider: v as "browser" | "openai" })}>
+            <SelectTrigger className="h-9 w-full text-[12.5px]">
+              <SelectValue placeholder="Voice output" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="browser">Browser voice</SelectItem>
+              <SelectItem value="openai" disabled={!db.keyOf("openai")}>OpenAI TTS{!db.keyOf("openai") ? " (add an OpenAI key first)" : ""}</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
         {showAdvanced && s.eggFound && !s.adminUnlocked && (
           <div className="her-rise rounded-xl border border-[hsl(var(--ember))]/40 bg-[hsl(var(--ember))]/5 p-3" data-testid="admin-door">
             <div className="flex items-center gap-2 font-medium"><Lock className="h-4 w-4 text-[hsl(var(--ember))]" /> Admin access</div>

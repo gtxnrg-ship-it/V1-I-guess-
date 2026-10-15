@@ -102,6 +102,9 @@ export interface Settings {
   freeStarter: boolean;
   roleOverrides: Partial<Record<Role, string>>; // "keyId::modelId"
   usage: Record<string, Record<string, UsageDay>>; // day -> keyId -> usage
+  voiceProvider?: "browser" | "openai";
+  voiceModel?: string;
+  voiceName?: string;
   adminEmail?: string;
   adminUnlocked?: boolean;
   eggFound?: boolean;
