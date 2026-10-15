@@ -241,13 +241,14 @@ function PublishDialog({ open, onOpenChange, onOpenKeys }: { open: boolean; onOp
   const [repo, setRepo] = useState("");
   const [ship, setShip] = useState(true);
   const [priv, setPriv] = useState(false);
+  const [sessionOnly, setSessionOnly] = useState(false);
   const [busy, setBusy] = useState(false);
   const [step, setStep] = useState("");
   const [links, setLinks] = useState<{ label: string; url: string }[] | null>(null);
   const [publishedPrivate, setPublishedPrivate] = useState(false);
   const token = st.keys.find((k) => k.provider === "github");
   const slug = (p?.name || "my-app").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-  useEffect(() => { if (open) { setRepo(p?.repo || slug); setLinks(null); setPublishedPrivate(false); } }, [open]); // eslint-disable-line
+  useEffect(() => { if (open) { setRepo(p?.repo || slug); setLinks(null); setPublishedPrivate(false); setSessionOnly(false); } }, [open]); // eslint-disable-line
 
   const go = async () => {
     if (!token) return;
@@ -277,11 +278,19 @@ function PublishDialog({ open, onOpenChange, onOpenKeys }: { open: boolean; onOp
       setStep("Pushing files");
       await gh.commitFiles(info.owner, info.name, info.defaultBranch, Object.entries(files).map(([path, content]) => ({ path, content })), `Update from Kuro-chan: ${p.name}`);
       if (ship && !info.private) { setStep("Turning on GitHub Pages"); try { await gh.enablePages(info.owner, info.name); } catch (e) { toast({ title: "Pages needs a manual switch", description: errMsg(e) }); } }
-      db.updateProject(p.id, { repo: full, privateRepo: info.private, shipped: ship || p.shipped });
+      if (!sessionOnly) db.updateProject(p.id, { repo: full, privateRepo: info.private, shipped: ship || p.shipped });
       setPublishedPrivate(info.private);
       setLinks(out);
     } catch (e) { toast({ title: "Publish failed", description: errMsg(e), variant: "destructive" }); }
     setBusy(false); setStep("");
+  };
+
+  const createTemp = () => {
+    const suffix = Math.random().toString(36).slice(2, 8);
+    const temporaryName = `${slug || "my-app"}-${suffix}`;
+    setRepo(temporaryName);
+    setSessionOnly(true);
+    toast({ title: "Temporary repository name created", description: `Using ${temporaryName} for this publish only.` });
   };
 
   return (
@@ -305,6 +314,7 @@ function PublishDialog({ open, onOpenChange, onOpenKeys }: { open: boolean; onOp
               {ship && publishedPrivate
                 ? "Pushed to your private repo. GitHub is building the APK; only people with repo access can download it. The website won’t be publicly hosted."
                 : `Published. GitHub Actions is now building${ship ? " your website and Android APK" : ""}.`}
+              {sessionOnly && <div className="mt-2">This repository was used for this publish only and was not saved to the project settings.</div>}
             </div>
             {links.map((l) => (
               <a key={l.url} href={l.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-[12.5px] hover:bg-muted">
@@ -322,6 +332,13 @@ function PublishDialog({ open, onOpenChange, onOpenKeys }: { open: boolean; onOp
               <Switch data-testid="switch-ship" checked={ship} onCheckedChange={setShip} />
               <span><span className="block text-[13.5px] font-medium">Ship it: website and Android APK</span><span className="block text-[12.5px] text-muted-foreground">Adds GitHub Actions, turns on Pages, and puts download links in the README.</span></span>
             </label>
+            <label className="flex items-start gap-3">
+              <Switch data-testid="switch-session-only" checked={sessionOnly} onCheckedChange={setSessionOnly} />
+              <span><span className="block text-[13.5px] font-medium">Session-only publish</span><span className="block text-[12.5px] text-muted-foreground">Use this repository for this publish without saving it to the project.</span></span>
+            </label>
+            <div className="flex justify-end">
+              <button type="button" onClick={createTemp} className="rounded-lg border border-border px-2.5 py-1.5 text-[12px] hover:bg-muted">Generate temporary repo name</button>
+            </div>
             <label className="flex items-start gap-3">
               <Switch data-testid="switch-private" checked={priv} onCheckedChange={setPriv} />
               <span><span className="block text-[13.5px] font-medium">Private repo</span><span className="block text-[12.5px] text-muted-foreground">Free GitHub Pages needs a public repo.</span></span>
