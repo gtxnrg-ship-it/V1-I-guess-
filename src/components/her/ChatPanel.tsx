@@ -159,7 +159,16 @@ export function ChatPanel({ scope = "app", onOpenKeys, draft, setDraft, selectio
         className="her-scroll min-h-0 flex-1 overflow-y-auto">
         {isEmpty ? (
           <div className="studio-welcome flex min-h-full flex-col items-center justify-center px-6 py-10 text-center">
-            <HerOrb size={76} className="her-orb-glow" state={running ? "thinking" : "idle"} />
+            <button
+              type="button"
+              data-testid="button-orb-talk"
+              aria-label={dict.listening ? "Stop talking to Kuro-chan" : "Talk to Kuro-chan"}
+              title={dict.listening ? "Tap to stop listening" : "Tap to talk to Kuro-chan"}
+              onClick={() => { setAutoVoice(true); dict.toggle(); }}
+              className="rounded-full outline-none transition-transform hover:scale-[1.03] focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-4"
+            >
+              <HerOrb size={76} className="her-orb-glow" state={dict.listening ? "thinking" : running ? "thinking" : "idle"} />
+            </button>
             <div className="studio-welcome-label mt-4"><Sparkles className="h-3 w-3" /> {scope === "self" ? "SELF-IMPROVEMENT MODE" : "YOUR AI BUILD PARTNER"}</div>
             <h1 className="studio-welcome-title mt-4 font-display text-[36px] font-semibold leading-[1.08]">{scope === "self" ? "Let's make me\nbetter." : <>An idea becomes<br /><span>a product.</span></>}</h1>
             <p className="mt-3 max-w-[370px] text-[14px] leading-relaxed text-muted-foreground">
