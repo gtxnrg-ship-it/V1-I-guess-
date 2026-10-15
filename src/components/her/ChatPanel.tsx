@@ -157,7 +157,7 @@ export function ChatPanel({ scope = "app", onOpenKeys, draft, setDraft, selectio
   return (
     <div className="studio-chat-panel relative flex h-full min-h-0 flex-col">
       {!isEmpty && (running || speaking || dict.listening) && (
-        <div className="absolute right-4 top-4 z-50 pointer-events-none" aria-label={running ? "Kuro-chan is thinking" : dict.listening ? "Listening" : "Kuro-chan is speaking"}>
+        <div role="status" aria-live="polite" className="absolute right-4 top-4 z-50 pointer-events-none" aria-label={running ? "Kuro-chan is thinking" : dict.listening ? "Listening" : "Kuro-chan is speaking"}>
           <HerOrb size={32} state={running ? "thinking" : dict.listening ? "listening" : "speaking"} className="her-orb-glow" />
         </div>
       )
