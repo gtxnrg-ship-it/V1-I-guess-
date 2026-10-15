@@ -261,8 +261,11 @@ function PublishDialog({ open, onOpenChange, onOpenKeys }: { open: boolean; onOp
       delete files[".kuro/research.md"];
       setStep("Listing packages");
       files["package.json"] = (await syncDependencies(files)).pkg;
-      const env = Object.entries(p.env || {});
-      if (env.length) files[".env"] = env.map(([k, v]) => `${k}=${v}`).join("\n") + "\n";
+      // Never publish local environment values: they may contain private API keys.
+      // Keep only variable names in a safe template so the repository documents setup.
+      const env = Object.keys(p.env || {});
+      if (env.length) files[".env.example"] = env.map((k) => String(k) + "=").join("\n") + "\n";
+      delete files[".env"];
       const out: { label: string; url: string }[] = [{ label: "Repository", url: info.htmlUrl }];
       if (ship) {
         const s = shipFiles(p.name, full);
