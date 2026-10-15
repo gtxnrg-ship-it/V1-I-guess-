@@ -169,6 +169,20 @@ async function testGitHubCommitRejectsMovedBranch() {
   console.log("✓ concurrent GitHub publish protection tests passed");
 }
 
+
+async function testGitHubRejectsNonRootRepositoryUrls() {
+  console.log("Testing GitHub repository input validation...");
+  const client = new GH("test-token");
+  let message = "";
+  try {
+    await client.ensureRepo("https://github.com/owner/repo/tree/main/src");
+  } catch (error) {
+    message = error instanceof Error ? error.message : String(error);
+  }
+  assert(message.includes("repository URL"), "Branch/file URLs should receive a clear repository-root hint");
+  console.log("✓ GitHub repository input validation tests passed");
+}
+
 async function runAll() {
   try {
     testParseArgs();
@@ -178,6 +192,7 @@ async function runAll() {
     testGitHubBase64RoundTrip();
     await testGitHubApiErrors();
     await testGitHubCommitRejectsMovedBranch();
+    await testGitHubRejectsNonRootRepositoryUrls();
     console.log("\nALL TESTS PASSED SUCCESSFULLY!");
   } catch (err) {
     console.error("\nTEST FAILURE:", err);
