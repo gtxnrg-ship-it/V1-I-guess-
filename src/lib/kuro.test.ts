@@ -2,6 +2,7 @@ import { parseArgs } from "../engine/llm";
 import { createZipBlob } from "./zip";
 import { importedPackages } from "../engine/package-imports";
 import { starterFiles } from "../engine/template";
+import { GH, b64, unb64 } from "../engine/github";
 
 function assert(condition: boolean, message: string) {
   if (!condition) {
@@ -12,19 +13,15 @@ function assert(condition: boolean, message: string) {
 function testParseArgs() {
   console.log("Testing parseArgs...");
 
-  // Valid JSON
   const valid = parseArgs('{"key": "value", "num": 123}');
   assert(valid.key === "value" && valid.num === 123, "Valid JSON should parse correctly");
 
-  // Trailing commas
   const trailing = parseArgs('{"key": "value",}');
   assert(trailing.key === "value", "Trailing comma should be repaired");
 
-  // Unclosed JSON string / object
   const unclosed = parseArgs('{"key": "value"');
   assert(unclosed.key === "value", "Unclosed JSON object should be repaired");
 
-  // Codeblock formatting
   const codeblock = parseArgs('```json\n{"hello": "world"}\n```');
   assert(codeblock.hello === "world", "Codeblocks should be stripped");
 
@@ -92,12 +89,61 @@ function testCreateZipBlob() {
   console.log("✓ createZipBlob tests passed");
 }
 
-function runAll() {
+function testGitHubBase64RoundTrip() {
+  console.log("Testing GitHub content encoding...");
+
+  const samples = [
+    "",
+    "plain ASCII",
+    "Unicode: বাংলা 日本語 🎉",
+    "Line one\nLine two\n",
+    "symbols: <>&/'\""
+  ];
+
+  for (const sample of samples) {
+    assert(unb64(b64(sample)) === sample, "GitHub content encoding should preserve text exactly");
+  }
+
+  console.log("✓ GitHub content encoding tests passed");
+}
+
+async function testGitHubApiErrors() {
+  console.log("Testing GitHub API error handling...");
+
+  const originalFetch = globalThis.fetch;
+  try {
+    globalThis.fetch = (async () => new Response(
+      JSON.stringify({ message: "Bad credentials" }),
+      { status: 401, headers: { "Content-Type": "application/json" } }
+    )) as typeof fetch;
+
+    const client = new GH("test-token");
+    let message = "";
+    try {
+      await client.ok("GET", "/user");
+    } catch (error) {
+      message = error instanceof Error ? error.message : String(error);
+    }
+
+    assert(
+      message.includes("GitHub GET /user → 401: Bad credentials"),
+      "GitHub API failures should include method, path, status, and API message"
+    );
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+
+  console.log("✓ GitHub API error handling tests passed");
+}
+
+async function runAll() {
   try {
     testParseArgs();
     testImportedPackages();
     testGeneratedReadme();
     testCreateZipBlob();
+    testGitHubBase64RoundTrip();
+    await testGitHubApiErrors();
     console.log("\nALL TESTS PASSED SUCCESSFULLY!");
   } catch (err) {
     console.error("\nTEST FAILURE:", err);
@@ -105,4 +151,4 @@ function runAll() {
   }
 }
 
-runAll();
+void runAll();
