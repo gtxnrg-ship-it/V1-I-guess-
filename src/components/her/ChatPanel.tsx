@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { ArrowUp, Square, RotateCcw, ImagePlus, Mic, X, MousePointerClick, Volume2, VolumeX, Sparkles } from "lucide-react";
+import { ArrowUp, Square, RotateCcw, ImagePlus, Mic, X, MousePointerClick, Volume2, VolumeX, Sparkles, Github, Cpu, GitBranch } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { AssistantMessage } from "./AssistantMessage";
 import { HerOrb } from "./Logo";
@@ -144,6 +144,9 @@ export function ChatPanel({ scope = "app", onOpenKeys, draft, setDraft, selectio
   };
   const isEmpty = !messages.length;
   const lastId = messages[messages.length - 1]?.id;
+  const project = db.project();
+  const githubConnected = st.keys.some((k) => k.provider === "github");
+  const modelCount = st.keys.filter((k) => k.kind === "ai").reduce((total, k) => total + k.models.length, 0);
 
   return (
     <div className="studio-chat-panel relative flex h-full min-h-0 flex-col">
@@ -164,14 +167,41 @@ export function ChatPanel({ scope = "app", onOpenKeys, draft, setDraft, selectio
             </p>
             <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
               <button type="button" onClick={() => { setAutoVoice(true); if (!dict.listening) dict.toggle(); }}
-                className="inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-[12.5px] font-medium text-primary-foreground hover:opacity-90">
+                className="inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-[12.5px] font-medium text-primary-foreground shadow-[0_0_24px_rgba(0,240,255,0.12)] transition-transform hover:-translate-y-0.5 hover:opacity-90">
                 <Mic className="h-3.5 w-3.5" /> Talk to Kuro-chan
               </button>
               <button type="button" onClick={() => { setAutoVoice(true); setDraft("Build me a polished SaaS dashboard with auth and billing."); }}
-                className="inline-flex items-center gap-2 rounded-full border border-border bg-background px-4 py-2 text-[12.5px] font-medium text-foreground hover:bg-muted">
+                className="inline-flex items-center gap-2 rounded-full border border-border bg-background px-4 py-2 text-[12.5px] font-medium text-foreground transition-colors hover:bg-muted">
                 <Sparkles className="h-3.5 w-3.5" /> Try a complex prompt
               </button>
             </div>
+            {scope !== "self" && (
+              <div className="mt-5 flex max-w-[520px] flex-wrap items-center justify-center gap-2">
+                {githubConnected ? (
+                  project.repo ? (
+                    <a href={"https://github.com/" + project.repo} target="_blank" rel="noopener noreferrer"
+                      className="inline-flex min-h-8 items-center gap-1.5 rounded-full border border-emerald-500/25 bg-emerald-500/[0.07] px-3 py-1.5 text-[11.5px] text-emerald-700 transition-colors hover:bg-emerald-500/[0.12] dark:text-emerald-300">
+                      <Github className="h-3.5 w-3.5" /> {project.repo} <GitBranch className="ml-0.5 h-3 w-3 opacity-70" />
+                    </a>
+                  ) : (
+                    <span className="inline-flex min-h-8 items-center gap-1.5 rounded-full border border-emerald-500/25 bg-emerald-500/[0.07] px-3 py-1.5 text-[11.5px] text-emerald-700 dark:text-emerald-300">
+                      <Github className="h-3.5 w-3.5" /> GitHub connected · ready to import
+                    </span>
+                  )
+                ) : (
+                  <button type="button" onClick={onOpenKeys}
+                    className="inline-flex min-h-8 items-center gap-1.5 rounded-full border border-border bg-background/80 px-3 py-1.5 text-[11.5px] text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground">
+                    <Github className="h-3.5 w-3.5" /> Connect GitHub
+                  </button>
+                )}
+                <span className="inline-flex min-h-8 items-center gap-1.5 rounded-full border border-border bg-background/80 px-3 py-1.5 text-[11.5px] text-muted-foreground">
+                  <Cpu className="h-3.5 w-3.5" /> {modelCount ? modelCount + " models available" : st.settings.freeStarter ? "Free starter model ready" : "Choose your AI model"}
+                </span>
+                <span className="inline-flex min-h-8 items-center gap-1.5 rounded-full border border-border bg-background/80 px-3 py-1.5 text-[11.5px] text-muted-foreground">
+                  <Sparkles className="h-3.5 w-3.5" /> 5 specialist agents
+                </span>
+              </div>
+            )}
             <div className="mt-7 grid w-full max-w-[460px] gap-2 sm:grid-cols-2">
               {(scope === "self" ? SELF_SUGGESTIONS : SUGGESTIONS).map((s) => (
                 <button key={s} data-testid="button-suggestion" onClick={() => { haptic("medium"); send(s); }}
