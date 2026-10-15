@@ -47,6 +47,14 @@ test.describe("Kuro-chan studio", () => {
     const download = await downloadPromise;
 
     expect(download.suggestedFilename()).toMatch(/\.zip$/);
+    const stream = await download.createReadStream();
+    const chunks = [];
+    for await (const chunk of stream) chunks.push(Buffer.from(chunk));
+    const archive = Buffer.concat(chunks);
+
+    // ZIP local-file-header signature and a real project source file should be present.
+    expect(archive.readUInt32LE(0)).toBe(0x04034b50);
+    expect(archive.includes(Buffer.from("src/main.tsx"))).toBe(true);
   });
 
   test("explains GitHub setup before attempting to publish without credentials", async ({ page }) => {
