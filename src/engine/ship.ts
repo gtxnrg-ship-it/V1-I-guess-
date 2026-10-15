@@ -17,12 +17,19 @@ export function shipFiles(appName: string, repoFull: string) {
   return { files, readme, site, apk };
 }
 
+function escapeHtml(value: string): string {
+  return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\"/g, "&quot;").replace(/'/g, "&#39;");
+}
+
 function downloadPageHtml(appName: string, repoFull: string, apkUrl: string): string {
+  const safeName = escapeHtml(appName);
+  const safeRepo = escapeHtml(repoFull);
+  const safeApkUrl = escapeHtml(apkUrl);
   return `<!doctype html>
 <html lang="en">
 <head>
 <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Download ${appName} for Android</title>
+<title>Download ${safeName} for Android</title>
 <style>
   :root { color-scheme: light dark; }
   body { margin: 0; min-height: 100dvh; display: grid; place-items: center; font: 15px/1.55 system-ui, -apple-system, Segoe UI, Roboto, sans-serif; background: #faf8f5; color: #1a1817; }
@@ -39,14 +46,14 @@ function downloadPageHtml(appName: string, repoFull: string, apkUrl: string): st
 </head>
 <body>
   <main class="card">
-    <h1>${appName} for Android</h1>
+    <h1>${safeName} for Android</h1>
     <p class="muted">Built with Kuro-chan</p>
-    <a class="btn" href="${apkUrl}">Download the APK</a>
-    <a class="alt" href="https://github.com/${repoFull}/releases/latest" target="_blank" rel="noopener">Or get it from GitHub Releases</a>
+    <a class="btn" href="${safeApkUrl}">Download the APK</a>
+    <a class="alt" href="https://github.com/${safeRepo}/releases/latest" target="_blank" rel="noopener">Or get it from GitHub Releases</a>
     <ol>
       <li>Tap Download. If Chrome warns that the file may be harmful, tap <b>Download anyway</b>.</li>
       <li>Open the file. When Android asks, allow <b>Install unknown apps</b> for your browser.</li>
-      <li>Tap Install, then open ${appName}.</li>
+      <li>Tap Install, then open ${safeName}.</li>
     </ol>
     <p class="muted"><a class="alt" href="./">Or open the web app</a></p>
   </main>
