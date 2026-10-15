@@ -449,7 +449,27 @@ export function Section({ className, ...p }: HTMLAttributes<HTMLElement>) {
 }
 `,
     "src/App.tsx": appForVariant(name, variant),
-    "README.md": `# ${name}\n\nBuilt with Kuro-chan.\n`,
+    "README.md": `# ${name}
+
+Built with Kuro-chan.
+
+## Run locally
+
+\`\`\`sh
+npm install
+npm run dev
+\`\`\`
+
+Create a production build with \`npm run build\`.
+
+## Data and configuration
+
+This app runs as a static website and Android app. Local-only data can be stored in the browser. If this project uses Supabase, configure \`VITE_SUPABASE_URL\` and \`VITE_SUPABASE_ANON_KEY\` in the build environment and apply the database SQL supplied for the project. Never use a service-role key in client-side code.
+
+## Publish
+
+Use Kuro-chan's Publish action to ship the app as a website and Android APK. Update this README with any app-specific setup or deployment steps.
+`,
     ".gitignore": "node_modules\ndist\nandroid\n",
   };
 }

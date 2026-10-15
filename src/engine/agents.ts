@@ -14,8 +14,8 @@ export const SELF_PID = "__self";
 const pidFor = (scope: Scope) => (scope === "self" ? SELF_PID : db.project().id);
 
 // ── Hard iteration caps (framework-level, cannot be overridden by prompts) ──
-const HARD_CAP_PER_LOOP = 5;
-const HARD_CAP_TOTAL    = 25;
+const HARD_CAP_PER_LOOP = 10;
+const HARD_CAP_TOTAL    = 50;
 const HARD_CAP_FIX      = 3;
 let   sessionStepCount  = 0;
 
@@ -224,7 +224,7 @@ export async function answer(pid: string, msgId: string, qid: string, answers: R
   if (!m || !q) return;
   db.updateMessage(pid, msgId, (x) => ({ ...x, data: { ...x.data!, blocks: x.data!.blocks.map((b) => (b === q || (b.type === "questions" && b.id === qid) ? { ...b, answered: true } as Block : b)) } }));
   const lines = q.items.map((it) => `${it.q} ${(answers[it.id] || []).join(", ") || "(you decide)"}`);
-  await send(lines.join("\n"), { scope });
+  await send(`${lines.join("\n")}\n\nContinue with the build request already in this conversation. You have enough information now: call propose_brief and do not only acknowledge my answers or ask more questions.`, { scope });
 }
 
 export async function changeBrief(pid: string, msgId: string, briefId: string) {
@@ -386,14 +386,28 @@ Size: ${brief.size}${pickedText(picked)}`;
     if (Object.keys(changed).length) data.blocks.push({ type: "upgrade", title: brief.title, summary: brief.summary, files: changed, status: "ready" });
   }
 
+  let finalErrors: string[] = [];
+  if (scope === "app") {
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const preview = await buildPreview(ws.all(), ws.env());
+      finalErrors = preview.errors.length ? preview.errors : await runtimeCheck(preview.html);
+      db.set({ runtimeErrors: finalErrors });
+      if (!finalErrors.length || attempt === 1) break;
+      await loop({
+        live, agent: "Builder", label: "Verifying the finished app", role: "code", system: builderSystem, ws,
+        messages: [{ role: "user", text: `${ctx}\n\nThe final build or runtime check found these errors:\n${finalErrors.join("\n")}\n\nProject files:\n${filesSummary(ws)}\n\nFix these errors without removing requested features, then call check_preview.` }],
+        tools: SETS.build, maxSteps: 10, quiet: true,
+      });
+    }
+  }
+
   // 7. Warm wrap-up
   const after = ws.all();
   const changedCount = Object.keys(after).filter((p) => JSON.parse(before)[p] !== after[p]).length;
-  const errsLeft = scope === "app" ? (await buildPreview(after, ws.env())).errors : [];
   data.blocks.push({ type: "agent", name: "Talker", label: "Done" });
   await loop({
     live, agent: "Talker", label: "Done", role: "talk", system: P.SUMMARY, ws, tools: [],
-    messages: [{ role: "user", text: `${ctx}\n\nWhat happened: ${steps.filter((s) => s.status === "done").length}/${steps.length} plan steps done; ${changedCount} files changed; ${issuesFixed ? `${issuesFixed} design issues found and fixed` : verdict ? "passed design review" : "no visual review"}; ${errsLeft.length ? `build still has errors: ${errsLeft.join("; ")}` : "builds cleanly"}.${scope === "self" ? " This is an upgrade to Kuro-chan herself: it is staged and the admin must tap Ship upgrade." : ""}\n\nWrite the wrap-up.` }],
+    messages: [{ role: "user", text: `${ctx}\n\nWhat happened: ${steps.filter((s) => s.status === "done").length}/${steps.length} plan steps done; ${changedCount} files changed; ${issuesFixed ? `${issuesFixed} design issues found and fixed` : verdict ? "passed design review" : "no visual review"}; ${scope === "app" && finalErrors.length ? `final build/runtime check still has errors: ${finalErrors.join("; ")}` : scope === "app" ? "final build and runtime checks passed" : "self-upgrade files are syntax checked"}.${scope === "self" ? " This is an upgrade to Kuro-chan herself: it is staged and the admin must tap Ship upgrade." : ""}\n\nWrite the wrap-up accurately. Do not say the app is fully working if final errors remain.` }],
     maxSteps: 1,
   });
   if (scope === "app" && JSON.stringify(after) !== before) {
