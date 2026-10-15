@@ -33,12 +33,19 @@ AI app builders can be expensive or lock your work into one platform. Kuro-chan 
 
 > Kuro-chan is an actively developed project. Features and integrations can change; please report anything that does not work as described.
 
-## Try Kuro-chan
+## Try the latest Kuro-chan build
 
-- **Web app:** [gtxnrg-ship-it.github.io/V1-I-guess-](https://gtxnrg-ship-it.github.io/V1-I-guess-/)
-- **Android APK:** [Download page](https://gtxnrg-ship-it.github.io/V1-I-guess-/download.html) · [Latest GitHub release](https://github.com/gtxnrg-ship-it/V1-I-guess-/releases/latest)
+Choose whichever is easiest on your phone:
 
-Android may ask you to approve installing apps from your browser. Only install APKs you trust. The web app is the easiest way to try Kuro-chan.
+| Option | Open / download | Best for |
+| --- | --- | --- |
+| **Website** | [Open Kuro-chan in your browser](https://gtxnrg-ship-it.github.io/V1-I-guess-/) | Try it immediately—no installation needed |
+| **Android APK** | [Download the APK](https://gtxnrg-ship-it.github.io/V1-I-guess-/download.html) | Install Kuro-chan as an Android app |
+| **APK release files** | [Get the latest APK from GitHub Releases](https://github.com/gtxnrg-ship-it/V1-I-guess-/releases/latest) | See the latest published build and its release notes |
+
+**Want the newest changes?** The APK is built by GitHub Actions after changes reach `main`. If a change was just merged, give the [Android build workflow](https://github.com/gtxnrg-ship-it/V1-I-guess-/actions/workflows/android.yml) time to finish, then use the links above. The website deploys separately; its [deployment workflow](https://github.com/gtxnrg-ship-it/V1-I-guess-/actions/workflows/pages.yml) shows whether it has finished.
+
+**Installing the APK:** Android may ask you to allow your browser to install unknown apps. Only install APKs you trust. If you don't want to install anything, use the website option instead.
 
 ## How the agents work
 
