@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { ArrowUp, Square, RotateCcw, ImagePlus, Mic, X, MousePointerClick } from "lucide-react";
+import { ArrowUp, Square, RotateCcw, ImagePlus, Mic, X, MousePointerClick, Volume2, VolumeX } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { AssistantMessage } from "./AssistantMessage";
 import { HerOrb } from "./Logo";
@@ -31,8 +31,27 @@ export function ChatPanel({ scope = "app", onOpenKeys, draft, setDraft, selectio
   const messages: Message[] = st.messages[pid] || [];
   const running = st.busy;
   const [images, setImages] = useState<Img[]>([]);
+  const [autoVoice, setAutoVoice] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const dict = useDictation(draft, setDraft, (m) => toast({ title: "Voice input", description: m }));
+
+  useEffect(() => {
+    if (!autoVoice || running || !messages.length) return;
+    const last = messages[messages.length - 1];
+    if (last && last.role === "assistant" && last.data?.done) {
+      const text = (last.data.blocks || []).filter((b: any) => b.type === "text").map((b: any) => b.text).join("\n\n");
+      const cleanText = text.replace(/```[\s\S]*?```/g, "Code block omitted.").replace(/[*_#`[\]()]/g, "");
+      if (cleanText.trim() && "speechSynthesis" in window) {
+        window.speechSynthesis.cancel();
+        const ut = new SpeechSynthesisUtterance(cleanText);
+        ut.rate = 1.05; ut.pitch = 1.1;
+        const voices = window.speechSynthesis.getVoices();
+        const femaleVoice = voices.find((v) => v.lang.startsWith("en") && (v.name.includes("Female") || v.name.includes("Samantha") || v.name.includes("Victoria") || v.name.includes("Zira") || v.name.includes("Google US English")));
+        if (femaleVoice) ut.voice = femaleVoice;
+        window.speechSynthesis.speak(ut);
+      }
+    }
+  }, [messages, running, autoVoice]);
   const addFiles = async (files: FileList | File[] | null) => {
     const list = Array.from(files || []).filter((f) => f.type.startsWith("image/"));
     if (!list.length) return;
@@ -151,6 +170,10 @@ export function ChatPanel({ scope = "app", onOpenKeys, draft, setDraft, selectio
               <input ref={fileRef} type="file" accept="image/*" multiple hidden data-testid="input-attach" onChange={(e) => { addFiles(e.target.files); e.target.value = ""; }} />
               <button data-testid="button-attach" aria-label="Attach image" title="Attach a screenshot or reference" onClick={() => fileRef.current?.click()}
                 className="grid h-8 w-8 place-items-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"><ImagePlus className="h-4 w-4" /></button>
+              <button data-testid="button-auto-voice" aria-label={autoVoice ? "Disable voice output" : "Enable voice output"} title={autoVoice ? "Kuro-chan will speak replies (Active)" : "Kuro-chan speaks replies"} onClick={() => { setAutoVoice((v) => !v); if (autoVoice && "speechSynthesis" in window) window.speechSynthesis.cancel(); }}
+                className={`grid h-8 w-8 place-items-center rounded-full transition-colors ${autoVoice ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}>
+                {autoVoice ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
+              </button>
               <button data-testid="button-mic" aria-label={dict.listening ? "Stop listening" : "Speak"} title="Speak instead of typing" onClick={dict.toggle}
                 className={`relative grid h-8 w-8 place-items-center rounded-full transition-colors ${dict.listening ? "bg-[hsl(var(--ember))] text-white" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}>
                 {dict.listening && <span className="absolute inset-0 animate-ping rounded-full bg-[hsl(var(--ember))]/40" />}
