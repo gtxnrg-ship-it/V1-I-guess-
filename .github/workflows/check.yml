@@ -15,3 +15,5 @@ jobs:
       - run: npm test
       - run: npx tsc --noEmit
       - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - run: npm run e2e
