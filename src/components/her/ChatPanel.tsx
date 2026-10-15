@@ -160,7 +160,7 @@ export function ChatPanel({ scope = "app", onOpenKeys, draft, setDraft, selectio
         <div role="status" aria-live="polite" className="absolute right-4 top-4 z-50 pointer-events-none" aria-label={running ? "Kuro-chan is thinking" : dict.listening ? "Listening" : "Kuro-chan is speaking"}>
           <HerOrb size={32} state={running ? "thinking" : dict.listening ? "listening" : "speaking"} className="her-orb-glow" />
         </div>
-      )
+      )}
       <div ref={scroller} onScroll={(e) => { const el = e.currentTarget; stick.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80; }}
         className="her-scroll min-h-0 flex-1 overflow-y-auto">
         {isEmpty ? (
