@@ -1,227 +1,153 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 interface OrbProps {
   size?: number;
   className?: string;
-  /** "idle" = slow breathing | "thinking" = faster spin | "speaking" = pulse */
-  state?: "idle" | "thinking" | "speaking";
+  /** The orb changes its light and movement to reflect what Kuro-chan is doing. */
+  state?: "idle" | "thinking" | "speaking" | "listening";
 }
+
+type Particle = { angle: number; radius: number; speed: number; size: number; alpha: number; hue: number };
 
 export function KuroMark({ size = 52, className = "", state = "idle" }: OrbProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const frameRef = useRef<number>(0);
-  const timeRef  = useRef<number>(0);
-  const reducedMotion = typeof window !== "undefined"
-    ? window.matchMedia("(prefers-reduced-motion: reduce)").matches
-    : false;
+  const timeRef = useRef<number>(0);
+  const [reducedMotion, setReducedMotion] = useState(() =>
+    typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches
+  );
+
+  useEffect(() => {
+    const query = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const update = () => setReducedMotion(query.matches);
+    update();
+    query.addEventListener?.("change", update);
+    return () => query.removeEventListener?.("change", update);
+  }, []);
 
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
+    const ctx = canvas?.getContext("2d");
+    if (!canvas || !ctx) return;
 
-    const dpr = window.devicePixelRatio || 1;
-    canvas.width  = size * dpr;
-    canvas.height = size * dpr;
-    ctx.scale(dpr, dpr);
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    canvas.width = Math.round(size * dpr);
+    canvas.height = Math.round(size * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
     const cx = size / 2;
     const cy = size / 2;
-    const r  = size * 0.38;
-
-    // Particles
-    const PARTICLE_COUNT = reducedMotion ? 0 : 18;
-    const particles = Array.from({ length: PARTICLE_COUNT }, () => ({
-      angle: Math.random() * Math.PI * 2,
-      radius: r * (0.55 + Math.random() * 0.6),
-      speed:  0.003 + Math.random() * 0.006,
-      size:   0.8 + Math.random() * 1.8,
-      alpha:  0.2 + Math.random() * 0.5,
-      color:  Math.random() > 0.5 ? "#00F0FF" : "#7B2CBF",
+    const r = size * 0.31;
+    const particles: Particle[] = Array.from({ length: reducedMotion ? 0 : 16 }, (_, i) => ({
+      angle: (Math.PI * 2 * i) / 16 + Math.random() * 0.3,
+      radius: r * (1.18 + Math.random() * 0.52),
+      speed: 0.08 + Math.random() * 0.12,
+      size: Math.max(0.7, size * (0.012 + Math.random() * 0.012)),
+      alpha: 0.28 + Math.random() * 0.42,
+      hue: Math.random() > 0.55 ? 188 : 258,
     }));
 
-    let blinkT = 0;
-    let nextBlink = 3 + Math.random() * 4;
+    let previous = 0;
+    let elapsed = 0;
+    let disposed = false;
+    const motionScale = state === "thinking" ? 1.65 : state === "speaking" ? 1.25 : state === "listening" ? 0.72 : 1;
+    const colors = state === "listening"
+      ? { a: "#75f3ff", b: "#52b9ff", c: "#a6fff4" }
+      : state === "speaking"
+        ? { a: "#9beaff", b: "#9c8cff", c: "#e4f7ff" }
+        : state === "thinking"
+          ? { a: "#7deaff", b: "#9b83ff", c: "#c7c2ff" }
+          : { a: "#83eff5", b: "#827cff", c: "#d6fbff" };
 
-    function draw(timestamp: number) {
-      if (!ctx) return;
-      const dt = (timestamp - timeRef.current) / 1000;
-      timeRef.current = timestamp;
-      const t = timestamp / 1000;
+    const draw = (timestamp: number) => {
+      if (disposed) return;
+      const dt = previous ? Math.min((timestamp - previous) / 1000, 0.05) : 0;
+      previous = timestamp;
+      elapsed += dt * motionScale;
+      const t = elapsed;
       ctx.clearRect(0, 0, size, size);
 
-      // Speed factor by state
-      const speedMul = state === "thinking" ? 3 : state === "speaking" ? 1.8 : 1;
+      // A soft ambient halo — no face, eyes, mouth, or sharp silhouette.
+      const pulse = reducedMotion ? 1 : 1 + Math.sin(t * (state === "listening" ? 2.8 : 1.35)) * 0.045;
+      const halo = ctx.createRadialGradient(cx, cy, r * 0.25, cx, cy, r * 2.15 * pulse);
+      halo.addColorStop(0, state === "listening" ? "rgba(79,226,255,0.24)" : "rgba(111,133,255,0.19)");
+      halo.addColorStop(0.52, "rgba(92,105,255,0.08)");
+      halo.addColorStop(1, "rgba(4,8,22,0)");
+      ctx.fillStyle = halo;
+      ctx.fillRect(0, 0, size, size);
 
-      // ── Outer glow rings ─────────────────────────────────────────
-      if (!reducedMotion) {
-        const ringScales = [1.55, 1.38, 1.2];
-        const ringAlphas = [0.06, 0.1, 0.16];
-        ringScales.forEach((rs, i) => {
-          const pulse = Math.sin(t * 0.8 * speedMul + i * 1.1) * 0.04;
-          const grad = ctx.createRadialGradient(cx, cy, r * 0.7, cx, cy, r * (rs + pulse));
-          grad.addColorStop(0, `rgba(0,240,255,${ringAlphas[i]})`);
-          grad.addColorStop(0.5, `rgba(123,44,191,${ringAlphas[i] * 0.6})`);
-          grad.addColorStop(1, "rgba(0,0,0,0)");
-          ctx.beginPath();
-          ctx.arc(cx, cy, r * (rs + pulse), 0, Math.PI * 2);
-          ctx.fillStyle = grad;
-          ctx.fill();
-        });
+      const coreR = r * pulse;
+      const gx = cx + Math.cos(t * 0.72) * r * 0.26;
+      const gy = cy + Math.sin(t * 0.61) * r * 0.23;
+      const core = ctx.createRadialGradient(gx - coreR * 0.25, gy - coreR * 0.3, coreR * 0.04, cx, cy, coreR * 1.35);
+      core.addColorStop(0, colors.c);
+      core.addColorStop(0.28, colors.a);
+      core.addColorStop(0.66, colors.b);
+      core.addColorStop(1, "#20254f");
+      ctx.beginPath();
+      ctx.arc(cx, cy, coreR, 0, Math.PI * 2);
+      ctx.fillStyle = core;
+      ctx.fill();
+
+      // Slow, translucent currents make the core feel fluid instead of mechanical.
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(cx, cy, coreR * 0.985, 0, Math.PI * 2);
+      ctx.clip();
+      for (let i = 0; i < 3; i++) {
+        const drift = reducedMotion ? 0 : t * (0.24 + i * 0.09) * (i % 2 ? -1 : 1);
+        const bx = cx + Math.cos(drift + i * 2.1) * coreR * 0.38;
+        const by = cy + Math.sin(drift * 0.85 + i * 1.7) * coreR * 0.34;
+        const blobR = coreR * (0.52 + i * 0.06);
+        const fluid = ctx.createRadialGradient(bx, by, 0, bx, by, blobR);
+        fluid.addColorStop(0, i === 1 ? "rgba(255,255,255,0.26)" : "rgba(91,246,255,0.17)");
+        fluid.addColorStop(1, "rgba(120,110,255,0)");
+        ctx.fillStyle = fluid;
+        ctx.fillRect(cx - coreR, cy - coreR, coreR * 2, coreR * 2);
       }
+      ctx.restore();
 
-      // ── Main orb body ─────────────────────────────────────────────
-      const breathe = reducedMotion ? 0 : Math.sin(t * 0.9 * speedMul) * r * 0.025;
-      const orbR = r + breathe;
-
-      // Rotating mesh gradient (two layers)
-      const angle1 = t * 0.15 * speedMul;
-      const angle2 = t * 0.22 * speedMul + Math.PI;
-
-      // Layer 1: violet → deep blue
-      const g1 = ctx.createRadialGradient(
-        cx + Math.cos(angle1) * r * 0.3, cy + Math.sin(angle1) * r * 0.3, 0,
-        cx, cy, orbR * 1.1
-      );
-      g1.addColorStop(0, "#4B1E85");
-      g1.addColorStop(0.5, "#1B1736");
-      g1.addColorStop(1, "#030308");
+      // A fine rim gives the orb definition without the harsh neon outline.
       ctx.beginPath();
-      ctx.arc(cx, cy, orbR, 0, Math.PI * 2);
-      ctx.fillStyle = g1;
-      ctx.fill();
-
-      // Layer 2: cyan shimmer overlay
-      const g2 = ctx.createRadialGradient(
-        cx + Math.cos(angle2) * r * 0.35, cy + Math.sin(angle2) * r * 0.25, 0,
-        cx, cy, orbR
-      );
-      g2.addColorStop(0, "rgba(0,240,255,0.18)");
-      g2.addColorStop(0.4, "rgba(0,119,255,0.08)");
-      g2.addColorStop(1, "rgba(0,0,0,0)");
-      ctx.beginPath();
-      ctx.arc(cx, cy, orbR, 0, Math.PI * 2);
-      ctx.fillStyle = g2;
-      ctx.fill();
-
-      // Rim light
-      const rim = ctx.createLinearGradient(cx - orbR, cy - orbR, cx + orbR, cy + orbR);
-      rim.addColorStop(0, "rgba(0,240,255,0.22)");
-      rim.addColorStop(0.5, "rgba(255,255,255,0)");
-      rim.addColorStop(1, "rgba(123,44,191,0.15)");
-      ctx.beginPath();
-      ctx.arc(cx, cy, orbR, 0, Math.PI * 2);
-      ctx.strokeStyle = rim;
-      ctx.lineWidth = 1.2;
+      ctx.arc(cx, cy, coreR, 0, Math.PI * 2);
+      ctx.strokeStyle = "rgba(206,248,255,0.46)";
+      ctx.lineWidth = Math.max(0.65, size * 0.012);
       ctx.stroke();
 
-      // ── Cat ears ─────────────────────────────────────────────────
-      const earGrad = ctx.createLinearGradient(cx, cy - orbR, cx, cy - orbR * 1.6);
-      earGrad.addColorStop(0, "#4B1E85");
-      earGrad.addColorStop(1, "#7B2CBF");
-
-      // Left ear
-      ctx.beginPath();
-      ctx.moveTo(cx - orbR * 0.52, cy - orbR * 0.75);
-      ctx.lineTo(cx - orbR * 0.78, cy - orbR * 1.4);
-      ctx.lineTo(cx - orbR * 0.18, cy - orbR * 0.92);
-      ctx.closePath();
-      ctx.fillStyle = earGrad;
-      ctx.fill();
-      // Left ear inner
-      const innerEar = ctx.createLinearGradient(cx, cy, cx, cy - orbR * 1.5);
-      innerEar.addColorStop(0, "rgba(0,240,255,0.3)");
-      innerEar.addColorStop(1, "rgba(0,240,255,0.05)");
-      ctx.beginPath();
-      ctx.moveTo(cx - orbR * 0.52, cy - orbR * 0.82);
-      ctx.lineTo(cx - orbR * 0.7, cy - orbR * 1.25);
-      ctx.lineTo(cx - orbR * 0.28, cy - orbR * 0.92);
-      ctx.closePath();
-      ctx.fillStyle = innerEar;
-      ctx.fill();
-
-      // Right ear
-      ctx.beginPath();
-      ctx.moveTo(cx + orbR * 0.52, cy - orbR * 0.75);
-      ctx.lineTo(cx + orbR * 0.78, cy - orbR * 1.4);
-      ctx.lineTo(cx + orbR * 0.18, cy - orbR * 0.92);
-      ctx.closePath();
-      ctx.fillStyle = earGrad;
-      ctx.fill();
-      ctx.beginPath();
-      ctx.moveTo(cx + orbR * 0.52, cy - orbR * 0.82);
-      ctx.lineTo(cx + orbR * 0.7, cy - orbR * 1.25);
-      ctx.lineTo(cx + orbR * 0.28, cy - orbR * 0.92);
-      ctx.closePath();
-      ctx.fillStyle = innerEar;
-      ctx.fill();
-
-      // ── Eyes with blinking ───────────────────────────────────────
-      blinkT += dt;
-      if (blinkT > nextBlink && !reducedMotion) {
-        blinkT = 0;
-        nextBlink = 3 + Math.random() * 5;
-      }
-      const blinkPhase = blinkT < 0.15 ? blinkT / 0.15 : blinkT < 0.3 ? 1 - (blinkT - 0.15) / 0.15 : 0;
-      const eyeScaleY = reducedMotion ? 1 : 1 - blinkPhase * 0.92;
-
-      const eyeY  = cy + orbR * 0.02;
-      const eyeX1 = cx - orbR * 0.32;
-      const eyeX2 = cx + orbR * 0.32;
-      const eyeRx = orbR * 0.13;
-      const eyeRy = orbR * 0.1 * eyeScaleY;
-
-      [eyeX1, eyeX2].forEach(ex => {
-        // Glow
-        const eyeGlow = ctx.createRadialGradient(ex, eyeY, 0, ex, eyeY, eyeRx * 2.5);
-        eyeGlow.addColorStop(0, "rgba(0,240,255,0.4)");
-        eyeGlow.addColorStop(1, "rgba(0,0,0,0)");
-        ctx.beginPath();
-        ctx.ellipse(ex, eyeY, eyeRx * 2, eyeRy * 2.5, 0, 0, Math.PI * 2);
-        ctx.fillStyle = eyeGlow;
-        ctx.fill();
-        // Core
-        ctx.beginPath();
-        ctx.ellipse(ex, eyeY, eyeRx, eyeRy, 0, 0, Math.PI * 2);
-        ctx.fillStyle = "#00F0FF";
-        ctx.fill();
-        // Pupil
-        ctx.beginPath();
-        ctx.ellipse(ex, eyeY, eyeRx * 0.45, eyeRy * 0.6, 0, 0, Math.PI * 2);
-        ctx.fillStyle = "#030308";
-        ctx.fill();
-      });
-
-      // ── Mouth (small curved smile, always visible) ───────────────
-      const mouthY = cy + orbR * 0.45;
-      ctx.beginPath();
-      ctx.moveTo(cx - orbR * 0.22, mouthY);
-      ctx.quadraticCurveTo(cx, mouthY + orbR * 0.12, cx + orbR * 0.22, mouthY);
-      ctx.strokeStyle = "rgba(255,51,102,0.7)";
-      ctx.lineWidth = orbR * 0.065;
-      ctx.lineCap = "round";
-      ctx.stroke();
-
-      // ── Particles ────────────────────────────────────────────────
-      particles.forEach(p => {
-        p.angle += p.speed * speedMul * (reducedMotion ? 0 : 1);
-        const px = cx + Math.cos(p.angle) * p.radius;
-        const py = cy + Math.sin(p.angle) * p.radius;
-        const a  = p.alpha * (0.6 + Math.sin(t * 2 + p.angle) * 0.4);
+      // Floating motes orbit outside the core; thinking adds a little energy.
+      particles.forEach((p, i) => {
+        if (!reducedMotion) p.angle += p.speed * dt * (state === "thinking" ? 1.8 : 1);
+        const wobble = reducedMotion ? 0 : Math.sin(t * 0.8 + i) * r * 0.045;
+        const px = cx + Math.cos(p.angle) * (p.radius + wobble);
+        const py = cy + Math.sin(p.angle) * (p.radius + wobble);
+        const alpha = p.alpha * (reducedMotion ? 1 : 0.75 + Math.sin(t * 1.7 + i) * 0.25);
         ctx.beginPath();
         ctx.arc(px, py, p.size, 0, Math.PI * 2);
-        ctx.fillStyle = p.color === "#00F0FF"
-          ? `rgba(0,240,255,${a})`
-          : `rgba(123,44,191,${a})`;
+        ctx.fillStyle = p.hue < 200 ? `rgba(116,235,255,${alpha})` : `rgba(174,151,255,${alpha})`;
         ctx.fill();
       });
 
-      frameRef.current = requestAnimationFrame(draw);
-    }
+      // Reduced-motion users get one clean, still render rather than a hidden RAF loop.
+      if (!reducedMotion && !document.hidden) frameRef.current = requestAnimationFrame(draw);
+    };
 
-    frameRef.current = requestAnimationFrame(draw);
-    return () => cancelAnimationFrame(frameRef.current);
+    const start = () => {
+      cancelAnimationFrame(frameRef.current);
+      previous = 0;
+      frameRef.current = requestAnimationFrame(draw);
+    };
+    const onVisibility = () => {
+      if (document.hidden) cancelAnimationFrame(frameRef.current);
+      else if (!reducedMotion) start();
+    };
+
+    start();
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      disposed = true;
+      cancelAnimationFrame(frameRef.current);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
   }, [size, state, reducedMotion]);
 
   return (
@@ -229,10 +155,9 @@ export function KuroMark({ size = 52, className = "", state = "idle" }: OrbProps
       ref={canvasRef}
       width={size}
       height={size}
-      style={{ width: size, height: size }}
+      style={{ width: size, height: size, display: "block" }}
       className={className}
-      aria-label="Kuro-chan"
-      role="img"
+      aria-hidden="true"
     />
   );
 }
