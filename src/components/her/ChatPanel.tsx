@@ -31,7 +31,7 @@ export function ChatPanel({ scope = "app", onOpenKeys, draft, setDraft, selectio
   const messages: Message[] = st.messages[pid] || [];
   const running = st.busy;
   const [images, setImages] = useState<Img[]>([]);
-  const [autoVoice, setAutoVoice] = useState(false);
+  const [autoVoice, setAutoVoice] = useState(true);
   const prevRunning = useRef(running);
   const fileRef = useRef<HTMLInputElement>(null);
   const dict = useDictation(draft, setDraft, (m) => { haptic("error"); toast({ title: "Voice input", description: m }); });
@@ -117,6 +117,16 @@ export function ChatPanel({ scope = "app", onOpenKeys, draft, setDraft, selectio
             <p className="mt-3 max-w-[370px] text-[14px] leading-relaxed text-muted-foreground">
               {scope === "self" ? "Tell me what to change. I'll plan it, build it into my own code, and ship it to GitHub." : "Describe what you want to create. I'll plan, research, build, and test it with you, right here."}
             </p>
+            <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
+              <button type="button" onClick={() => { setAutoVoice(true); if (!dict.listening) dict.toggle(); }}
+                className="inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-[12.5px] font-medium text-primary-foreground hover:opacity-90">
+                <Mic className="h-3.5 w-3.5" /> Talk to Kuro-chan
+              </button>
+              <button type="button" onClick={() => { setAutoVoice(true); setDraft("Build me a polished SaaS dashboard with auth and billing."); }}
+                className="inline-flex items-center gap-2 rounded-full border border-border bg-background px-4 py-2 text-[12.5px] font-medium text-foreground hover:bg-muted">
+                <Sparkles className="h-3.5 w-3.5" /> Try a complex prompt
+              </button>
+            </div>
             <div className="mt-7 grid w-full max-w-[460px] gap-2 sm:grid-cols-2">
               {(scope === "self" ? SELF_SUGGESTIONS : SUGGESTIONS).map((s) => (
                 <button key={s} data-testid="button-suggestion" onClick={() => { haptic("medium"); send(s); }}
@@ -175,7 +185,7 @@ export function ChatPanel({ scope = "app", onOpenKeys, draft, setDraft, selectio
             className="block w-full resize-none bg-transparent px-4 pb-1 pt-3.5 text-[15px] leading-relaxed outline-none placeholder:text-muted-foreground/70"
           />
           <div className="flex items-center gap-2 px-2.5 pb-2.5 pt-1">
-            <span className="pl-1.5 text-[11.5px] text-muted-foreground/80">{running ? "Working…" : "She talks it through before building."}</span>
+            <span className="pl-1.5 text-[11.5px] text-muted-foreground/80">{running ? "Working…" : autoVoice ? "Voice on — she speaks replies back." : "Type or talk — either works."}</span>
             <div className="ml-auto flex items-center gap-1">
               <input ref={fileRef} type="file" accept="image/*" multiple hidden data-testid="input-attach" onChange={(e) => { addFiles(e.target.files); e.target.value = ""; }} />
               <button data-testid="button-attach" aria-label="Attach image" title="Attach a screenshot or reference" onClick={() => fileRef.current?.click()}

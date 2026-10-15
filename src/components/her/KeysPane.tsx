@@ -35,6 +35,20 @@ function usageFor(keyId: string) {
   return { today, weekCalls: week.reduce((a, x) => a + x.calls, 0), weekTokens: week.reduce((a, x) => a + x.input + x.output, 0) };
 }
 
+function usageSummary() {
+  const usage = db.getState().settings.usage;
+  const windowDays = Object.keys(usage).sort().slice(-7);
+  const totals = windowDays.reduce((acc, day) => {
+    for (const rec of Object.values(usage[day] || {})) {
+      acc.calls += rec.calls;
+      acc.tokens += rec.input + rec.output;
+      acc.errors += rec.errors;
+    }
+    return acc;
+  }, { calls: 0, tokens: 0, errors: 0 });
+  return totals;
+}
+
 export function KeysPane() {
   const { toast } = useToast();
   const st = db.useKuro();
@@ -57,10 +71,25 @@ export function KeysPane() {
   };
   const aiKeys = st.keys.filter((k) => k.kind === "ai");
   const allModels = aiKeys.flatMap((k) => k.models.map((m) => ({ keyId: k.id, keyLabel: k.label, model: m.id, name: m.name || prettyModel(m.id) })));
+  const activity = usageSummary();
 
   return (
     <div className="her-scroll h-full overflow-y-auto">
       <div className="mx-auto max-w-[680px] space-y-8 px-4 py-6 md:px-6">
+        <section className="rounded-2xl border border-border bg-card p-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[hsl(var(--cyan))]">Recent usage</div>
+              <div className="mt-1 text-[15px] font-semibold text-foreground">{activity.calls} calls · {fmtTokens(activity.tokens)} tokens</div>
+            </div>
+            <div className="flex flex-wrap gap-2 text-[12px] text-muted-foreground">
+              <span className="rounded-md bg-muted px-2 py-1 tabular-nums">{activity.errors} limit/error hits</span>
+              <span className="rounded-md bg-muted px-2 py-1 tabular-nums">7-day window</span>
+            </div>
+          </div>
+          <p className="mt-2 text-[12.5px] text-muted-foreground">This is a local usage snapshot, so it helps you keep an eye on recent API activity and rate-limit events without guessing at your bill.</p>
+        </section>
+
         <section>
           <h2 className="text-[15px] font-semibold">Paste any API key</h2>
           <p className="mt-1 text-[13.5px] text-muted-foreground">Gemini, Claude, OpenRouter, Groq, Grok, Mistral, Cerebras, Hugging Face, GitHub tokens, Tavily and more. I detect the provider, find every model it unlocks, and rank them.</p>
@@ -322,25 +351,33 @@ function AppSettings() {
   );
 }
 
-/** Settings: storage info, and (only after the hidden sequence) the admin email door. */
+/** Settings: normal user controls live here, while the hidden admin door stays tucked behind an explicit advanced toggle. */
 function HiddenSettings() {
   const { toast } = useToast();
   const st = db.useKuro();
   const [email, setEmail] = useState("");
   const [checking, setChecking] = useState(false);
+  const [showAdvanced, setShowAdvanced] = useState(false);
   const s = st.settings;
   return (
     <section data-testid="section-settings">
-      <h2 className="text-[15px] font-semibold">Settings</h2>
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="text-[15px] font-semibold">Settings</h2>
+        {(s.eggFound || s.adminUnlocked) && (
+          <button type="button" onClick={() => setShowAdvanced((v) => !v)} className="rounded-lg border border-border bg-background px-2.5 py-1 text-[12px] text-muted-foreground hover:bg-muted hover:text-foreground">
+            {showAdvanced ? "Hide advanced" : "Advanced"}
+          </button>
+        )}
+      </div>
       <div className="mt-3 space-y-3 rounded-2xl border border-border bg-card p-3.5 text-[13px]">
         <div className="flex items-start gap-2.5 text-muted-foreground">
           <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0" />
           <span>{st.persistent ? "Your keys, apps and chats are saved in this browser only. Nothing goes to any server of mine; AI calls go straight from your device to the provider." : "This browser blocked storage, so nothing is saved after you close the page. Open Kuro-chan in its own tab to keep your work."}</span>
         </div>
-        {s.eggFound && !s.adminUnlocked && (
+        {showAdvanced && s.eggFound && !s.adminUnlocked && (
           <div className="her-rise rounded-xl border border-[hsl(var(--ember))]/40 bg-[hsl(var(--ember))]/5 p-3" data-testid="admin-door">
             <div className="flex items-center gap-2 font-medium"><Lock className="h-4 w-4 text-[hsl(var(--ember))]" /> Admin access</div>
-            <p className="mt-1 text-[12.5px] text-muted-foreground">Enter the admin email to unlock the admin panel.</p>
+            <p className="mt-1 text-[12.5px] text-muted-foreground">This extra door is hidden on purpose. Open Advanced in Settings to reveal it, then enter the admin email.</p>
             <div className="mt-2 flex gap-2">
               <input data-testid="input-admin-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="name@example.com" autoComplete="off"
                 onKeyDown={(e) => e.key === "Enter" && (e.currentTarget.nextElementSibling as HTMLButtonElement)?.click()}
@@ -356,7 +393,7 @@ function HiddenSettings() {
             </div>
           </div>
         )}
-        {s.adminUnlocked && (
+        {showAdvanced && s.adminUnlocked && (
           <div className="flex items-center gap-2 text-muted-foreground">
             <Unlock className="h-4 w-4 shrink-0 text-emerald-600" /><span className="flex-1">Admin unlocked for {s.adminEmail}</span>
             <button data-testid="button-admin-lock" onClick={lockAdmin} className="rounded-lg border border-border px-2.5 py-1 text-[12px] hover:bg-muted">Lock</button>

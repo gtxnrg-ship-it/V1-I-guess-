@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Moon, Sun, Github, Eye, Code2, KeyRound, ShieldCheck, Lock, MessageCircle, Loader2, Rocket, ExternalLink, ChevronDown, Check, Plus, Pencil, Trash2, Download } from "lucide-react";
+import { Moon, Sun, Github, Eye, Code2, KeyRound, MessageCircle, Loader2, Rocket, ExternalLink, ChevronDown, Check, Plus, Pencil, Trash2, Download, Globe } from "lucide-react";
 import { downloadZip } from "@/lib/zip";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Split } from "@/components/her/Split";
@@ -14,21 +14,19 @@ import { ChatPanel } from "@/components/her/ChatPanel";
 import { PreviewPane } from "@/components/her/PreviewPane";
 import { CodeBrowser } from "@/components/her/CodePane";
 import { KeysPane } from "@/components/her/KeysPane";
-import { AdminPane } from "@/components/her/AdminPane";
 import * as db from "@/engine/db";
 import * as agents from "@/engine/agents";
 import { GH } from "@/engine/github";
 import { shipFiles, syncDependencies } from "@/engine/ship";
-import { starterFiles } from "@/engine/template";
+import { starterFiles, type StarterVariant } from "@/engine/template";
 import { errMsg } from "@/lib/kuro";
 import type { PickedElement } from "@/engine/types";
 
-type Tab = "preview" | "code" | "keys" | "admin";
+type Tab = "preview" | "code" | "keys";
 const TABS: { id: Tab; label: string; icon: any }[] = [
   { id: "preview", label: "Preview", icon: Eye },
   { id: "code", label: "Code", icon: Code2 },
   { id: "keys", label: "Keys", icon: KeyRound },
-  { id: "admin", label: "Admin", icon: ShieldCheck },
 ];
 
 export default function Studio() {
@@ -42,33 +40,28 @@ export default function Studio() {
   const [draft, setDraft] = useState("");
   const [publishOpen, setPublishOpen] = useState(false);
   const running = st.busy;
-  const unlocked = !!st.settings.adminUnlocked;
 
   const openTab = useCallback((t: Tab) => { setTab(t); setMobileTab(t); }, []);
   const onPick = useCallback((el: PickedElement) => { setSelection(el); setMobileTab("chat"); }, []);
-  useEffect(() => { if (!unlocked && tab === "admin") setTab("preview"); }, [unlocked]); // eslint-disable-line
 
   const chat = <ChatPanel scope="app" onOpenKeys={() => openTab("keys")} draft={draft} setDraft={setDraft}
     selection={selection} clearSelection={() => setSelection(null)} onSent={() => isMobile && setMobileTab("chat")} />;
   const pane = (t: Tab) => t === "preview" ? <PreviewPane onFix={(m) => { setMobileTab("chat"); agents.send(m); }} onPick={onPick} />
     : t === "code" ? <CodeBrowser files={p.files} />
-    : t === "keys" ? <KeysPane />
-    : <AdminPane onOpenKeys={() => openTab("keys")} />;
+    : <KeysPane />;
 
   const aiKeys = st.keys.filter((k) => k.kind === "ai").length;
-  const tabBtn = (t: (typeof TABS)[number], active: boolean, onClick: () => void, mobile = false) => {
-    const locked = t.id === "admin" && !unlocked;
-    const Icon = locked ? Lock : t.icon;
-    return (
-      <button key={t.id} data-testid={`tab-${mobile ? "mobile-" : ""}${t.id}`} onClick={onClick} aria-disabled={locked}
-        title={locked ? "Locked" : undefined}
-        className={mobile
-          ? `studio-mobile-tab relative flex flex-1 flex-col items-center gap-0.5 py-2 text-[10.5px] font-medium ${locked ? "opacity-35" : ""} ${active ? "is-active text-foreground" : "text-muted-foreground"}`
-          : `studio-workspace-tab inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[13px] font-medium transition-colors ${locked ? "opacity-35" : ""} ${active ? "is-active text-foreground" : "text-muted-foreground hover:text-foreground"}`}>
-        <Icon className={mobile ? "h-[18px] w-[18px]" : "h-3.5 w-3.5"} />{t.label}
-      </button>
-    );
-  };
+  const repoParts = (p.repo || "").split("/").filter(Boolean);
+  const siteUrl = repoParts.length === 2 ? `https://${repoParts[0].toLowerCase()}.github.io/${repoParts[1]}/` : "";
+  const apkUrl = repoParts.length === 2 ? `https://github.com/${p.repo}/releases/latest/download/app-debug.apk` : "";
+  const tabBtn = (t: (typeof TABS)[number], active: boolean, onClick: () => void, mobile = false) => (
+    <button key={t.id} data-testid={`tab-${mobile ? "mobile-" : ""}${t.id}`} onClick={onClick}
+      className={mobile
+        ? `studio-mobile-tab relative flex flex-1 flex-col items-center gap-0.5 py-2 text-[10.5px] font-medium ${active ? "is-active text-foreground" : "text-muted-foreground"}`
+        : `studio-workspace-tab inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[13px] font-medium transition-colors ${active ? "is-active text-foreground" : "text-muted-foreground hover:text-foreground"}`}>
+      <t.icon className={mobile ? "h-[18px] w-[18px]" : "h-3.5 w-3.5"} />{t.label}
+    </button>
+  );
 
   return (
     <div className="studio-shell relative isolate flex h-[100dvh] flex-col overflow-hidden bg-background text-foreground">
@@ -89,6 +82,16 @@ export default function Studio() {
           <button data-testid="button-export-zip" title="Download project as ZIP" onClick={() => downloadZip(p.files, (p.name || "app").toLowerCase().replace(/[^a-z0-9]+/g, "-"))} className="studio-zip-button hidden items-center gap-1.5 px-2.5 py-1.5 text-[13px] font-medium text-muted-foreground hover:bg-muted hover:text-foreground min-[480px]:inline-flex">
             <Download className="h-3.5 w-3.5" /><span>ZIP</span>
           </button>
+          {siteUrl && (
+            <a href={siteUrl} target="_blank" rel="noopener noreferrer" className="studio-status hidden items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-[12px] text-muted-foreground hover:bg-muted hover:text-foreground sm:inline-flex">
+              <Globe className="h-3.5 w-3.5" /> Website
+            </a>
+          )}
+          {apkUrl && (
+            <a href={apkUrl} target="_blank" rel="noopener noreferrer" className="studio-status hidden items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-[12px] text-muted-foreground hover:bg-muted hover:text-foreground sm:inline-flex">
+              <Download className="h-3.5 w-3.5" /> APK
+            </a>
+          )}
           <button data-testid="button-publish" onClick={() => setPublishOpen(true)} className="studio-publish inline-flex items-center gap-1.5 px-3.5 py-2 text-[13px] font-semibold text-primary-foreground hover:opacity-90">
             <Github className="h-3.5 w-3.5" /><span className="hidden min-[400px]:inline">Publish</span>
           </button>
@@ -129,10 +132,17 @@ function ProjectMenu({ busy, onSwitched }: { busy: boolean; onSwitched: () => vo
   const st = db.useKuro();
   const [dialog, setDialog] = useState<null | "new" | "rename" | "import">(null);
   const [importing, setImporting] = useState(false);
+  const [preset, setPreset] = useState<StarterVariant>("starter");
   const { toast } = useToast();
   const [name, setName] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
   const current = db.project();
+  const starterChoices: { id: StarterVariant; label: string; blurb: string }[] = [
+    { id: "starter", label: "Starter", blurb: "A blank canvas" },
+    { id: "paytm", label: "Paytm-style wallet", blurb: "Fast wallet + payments" },
+    { id: "saas", label: "SaaS dashboard", blurb: "Normal business app" },
+    { id: "ops", label: "Ops command center", blurb: "Very dense operations UI" },
+  ];
   const doImport = async () => {
     const spec = name.trim().replace(/^https?:\/\/github\.com\//, "").replace(/\.git$/, "").replace(/\/$/, "");
     const tok = db.keyOf("github");
@@ -153,7 +163,7 @@ function ProjectMenu({ busy, onSwitched }: { busy: boolean; onSwitched: () => vo
   const save = () => {
     if (dialog === "import") { doImport(); return; }
     const n = name.trim(); if (!n) return;
-    if (dialog === "new") db.createProject(n, starterFiles(n));
+    if (dialog === "new") db.createProject(n, starterFiles(n, preset));
     else db.updateProject(current.id, { name: n });
     setDialog(null); onSwitched();
   };
@@ -176,7 +186,7 @@ function ProjectMenu({ busy, onSwitched }: { busy: boolean; onSwitched: () => vo
             </DropdownMenuItem>
           ))}
           <DropdownMenuSeparator />
-          <DropdownMenuItem data-testid="menu-project-new" disabled={busy} onSelect={() => { setName(""); setDialog("new"); }} className="gap-2"><Plus className="h-3.5 w-3.5" /> New app</DropdownMenuItem>
+          <DropdownMenuItem data-testid="menu-project-new" disabled={busy} onSelect={() => { setName(""); setPreset("starter"); setDialog("new"); }} className="gap-2"><Plus className="h-3.5 w-3.5" /> New app</DropdownMenuItem>
           <DropdownMenuItem data-testid="menu-project-import" disabled={busy} onSelect={() => { setName(""); setDialog("import"); }} className="gap-2"><Github className="h-3.5 w-3.5" /> Import from GitHub</DropdownMenuItem>
           <DropdownMenuItem data-testid="menu-project-rename" onSelect={() => { setName(current?.name || ""); setDialog("rename"); }} className="gap-2"><Pencil className="h-3.5 w-3.5" /> Rename</DropdownMenuItem>
           {st.projects.length > 1 && (
@@ -186,7 +196,7 @@ function ProjectMenu({ busy, onSwitched }: { busy: boolean; onSwitched: () => vo
           )}
         </DropdownMenuContent>
       </DropdownMenu>
-      <Dialog open={!!dialog} onOpenChange={(o) => !o && setDialog(null)}>
+      <Dialog open={!!dialog} onOpenChange={(o) => { if (!o) { setDialog(null); setPreset("starter"); } }}>
         <DialogContent className="sm:max-w-[380px]">
           <DialogHeader>
             <DialogTitle className="text-[17px]">{dialog === "new" ? "New app" : dialog === "import" ? "Import from GitHub" : "Rename app"}</DialogTitle>
@@ -194,6 +204,16 @@ function ProjectMenu({ busy, onSwitched }: { busy: boolean; onSwitched: () => vo
           </DialogHeader>
           <input data-testid="input-project-name" autoFocus value={name} onChange={(e) => setName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && save()} placeholder={dialog === "import" ? "github.com/you/your-repo" : "e.g. Habit Tracker"}
             className="h-10 w-full rounded-lg border border-border bg-background px-3 text-[14px] outline-none focus:border-foreground/30" />
+          {dialog === "new" && (
+            <div className="mt-3 grid gap-2">
+              {starterChoices.map((choice) => (
+                <button key={choice.id} type="button" onClick={() => setPreset(choice.id)} className={`rounded-xl border px-3 py-2 text-left ${preset === choice.id ? "border-primary bg-primary/5" : "border-border bg-background"}`}>
+                  <div className="text-[13px] font-medium">{choice.label}</div>
+                  <div className="text-[11.5px] text-muted-foreground">{choice.blurb}</div>
+                </button>
+              ))}
+            </div>
+          )}
           <button data-testid="button-project-save" disabled={!name.trim() || importing} onClick={save} className="w-full rounded-lg bg-primary py-2.5 text-[14px] font-medium text-primary-foreground disabled:opacity-50">
             {importing ? "Importing…" : dialog === "new" ? "Create app" : dialog === "import" ? "Import" : "Save"}
           </button>
