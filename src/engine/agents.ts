@@ -325,9 +325,10 @@ Size: ${brief.size}${pickedText(picked)}`;
   if (scope === "app") {
     let fixAttempts = 0;
     for (let round = 0; round < 3; round++) {
-      if (++fixAttempts >= HARD_CAP_FIX) {
-        throw new Error("HARD_CAP_FIX: Same error three times. I'm stopping — something deeper is broken.");
+      if (fixAttempts >= HARD_CAP_FIX) {
+        throw new Error("HARD_CAP_FIX: The app still has errors after the allowed fix attempts. I'm stopping — something deeper is broken.");
       }
+      fixAttempts++;
       const b = await buildPreview(ws.all(), ws.env());
       const errs = b.errors.length ? b.errors : await runtimeCheck(b.html);
       db.set({ runtimeErrors: b.errors.length ? [] : errs });
