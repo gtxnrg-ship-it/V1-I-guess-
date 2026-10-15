@@ -331,7 +331,7 @@ Size: ${brief.size}${pickedText(picked)}`;
       fixAttempts++;
       const b = await buildPreview(ws.all(), ws.env());
       const errs = b.errors.length ? b.errors : await runtimeCheck(b.html);
-      db.set({ runtimeErrors: b.errors.length ? [] : errs });
+      db.set({ runtimeErrors: errs });
       if (!errs.length) break;
       await loop({
         live, agent: "Builder", label: "Fixing errors", role: "code", system: builderSystem, ws,

@@ -167,7 +167,7 @@ export function ChatPanel({ scope = "app", onOpenKeys, draft, setDraft, selectio
               onClick={() => { setAutoVoice(true); dict.toggle(); }}
               className="rounded-full outline-none transition-transform hover:scale-[1.03] focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-4"
             >
-              <HerOrb size={76} className="her-orb-glow" state={dict.listening ? "thinking" : running ? "thinking" : "idle"} />
+              <HerOrb size={76} className="her-orb-glow" state={dict.listening ? "listening" : running ? "thinking" : "idle"} />
             </button>
             <div className="studio-welcome-label mt-4"><Sparkles className="h-3 w-3" /> {scope === "self" ? "SELF-IMPROVEMENT MODE" : "YOUR AI BUILD PARTNER"}</div>
             <h1 className="studio-welcome-title mt-4 font-display text-[36px] font-semibold leading-[1.08]">{scope === "self" ? "Let's make me\nbetter." : <>An idea becomes<br /><span>a product.</span></>}</h1>
