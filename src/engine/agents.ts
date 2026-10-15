@@ -434,7 +434,11 @@ async function run(live: Live, fn: () => Promise<void>) {
   catch (e: any) {
     if (!controller.signal.aborted) {
       const err = e as LLMError;
-      live.data.error = err?.message === "NO_KEYS" ? "NO_KEYS" : String(err?.message || e);
+      const message = String(err?.message || e);
+      live.data.error = err?.message === "NO_KEYS" ? "NO_KEYS"
+        : /missing turnstile token/i.test(message)
+          ? "The free starter model requires a browser verification token that isn't available here. Connect an AI key in Keys and try again. Provider detail: Missing Turnstile token."
+          : message;
     }
   } finally {
     for (const b of live.data.blocks) {

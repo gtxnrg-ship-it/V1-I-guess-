@@ -28,6 +28,6 @@ npm install
 npm run dev
 ```
 
-To run the browser smoke test, install Playwright Chromium with `npx playwright install chromium`, then run `npm run e2e`.
+To run the browser smoke test, install Playwright Chromium with `npx playwright install chromium`, then run `npm run e2e`. The live builder test is `npm run e2e:builder`; it needs an AI key in the test browser, or an available free starter model. Set `E2E_AI_KEY` in your local environment to have the test enter a provider key into the app's Keys panel; keep it private and never commit it.
 
 Built with Vite, React, TypeScript, Tailwind and esbuild-wasm (the in-browser bundler that runs the live preview).
