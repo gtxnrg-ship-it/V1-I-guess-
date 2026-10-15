@@ -11,9 +11,47 @@ export function shipFiles(appName: string, repoFull: string) {
     ".github/workflows/deploy-website.yml": PAGES_WORKFLOW,
     ".github/workflows/build-android.yml": APK_WORKFLOW,
     "capacitor.config.json": JSON.stringify({ appId: `com.kurochan.${slug}`, appName, webDir: "dist" }, null, 2) + "\n",
+    "public/download.html": downloadPageHtml(appName, repoFull, apk),
   };
-  const readme = `\n## Try it\n\n- **Live website:** ${site}\n- **Android APK:** [Download the latest build](${apk})\n\n![Website](https://github.com/${owner}/${repo}/actions/workflows/deploy-website.yml/badge.svg) ![Android](https://github.com/${owner}/${repo}/actions/workflows/build-android.yml/badge.svg)\n\nBuilt and shipped by Kuro-chan.\n`;
+  const readme = `\n## Try it\n\n- **Live website:** ${site}\n- **Android APK:** [Download page](${site}download.html) (or [GitHub Releases](${apk}))\n\n![Website](https://github.com/${owner}/${repo}/actions/workflows/deploy-website.yml/badge.svg) ![Android](https://github.com/${owner}/${repo}/actions/workflows/build-android.yml/badge.svg)\n\nBuilt and shipped by Kuro-chan.\n`;
   return { files, readme, site, apk };
+}
+
+function downloadPageHtml(appName: string, repoFull: string, apkUrl: string): string {
+  return `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Download ${appName} for Android</title>
+<style>
+  :root { color-scheme: light dark; }
+  body { margin: 0; min-height: 100dvh; display: grid; place-items: center; font: 15px/1.55 system-ui, -apple-system, Segoe UI, Roboto, sans-serif; background: #faf8f5; color: #1a1817; }
+  @media (prefers-color-scheme: dark) { body { background: #0f0e0d; color: #ece8e3; } .card { background: #181614 !important; border-color: #2a2725 !important; } .muted { color: #a19a93 !important; } }
+  .card { width: min(92vw, 420px); padding: 28px 24px; border: 1px solid #e6e1db; border-radius: 22px; background: #fff; text-align: center; }
+  h1 { font-size: 24px; margin: 14px 0 6px; letter-spacing: -0.01em; }
+  .muted { color: #6b645e; font-size: 14px; }
+  .btn { display: block; margin: 20px 0 10px; padding: 14px; border-radius: 14px; background: #1a1817; color: #fff; text-decoration: none; font-weight: 600; }
+  @media (prefers-color-scheme: dark) { .btn { background: #ece8e3; color: #1a1817; } }
+  .alt { font-size: 13px; color: inherit; }
+  ol { text-align: left; padding-left: 20px; font-size: 14px; }
+  li { margin: 6px 0; }
+</style>
+</head>
+<body>
+  <main class="card">
+    <h1>${appName} for Android</h1>
+    <p class="muted">Built with Kuro-chan</p>
+    <a class="btn" href="${apkUrl}">Download the APK</a>
+    <a class="alt" href="https://github.com/${repoFull}/releases/latest" target="_blank" rel="noopener">Or get it from GitHub Releases</a>
+    <ol>
+      <li>Tap Download. If Chrome warns that the file may be harmful, tap <b>Download anyway</b>.</li>
+      <li>Open the file. When Android asks, allow <b>Install unknown apps</b> for your browser.</li>
+      <li>Tap Install, then open ${appName}.</li>
+    </ol>
+    <p class="muted"><a class="alt" href="./">Or open the web app</a></p>
+  </main>
+</body>
+</html>\n`;
 }
 
 export const PAGES_WORKFLOW = `name: Deploy website

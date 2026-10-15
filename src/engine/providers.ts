@@ -156,13 +156,28 @@ export async function detect(rawKey: string, opts: { baseUrl?: string } = {}): P
     }
   }
   const byPrefix = PROVIDERS.find((p) => p.prefixes?.some((x) => key.startsWith(x)));
-  const order = byPrefix ? [byPrefix] : PROVIDERS.filter((p) => !p.prefixes || p.id === "openai");
-  const errors: string[] = [];
-  for (const p of order) {
-    const r = await listModels(p, key);
-    if (r.ok && r.models.length) return { kind: "ai", provider: p.id, name: p.name, base: p.base, models: await enrich(p, r.models) };
-    if (byPrefix) errors.push(r.error || "rejected");
+  if (byPrefix) {
+    const r = await listModels(byPrefix, key);
+    if (r.ok && r.models.length) return { kind: "ai", provider: byPrefix.id, name: byPrefix.name, base: byPrefix.base, models: await enrich(byPrefix, r.models) };
+    throw new Error(`${byPrefix.name} rejected this key: ${r.error || "rejected"}`);
   }
-  if (byPrefix) throw new Error(`${byPrefix.name} rejected this key: ${errors[0]}`);
+
+  // Probe all AI providers concurrently when no prefix matches
+  const errors: string[] = [];
+  const results = await Promise.allSettled(
+    PROVIDERS.map(async (p) => {
+      const r = await listModels(p, key);
+      if (r.ok && r.models.length) return { provider: p, models: r.models };
+      throw new Error(`${p.name}: ${r.error || "rejected"}`);
+    })
+  );
+
+  for (const res of results) {
+    if (res.status === "fulfilled") {
+      const { provider, models } = res.value;
+      return { kind: "ai", provider: provider.id, name: provider.name, base: provider.base, models: await enrich(provider, models) };
+    }
+  }
+
   return { kind: "secret", provider: "secret", name: "Unknown key", models: [], note: "I couldn't match it to an AI provider, so I saved it as a named secret." };
 }
