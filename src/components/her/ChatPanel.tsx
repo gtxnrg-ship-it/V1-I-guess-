@@ -73,12 +73,17 @@ export function ChatPanel({ scope = "app", onOpenKeys, draft, setDraft, selectio
   const lastId = messages[messages.length - 1]?.id;
 
   return (
-    <div className="flex h-full min-h-0 flex-col">
+    <div className="relative flex h-full min-h-0 flex-col">
+      {!isEmpty && running && (
+        <div className="absolute right-4 top-4 z-50 pointer-events-none">
+          <HerOrb size={32} state="thinking" className="her-orb-glow" />
+        </div>
+      )}
       <div ref={scroller} onScroll={(e) => { const el = e.currentTarget; stick.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80; }}
         className="her-scroll min-h-0 flex-1 overflow-y-auto">
         {isEmpty ? (
           <div className="flex min-h-full flex-col items-center justify-center px-6 py-10 text-center">
-            <HerOrb size={52} className="her-orb-glow" />
+            <HerOrb size={72} className="her-orb-glow" state={running ? "thinking" : "idle"} />
             <h1 className="mt-6 font-display text-[34px] leading-none tracking-tight">{scope === "self" ? "Let's improve me." : "Hi, I'm Kuro-chan."}</h1>
             <p className="mt-3 max-w-[360px] text-[14px] leading-relaxed text-muted-foreground">
               {scope === "self" ? "Tell me what to change about myself. I'll talk it through, research, build it on my own code, and ship it to my GitHub repo." : "Tell me what you want. I'll ask a few questions, research it, then my team builds it here. Websites, apps, games."}
