@@ -48,9 +48,13 @@ export class GH {
   async me(): Promise<string> { return (await this.ok("GET", "/user")).login; }
 
   async ensureRepo(spec: string, opts: { private?: boolean; description?: string } = {}) {
+    const clean = spec.trim().replace(/^https?:\/\/github\.com\//, "").replace(/\.git$/, "").replace(/\/$/, "");
+    const parts = clean.split("/").filter(Boolean);
+    if (!clean || parts.length > 2 || parts.length === 0) {
+      throw new Error("Enter a repository name or a GitHub repository URL such as owner/repository. Branch, file, and extra path segments are not supported.");
+    }
     const login = await this.me();
-    const clean = spec.replace(/^https?:\/\/github\.com\//, "").replace(/\.git$/, "").replace(/\/$/, "");
-    const [owner, name] = clean.includes("/") ? clean.split("/") : [login, clean];
+    const [owner, name] = parts.length === 2 ? parts : [login, parts[0]];
     let r = await this.req("GET", `/repos/${owner}/${name}`);
     let created = false;
     if (r.status === 404) {
