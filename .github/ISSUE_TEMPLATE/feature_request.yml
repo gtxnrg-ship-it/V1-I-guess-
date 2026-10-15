@@ -1,0 +1,35 @@
+name: Feature request
+description: Suggest an improvement or new capability
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem should this solve?
+      description: Tell us who is affected and what is difficult today.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What would you like to happen?
+      description: Describe the ideal behavior. Screenshots or sketches are welcome.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Is there a workaround or another tool that handles this well?
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Main benefit
+      options:
+        - Reliability / safety
+        - GitHub workflow
+        - Free / local AI
+        - UI / accessibility
+        - New integration
+        - Other
