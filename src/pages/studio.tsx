@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
-import { Moon, Sun, Github, Eye, Code2, KeyRound, ShieldCheck, Lock, MessageCircle, Loader2, Rocket, ExternalLink, ChevronDown, Check, Plus, Pencil, Trash2 } from "lucide-react";
+import { Moon, Sun, Github, Eye, Code2, KeyRound, ShieldCheck, Lock, MessageCircle, Loader2, Rocket, ExternalLink, ChevronDown, Check, Plus, Pencil, Trash2, Download } from "lucide-react";
+import { downloadZip } from "@/lib/zip";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Split } from "@/components/her/Split";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -82,6 +83,9 @@ export default function Studio() {
           </button>
           <button data-testid="button-theme" aria-label="Toggle theme" onClick={toggle} className="grid h-8 w-8 place-items-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground">
             {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+          </button>
+          <button data-testid="button-export-zip" title="Download project as ZIP" onClick={() => downloadZip(p.files, (p.name || "app").toLowerCase().replace(/[^a-z0-9]+/g, "-"))} className="hidden items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-[13px] font-medium text-muted-foreground hover:bg-muted hover:text-foreground min-[480px]:inline-flex">
+            <Download className="h-3.5 w-3.5" /><span>ZIP</span>
           </button>
           <button data-testid="button-publish" onClick={() => setPublishOpen(true)} className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-[13px] font-medium text-primary-foreground hover:opacity-90">
             <Github className="h-3.5 w-3.5" /><span className="hidden min-[400px]:inline">Publish</span>

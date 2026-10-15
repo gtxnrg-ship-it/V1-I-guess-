@@ -91,7 +91,7 @@ function persist(...keys: string[]) {
   saveTimer = setTimeout(flush, 350);
 }
 export function flush() {
-  saveTimer = null;
+  if (saveTimer) { clearTimeout(saveTimer); saveTimer = null; }
   const ks = [...dirty]; dirty.clear();
   for (const k of ks) {
     if (k === "keys") idbPut(k, state.keys);
@@ -101,7 +101,10 @@ export function flush() {
     else if (k.startsWith("snapshots:")) idbPut(k, state.snapshots[k.slice(10)] || []);
   }
 }
-if (typeof window !== "undefined") window.addEventListener("pagehide", flush);
+if (typeof window !== "undefined") {
+  window.addEventListener("pagehide", flush);
+  window.addEventListener("beforeunload", flush);
+}
 
 export function set(patch: Partial<State>) { state = { ...state, ...patch }; emit(); }
 
