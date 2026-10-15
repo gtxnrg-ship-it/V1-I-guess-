@@ -336,40 +336,99 @@ function UserBubble({ m }: { m: Message }) {
   );
 }
 
-/** Browser speech-to-text (Chrome/Edge/Android). Appends to the draft as you talk. */
+/** Browser speech-to-text. Android browsers may end recognition after silence, so
+ * state is tied to the actual recognizer lifecycle rather than the button click. */
 function useDictation(draft: string, setDraft: (s: string) => void, onError: (m: string) => void) {
   const [listening, setListening] = useState(false);
+  const listeningRef = useRef(false);
   const rec = useRef<any>(null);
   const base = useRef("");
   const draftRef = useRef(draft);
+  const stoppedByUser = useRef(false);
   draftRef.current = draft;
+
   const resetBase = () => { base.current = ""; };
-  const stop = () => { resetBase(); try { rec.current?.stop(); } catch { /* */ } };
-  const toggle = () => {
-    if (listening) return stop();
-    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (!SR) return onError("This browser doesn't support voice input. Try Chrome, or use your keyboard's mic button.");
-    const r = new SR();
-    r.lang = navigator.language || "en-US";
-    r.continuous = true; r.interimResults = true;
+  const stop = () => {
+    stoppedByUser.current = true;
+    listeningRef.current = false;
+    setListening(false);
+    const active = rec.current;
+    rec.current = null;
+    try { active?.stop(); } catch { /* Recognition may already have ended. */ }
+    resetBase();
+  };
+  const start = () => {
+    if (listeningRef.current || rec.current) return;
+    const SR = typeof window !== "undefined"
+      ? (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+      : null;
+    if (!SR) {
+      onError("This browser doesn't support voice input. Open Kuro-chan in Chrome, or use your keyboard's microphone.");
+      return;
+    }
+    stoppedByUser.current = false;
     base.current = draftRef.current ? draftRef.current.replace(/\s*$/, " ") : "";
-    let finalText = "";
+    const r = new SR();
+    rec.current = r;
+    r.lang = navigator.language || "en-US";
+    r.continuous = true;
+    r.interimResults = true;
+    r.maxAlternatives = 1;
+    r.onstart = () => {
+      if (rec.current !== r) return;
+      listeningRef.current = true;
+      setListening(true);
+    };
     r.onresult = (e: any) => {
-      let interim = "";
-      for (let i = e.resultIndex; i < e.results.length; i++) {
-        const t = e.results[i][0].transcript;
-        if (e.results[i].isFinal) finalText += t; else interim += t;
-      }
-      setDraft((base.current + finalText + interim).replace(/\s+/g, " ").trimStart());
+      if (rec.current !== r) return;
+      // Rebuild from the recognizer's current result list. Accumulating final
+      // strings across events can duplicate words on mobile implementations.
+      const transcript = Array.from(e.results as ArrayLike<any>)
+        .map((result: any) => result?.[0]?.transcript || "")
+        .join(" ");
+      setDraft((base.current + transcript).replace(/\s+/g, " ").trimStart());
     };
     r.onerror = (e: any) => {
+      if (rec.current !== r) return;
+      listeningRef.current = false;
       setListening(false);
-      if (e.error === "not-allowed" || e.error === "service-not-allowed") onError("Microphone access was blocked. Open the app in its own tab and allow the mic.");
-      else if (e.error !== "aborted" && e.error !== "no-speech") onError(`Voice input stopped (${e.error}).`);
+      if (e.error === "not-allowed" || e.error === "service-not-allowed") {
+        onError("Microphone permission was denied. Open the site in its own browser tab, tap the site controls, and allow Microphone access.");
+      } else if (e.error === "audio-capture") {
+        onError("No microphone was found. Check your phone's microphone permission and make sure another app isn't holding it.");
+      } else if (e.error === "network") {
+        onError("Speech recognition couldn't reach its speech service. Check your connection and try again.");
+      } else if (e.error !== "aborted" && e.error !== "no-speech") {
+        onError("Voice input stopped (" + e.error + "). Tap the microphone to try again.");
+      }
     };
-    r.onend = () => setListening(false);
-    try { r.start(); rec.current = r; setListening(true); } catch { onError("Couldn't start the microphone."); }
+    r.onend = () => {
+      if (rec.current !== r) return;
+      rec.current = null;
+      listeningRef.current = false;
+      setListening(false);
+      // Mobile speech recognition often ends after a pause. Keep the transcript,
+      // but never silently restart the microphone without another user action.
+      if (!stoppedByUser.current) resetBase();
+    };
+    try {
+      r.start();
+    } catch {
+      rec.current = null;
+      listeningRef.current = false;
+      setListening(false);
+      onError("Couldn't start the microphone. Check browser permissions, then tap the mic again.");
+    }
   };
-  useEffect(() => () => stop(), []); // eslint-disable-line
-  return { listening, toggle, stop, resetBase };
+  const toggle = () => {
+    if (listeningRef.current || rec.current) stop();
+    else start();
+  };
+  useEffect(() => () => {
+    stoppedByUser.current = true;
+    listeningRef.current = false;
+    try { rec.current?.abort(); } catch { /* */ }
+    rec.current = null;
+  }, []);
+  return { listening, toggle, start, stop, resetBase };
 }
