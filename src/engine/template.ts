@@ -449,7 +449,47 @@ export function Section({ className, ...p }: HTMLAttributes<HTMLElement>) {
 }
 `,
     "src/App.tsx": appForVariant(name, variant),
-    "README.md": `# ${name}\n\nBuilt with Kuro-chan.\n`,
-    ".gitignore": "node_modules\ndist\nandroid\n",
+    "README.md": `# ${name}
+
+Built with [Kuro-chan](https://github.com/gtxnrg-ship-it/V1-I-guess-), an open-source AI app builder.
+
+## Getting started
+
+Requirements: Node.js 20 or newer and npm.
+
+\`\`\`bash
+npm install
+npm run dev
+\`\`\`
+
+Create and preview a production build:
+
+\`\`\`bash
+npm run build
+npm run preview
+\`\`\`
+
+## Project structure
+
+- \`src/App.tsx\` — main application UI and flows
+- \`src/components/\` — reusable UI components
+- \`src/index.css\` — global styles and design tokens
+- \`index.html\` — app document and metadata
+
+## Configuration and secrets
+
+If this app needs environment variables, document their names and purpose here and provide safe example values in \`.env.example\`. Keep real local values in \`.env\`; it is ignored by Git. Never commit API keys, access tokens, passwords, or server-side secrets.
+
+Variables prefixed with \`VITE_\` are bundled into browser code and must be treated as public. Never put privileged service-role keys or private server credentials in them.
+
+## Build and deploy
+
+This project builds to static files in \`dist/\`. Use Kuro-chan's Publish action to create or update a GitHub repository and configure the website / Android build workflows. Add app-specific backend setup, database schema, and deployment instructions here if your project uses external services.
+
+## About
+
+Generated with Kuro-chan. Customize this README to describe the app's purpose, main features, setup steps, and any external services it requires.
+`,
+    ".gitignore": "node_modules\ndist\nandroid\n.env\n.env.*\n!.env.example\n*.local\n",
   };
 }

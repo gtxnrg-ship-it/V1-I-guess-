@@ -1,6 +1,7 @@
 import { parseArgs } from "../engine/llm";
 import { createZipBlob } from "./zip";
 import { importedPackages } from "../engine/package-imports";
+import { starterFiles } from "../engine/template";
 
 function assert(condition: boolean, message: string) {
   if (!condition) {
@@ -61,6 +62,20 @@ function testImportedPackages() {
   console.log("✓ importedPackages tests passed");
 }
 
+function testGeneratedReadme() {
+  console.log("Testing generated project README...");
+
+  const files = starterFiles("Demo App");
+  assert(files["README.md"].includes("# Demo App"), "README should include the generated app name");
+  assert(files["README.md"].includes("npm run dev"), "README should explain local development");
+  assert(files["README.md"].includes("npm run build"), "README should explain production builds");
+  assert(files["README.md"].includes("VITE_"), "README should warn that VITE variables are public");
+  assert(files[".gitignore"].includes(".env"), "Generated projects should ignore local environment files");
+  assert(files[".gitignore"].includes("!.env.example"), "Generated projects should allow safe env examples");
+
+  console.log("✓ generated README tests passed");
+}
+
 function testCreateZipBlob() {
   console.log("Testing createZipBlob...");
 
@@ -81,6 +96,7 @@ function runAll() {
   try {
     testParseArgs();
     testImportedPackages();
+    testGeneratedReadme();
     testCreateZipBlob();
     console.log("\nALL TESTS PASSED SUCCESSFULLY!");
   } catch (err) {

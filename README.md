@@ -101,11 +101,14 @@ Vite prints a local development URL in your terminal. Open that URL in your brow
 ### Validate a change
 
 ```bash
+npm test
 npm run check
 npm run build
+npx playwright install chromium
+npm run e2e
 ```
 
-The GitHub Actions check workflow runs TypeScript validation and a production build on pull requests. The project is evolving; see the workflow files under [`.github/workflows/`](.github/workflows/).
+The regression suite checks deterministic logic, and the Playwright smoke tests open the real studio in Chromium at desktop and phone-sized viewports. The GitHub Actions Check workflow runs the regression suite, TypeScript validation, production build, and browser smoke tests on pull requests. The project is evolving; see the workflow files under [`.github/workflows/`](.github/workflows/).
 
 ## Open source and license
 
