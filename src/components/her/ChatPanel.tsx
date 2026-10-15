@@ -33,6 +33,8 @@ export function ChatPanel({ scope = "app", onOpenKeys, draft, setDraft, selectio
   const [images, setImages] = useState<Img[]>([]);
   const [autoVoice, setAutoVoice] = useState(true);
   const prevRunning = useRef(running);
+  const lastSpokenId = useRef("");
+  const speechAvailable = typeof window !== "undefined" && "speechSynthesis" in window;
   const fileRef = useRef<HTMLInputElement>(null);
   const dict = useDictation(draft, setDraft, (m) => { haptic("error"); toast({ title: "Voice input", description: m }); });
 
@@ -46,7 +48,8 @@ export function ChatPanel({ scope = "app", onOpenKeys, draft, setDraft, selectio
   useEffect(() => {
     if (!autoVoice || running || !messages.length) return;
     const last = messages[messages.length - 1];
-    if (last && last.role === "assistant" && last.data?.done) {
+    if (last && last.role === "assistant" && last.data?.done && lastSpokenId.current !== last.id) {
+      lastSpokenId.current = last.id;
       const text = (last.data.blocks || []).filter((b: any) => b.type === "text").map((b: any) => b.text).join("\n\n");
       const cleanText = text.replace(/```[\s\S]*?```/g, "Code block omitted.").replace(/[*_#`[\]()]/g, "");
       if (cleanText.trim() && "speechSynthesis" in window) {
@@ -60,6 +63,9 @@ export function ChatPanel({ scope = "app", onOpenKeys, draft, setDraft, selectio
       }
     }
   }, [messages, running, autoVoice]);
+  useEffect(() => () => {
+    if ("speechSynthesis" in window) window.speechSynthesis.cancel();
+  }, []);
   const addFiles = async (files: FileList | File[] | null) => {
     const list = Array.from(files || []).filter((f) => f.type.startsWith("image/"));
     if (!list.length) return;
@@ -185,13 +191,16 @@ export function ChatPanel({ scope = "app", onOpenKeys, draft, setDraft, selectio
             className="block w-full resize-none bg-transparent px-4 pb-1 pt-3.5 text-[15px] leading-relaxed outline-none placeholder:text-muted-foreground/70"
           />
           <div className="flex items-center gap-2 px-2.5 pb-2.5 pt-1">
-            <span className="pl-1.5 text-[11.5px] text-muted-foreground/80">{running ? "Working…" : autoVoice ? "Voice on — she speaks replies back." : "Type or talk — either works."}</span>
+            <span className="pl-1.5 text-[11.5px] text-muted-foreground/80">{running ? "Working…" : !speechAvailable ? "Voice output isn’t supported in this browser." : autoVoice ? "Voice on — she speaks replies back." : "Type or talk — either works."}</span>
             <div className="ml-auto flex items-center gap-1">
               <input ref={fileRef} type="file" accept="image/*" multiple hidden data-testid="input-attach" onChange={(e) => { addFiles(e.target.files); e.target.value = ""; }} />
               <button data-testid="button-attach" aria-label="Attach image" title="Attach a screenshot or reference" onClick={() => fileRef.current?.click()}
                 className="grid h-8 w-8 place-items-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"><ImagePlus className="h-4 w-4" /></button>
-              <button data-testid="button-auto-voice" aria-label={autoVoice ? "Disable voice output" : "Enable voice output"} title={autoVoice ? "Kuro-chan will speak replies (Active)" : "Kuro-chan speaks replies"} onClick={() => { setAutoVoice((v) => !v); if (autoVoice && "speechSynthesis" in window) window.speechSynthesis.cancel(); }}
-                className={`grid h-8 w-8 place-items-center rounded-full transition-colors ${autoVoice ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}>
+              <button data-testid="button-auto-voice" aria-label={speechAvailable ? autoVoice ? "Disable voice output" : "Enable voice output" : "Voice output unavailable"}
+                title={speechAvailable ? autoVoice ? "Kuro-chan will speak replies (Active)" : "Kuro-chan speaks replies" : "This browser does not support spoken replies"}
+                disabled={!speechAvailable}
+                onClick={() => { setAutoVoice((v) => !v); if (autoVoice && speechAvailable) window.speechSynthesis.cancel(); }}
+                className={`grid h-8 w-8 place-items-center rounded-full transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${autoVoice ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}>
                 {autoVoice ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
               </button>
               <button data-testid="button-mic" aria-label={dict.listening ? "Stop listening" : "Speak"} title="Speak instead of typing" onClick={dict.toggle}
