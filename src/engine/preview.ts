@@ -146,7 +146,9 @@ export function importedPackages(files: Record<string, string>): string[] {
   const set = new Set<string>();
   for (const [p, c] of Object.entries(files)) {
     if (!/\.(t|j)sx?$/.test(p)) continue;
-    for (const m of c.matchAll(/(?:import|export)\s[^'"]*?from\s*['"]([^'"]+)['"]|import\s*['"]([^'"]+)['"]|import\(\s*['"]([^'"]+)['"]\s*\)/g)) {
+    // Strip single-line and multi-line comments so commented-out code doesn't trigger package sync
+    const clean = c.replace(/\/\*[\s\S]*?\*\/|\/\/.*/g, "");
+    for (const m of clean.matchAll(/(?:import|export)\s[^'"]*?from\s*['"]([^'"]+)['"]|import\s*['"]([^'"]+)['"]|import\(\s*['"]([^'"]+)['"]\s*\)/g)) {
       const s = m[1] || m[2] || m[3];
       if (!s || s.startsWith(".") || s.startsWith("/") || s.startsWith("@/") || /^https?:/.test(s)) continue;
       set.add(s.startsWith("@") ? s.split("/").slice(0, 2).join("/") : s.split("/")[0]);

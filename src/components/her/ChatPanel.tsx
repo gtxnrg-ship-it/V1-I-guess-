@@ -65,6 +65,7 @@ export function ChatPanel({ scope = "app", onOpenKeys, draft, setDraft, selectio
     }
     stick.current = true;
     const sel = selection || null;
+    dict.resetBase();
     setDraft(""); setImages([]); clearSelection?.(); onSent?.();
     agents.send(text || "Here's an image.", { images, picked: sel, scope });
   };
@@ -194,7 +195,8 @@ function useDictation(draft: string, setDraft: (s: string) => void, onError: (m:
   const base = useRef("");
   const draftRef = useRef(draft);
   draftRef.current = draft;
-  const stop = () => { try { rec.current?.stop(); } catch { /* */ } };
+  const resetBase = () => { base.current = ""; };
+  const stop = () => { resetBase(); try { rec.current?.stop(); } catch { /* */ } };
   const toggle = () => {
     if (listening) return stop();
     const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
@@ -221,5 +223,5 @@ function useDictation(draft: string, setDraft: (s: string) => void, onError: (m:
     try { r.start(); rec.current = r; setListening(true); } catch { onError("Couldn't start the microphone."); }
   };
   useEffect(() => () => stop(), []); // eslint-disable-line
-  return { listening, toggle, stop };
+  return { listening, toggle, stop, resetBase };
 }
