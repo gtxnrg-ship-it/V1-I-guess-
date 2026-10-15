@@ -25,9 +25,11 @@ export async function addPluginKey(id: PluginId, raw: string) {
 
 export async function addKey(raw: string, opts: { label?: string; baseUrl?: string } = {}) {
   const secret = raw.trim();
-  if (!secret) throw new Error("Paste a key first.");
-  if (db.getState().keys.some((k) => k.secret === secret)) throw new Error("That key is already saved.");
-  const d = await detect(secret, { baseUrl: opts.baseUrl });
+  const baseUrl = opts.baseUrl?.trim().replace(/\/$/, "");
+  if (!secret && !baseUrl) throw new Error("Paste a key or enter an endpoint.");
+  if (secret && db.getState().keys.some((k) => k.secret === secret)) throw new Error("That key is already saved.");
+  if (!secret && db.getState().keys.some((k) => k.provider === "custom" && k.baseUrl?.replace(/\/$/, "") === baseUrl)) throw new Error("That endpoint is already connected.");
+  const d = await detect(secret, { baseUrl });
   const count = db.getState().keys.filter((k) => k.provider === d.provider).length;
   const rec: KeyRec = {
     id: db.uid(), label: opts.label || (count ? `${d.name} ${count + 1}` : d.name), kind: d.kind, provider: d.provider, baseUrl: d.provider === "custom" ? d.base : undefined,

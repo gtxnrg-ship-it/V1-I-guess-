@@ -101,7 +101,7 @@ export async function listModels(p: ProviderDef, key: string): Promise<{ ok: boo
       if (!r.ok) return { ok: false, models: [], error: r.json?.error?.message || `HTTP ${r.status}` };
       return { ok: true, models: (r.json.data || []).map((m: any) => m.id) };
     }
-    const r = await getJSON(`${p.base}/models`, { Authorization: `Bearer ${key}` });
+    const r = await getJSON(`${p.base}/models`, key ? { Authorization: `Bearer ${key}` } : {});
     if (!r.ok) return { ok: false, models: [], error: r.json?.error?.message || r.json?.message || `HTTP ${r.status}` };
     const arr = Array.isArray(r.json) ? r.json : r.json?.data || r.json?.models || [];
     return { ok: true, models: arr.map((m: any) => m.id || m.name).filter(Boolean) };

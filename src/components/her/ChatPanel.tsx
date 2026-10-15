@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { ArrowUp, Square, RotateCcw, ImagePlus, Mic, X, MousePointerClick, Volume2, VolumeX } from "lucide-react";
+import { ArrowUp, Square, RotateCcw, ImagePlus, Mic, X, MousePointerClick, Volume2, VolumeX, Sparkles } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { AssistantMessage } from "./AssistantMessage";
 import { HerOrb } from "./Logo";
@@ -101,7 +101,7 @@ export function ChatPanel({ scope = "app", onOpenKeys, draft, setDraft, selectio
   const lastId = messages[messages.length - 1]?.id;
 
   return (
-    <div className="relative flex h-full min-h-0 flex-col">
+    <div className="studio-chat-panel relative flex h-full min-h-0 flex-col">
       {!isEmpty && running && (
         <div className="absolute right-4 top-4 z-50 pointer-events-none">
           <HerOrb size={32} state="thinking" className="her-orb-glow" />
@@ -110,18 +110,19 @@ export function ChatPanel({ scope = "app", onOpenKeys, draft, setDraft, selectio
       <div ref={scroller} onScroll={(e) => { const el = e.currentTarget; stick.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80; }}
         className="her-scroll min-h-0 flex-1 overflow-y-auto">
         {isEmpty ? (
-          <div className="flex min-h-full flex-col items-center justify-center px-6 py-10 text-center">
-            <HerOrb size={72} className="her-orb-glow" state={running ? "thinking" : "idle"} />
-            <h1 className="mt-6 font-display text-[34px] leading-none tracking-tight">{scope === "self" ? "Let's improve me." : "Hi, I'm Kuro-chan."}</h1>
-            <p className="mt-3 max-w-[360px] text-[14px] leading-relaxed text-muted-foreground">
-              {scope === "self" ? "Tell me what to change about myself. I'll talk it through, research, build it on my own code, and ship it to my GitHub repo." : "Tell me what you want. I'll ask a few questions, research it, then my team builds it here. Websites, apps, games."}
+          <div className="studio-welcome flex min-h-full flex-col items-center justify-center px-6 py-10 text-center">
+            <HerOrb size={76} className="her-orb-glow" state={running ? "thinking" : "idle"} />
+            <div className="studio-welcome-label mt-4"><Sparkles className="h-3 w-3" /> {scope === "self" ? "SELF-IMPROVEMENT MODE" : "YOUR AI BUILD PARTNER"}</div>
+            <h1 className="studio-welcome-title mt-4 font-display text-[36px] font-semibold leading-[1.08]">{scope === "self" ? "Let's make me\nbetter." : <>An idea becomes<br /><span>a product.</span></>}</h1>
+            <p className="mt-3 max-w-[370px] text-[14px] leading-relaxed text-muted-foreground">
+              {scope === "self" ? "Tell me what to change. I'll plan it, build it into my own code, and ship it to GitHub." : "Describe what you want to create. I'll plan, research, build, and test it with you, right here."}
             </p>
-            <div className="mt-8 grid w-full max-w-[420px] gap-2">
+            <div className="mt-7 grid w-full max-w-[460px] gap-2 sm:grid-cols-2">
               {(scope === "self" ? SELF_SUGGESTIONS : SUGGESTIONS).map((s) => (
                 <button key={s} data-testid="button-suggestion" onClick={() => { haptic("medium"); send(s); }}
-                  className="group flex items-center gap-3 rounded-xl border border-border bg-card px-3.5 py-2.5 text-left text-[13.5px] transition-all hover:border-foreground/20 hover:shadow-sm">
+                  className="studio-suggestion group flex min-h-12 items-center gap-3 px-3.5 py-2.5 text-left text-[12.5px] transition-all">
                   <span className="flex-1">{s}</span>
-                  <ArrowUp className="h-3.5 w-3.5 rotate-45 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+                  <ArrowUp className="h-3.5 w-3.5 rotate-45 text-cyan-200/60 transition-transform group-hover:translate-x-0.5 group-hover:text-cyan-100" />
                 </button>
               ))}
             </div>
@@ -146,7 +147,7 @@ export function ChatPanel({ scope = "app", onOpenKeys, draft, setDraft, selectio
       <div className="px-3 pb-3 md:px-4 md:pb-4">
         <div
           onDragOver={(e) => e.preventDefault()} onDrop={(e) => { e.preventDefault(); addFiles(e.dataTransfer.files); }}
-          className="mx-auto max-w-[720px] rounded-2xl border border-border bg-card shadow-[0_2px_12px_-4px_rgba(0,0,0,0.08)] transition-colors focus-within:border-foreground/25">
+          className="studio-composer mx-auto max-w-[720px] rounded-2xl border bg-card transition-colors focus-within:border-foreground/25">
           {(selection || images.length > 0) && (
             <div className="flex flex-wrap items-center gap-2 px-3 pt-3">
               {selection && (

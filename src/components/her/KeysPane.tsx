@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { KeyRound, Eye, EyeOff, Loader2, Plus, RefreshCw, Trash2, ChevronDown, Code2, MessageCircle, Settings2, ShieldCheck, Database, Save, Telescope, Map as MapIcon, ScanEye, Sparkles, Lock, Unlock, ExternalLink } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { KeyRound, Eye, EyeOff, Loader2, Plus, RefreshCw, Trash2, ChevronDown, Code2, MessageCircle, Settings2, ShieldCheck, Database, Save, Telescope, Map as MapIcon, ScanEye, Sparkles, Lock, Unlock, ExternalLink, Download, Upload } from "lucide-react";
 import { SiGooglegemini, SiAnthropic, SiGithub, SiMistralai, SiHuggingface, SiNvidia, SiPerplexity, SiOpenrouter, SiX } from "react-icons/si";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
@@ -46,7 +46,7 @@ export function KeysPane() {
   const [busy, setBusy] = useState(false);
 
   const add = async () => {
-    if (!key.trim()) return;
+    if (!key.trim() && !base.trim()) return;
     setBusy(true);
     try {
       const { rec, note } = await addKey(key, { label: label.trim() || undefined, baseUrl: base.trim() || undefined });
@@ -75,17 +75,25 @@ export function KeysPane() {
             {adv && (
               <div className="mt-2 grid gap-2 sm:grid-cols-2">
                 <input data-testid="input-key-label" value={label} onChange={(e) => setLabel(e.target.value)} placeholder="Label (optional)" className="h-10 rounded-xl bg-muted px-3 text-[13px] outline-none" />
-                <input data-testid="input-key-base" value={base} onChange={(e) => setBase(e.target.value)} placeholder="Custom endpoint (OpenAI-compatible)" className="h-10 rounded-xl bg-muted px-3 font-mono text-[12px] outline-none placeholder:font-sans" />
+                <input data-testid="input-key-base" value={base} onChange={(e) => setBase(e.target.value)} placeholder="Endpoint URL (OpenAI-compatible)" className="h-10 rounded-xl bg-muted px-3 font-mono text-[12px] outline-none placeholder:font-sans" />
               </div>
             )}
             <div className="mt-3 flex items-center gap-2">
               <button onClick={() => setAdv((a) => !a)} className="inline-flex items-center gap-1 text-[12.5px] text-muted-foreground hover:text-foreground"><Settings2 className="h-3.5 w-3.5" />{adv ? "Hide options" : "Options"}</button>
               <span className="ml-auto hidden items-center gap-1 text-[12px] text-muted-foreground sm:inline-flex"><ShieldCheck className="h-3.5 w-3.5" /> Stays on this device</span>
-              <button data-testid="button-add-key" disabled={busy || !key.trim()} onClick={add}
+              <button data-testid="button-add-key" disabled={busy || (!key.trim() && !base.trim())} onClick={add}
                 className="ml-auto inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-primary px-3.5 py-2 text-[13px] font-medium text-primary-foreground hover:opacity-90 disabled:opacity-40 sm:ml-0">
-                {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />} Add key
+                {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />} {base.trim() && !key.trim() ? "Connect endpoint" : "Add key"}
               </button>
             </div>
+          </div>
+          <div className="mt-3 flex items-start gap-3 rounded-xl border border-border bg-card p-3">
+            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-muted"><Code2 className="h-4 w-4" /></span>
+            <div className="min-w-0 flex-1">
+              <div className="text-[13px] font-medium">Run a local model with Ollama</div>
+              <p className="mt-0.5 text-[12px] text-muted-foreground">Free to run on your own computer. Install <a className="underline underline-offset-2" href="https://ollama.com/download" target="_blank" rel="noopener noreferrer">Ollama</a>, download a model, then connect its OpenAI-compatible endpoint. Your browser may require Ollama to allow requests from this site.</p>
+            </div>
+            <button onClick={() => { setLabel("Ollama (local)"); setBase("http://localhost:11434/v1"); setAdv(true); }} className="shrink-0 rounded-lg border border-border px-2.5 py-1.5 text-[12px] hover:bg-muted">Connect</button>
           </div>
           {!aiKeys.length && (
             <div className="mt-3 grid gap-2 sm:grid-cols-2">
@@ -221,6 +229,7 @@ function AppSettings() {
   const { toast } = useToast();
   db.useKuro();
   const project = db.project();
+  const importInput = useRef<HTMLInputElement>(null);
   const [rows, setRows] = useState<{ k: string; v: string }[]>([]);
   useEffect(() => {
     const env = project?.env || {};
@@ -233,6 +242,45 @@ function AppSettings() {
     for (const r of rows) { const k = r.k.trim().toUpperCase(); if (k && r.v.trim()) env[k.startsWith("VITE_") ? k : `VITE_${k}`] = r.v.trim(); }
     db.updateProject(project.id, { env });
     toast({ title: "App settings saved", description: "The preview uses them right away. They're added when you publish too." });
+  };
+  const exportProject = () => {
+    const bundle = { format: "kuro-chan-project", version: 1, project: { name: project.name, files: project.files, env: project.env } };
+    const url = URL.createObjectURL(new Blob([JSON.stringify(bundle, null, 2)], { type: "application/json" }));
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${project.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "kuro-chan-project"}.json`;
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 0);
+  };
+  const importProject = async (file: File) => {
+    try {
+      const bundle = JSON.parse(await file.text());
+      const source = bundle?.project;
+      if (bundle?.format !== "kuro-chan-project" || bundle.version !== 1 || !source || typeof source.name !== "string" || !source.files || typeof source.files !== "object" || Array.isArray(source.files)) {
+        throw new Error("That file isn't a supported Kuro-chan project export.");
+      }
+      const files: Record<string, string> = {};
+      for (const [path, content] of Object.entries(source.files)) {
+        if (!path || path.startsWith("/") || path.includes("\\") || path.split("/").some((part) => !part || part === "." || part === "..") || ["__proto__", "constructor", "prototype"].includes(path) || typeof content !== "string") {
+          throw new Error("The export contains an invalid project file.");
+        }
+        files[path] = content;
+      }
+      if (!Object.keys(files).length) throw new Error("The export doesn't contain any project files.");
+      const env: Record<string, string> = {};
+      if (source.env != null) {
+        if (typeof source.env !== "object" || Array.isArray(source.env)) throw new Error("The export contains invalid app settings.");
+        for (const [name, value] of Object.entries(source.env)) {
+          if (!/^VITE_[A-Z0-9_]+$/.test(name) || typeof value !== "string") throw new Error("The export contains invalid app settings.");
+          env[name] = value;
+        }
+      }
+      const imported = db.createProject(`${source.name.slice(0, 80)} (imported)`, files);
+      db.updateProject(imported.id, { env });
+      toast({ title: "Project imported", description: `${imported.name} is ready to edit.` });
+    } catch (error) {
+      toast({ title: "Couldn't import project", description: error instanceof Error ? error.message : "Invalid project file.", variant: "destructive" });
+    }
   };
   return (
     <section>
@@ -258,6 +306,16 @@ function AppSettings() {
         <div className="flex items-center gap-2 pt-1">
           <button data-testid="button-env-add" onClick={() => setRows((rs) => [...rs, { k: "VITE_", v: "" }])} className="inline-flex items-center gap-1 rounded-lg border border-border px-2.5 py-1.5 text-[12.5px] hover:bg-muted"><Plus className="h-3 w-3" /> Add setting</button>
           <button data-testid="button-env-save" onClick={save} className="ml-auto inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-[12.5px] font-medium text-primary-foreground"><Save className="h-3 w-3" /> Save</button>
+        </div>
+        <div className="flex flex-wrap items-center gap-2 border-t border-border pt-3">
+          <button onClick={exportProject} className="inline-flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-[12.5px] hover:bg-muted"><Download className="h-3.5 w-3.5" /> Export project</button>
+          <button onClick={() => importInput.current?.click()} className="inline-flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-[12.5px] hover:bg-muted"><Upload className="h-3.5 w-3.5" /> Import project</button>
+          <input ref={importInput} type="file" accept="application/json,.json" className="hidden" onChange={(event) => {
+            const file = event.currentTarget.files?.[0];
+            if (file) void importProject(file);
+            event.currentTarget.value = "";
+          }} />
+          <span className="basis-full text-[11.5px] text-muted-foreground">Exports source files and app settings, but not API keys. Keep the file private if its settings are sensitive.</span>
         </div>
       </div>
     </section>
@@ -326,7 +384,8 @@ function KeyCard({ k }: { k: KeyRec }) {
             <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${k.status === "active" ? "bg-emerald-500" : "bg-rose-500"}`} title={k.statusMsg || k.status} />
           </div>
           <div className="mt-0.5 flex flex-wrap gap-x-2 text-[12px] text-muted-foreground">
-            <span className="font-mono">{k.hint}</span>
+            <span className="font-mono">{k.secret ? k.hint : "No API key"}</span>
+            {k.baseUrl && <span className="max-w-full truncate font-mono" title={k.baseUrl}>{k.baseUrl}</span>}
             {k.kind === "ai" && <span>· {k.models.length} models</span>}
             {k.login && <span>· @{k.login}</span>}
             {k.kind === "tool" && <span>· research</span>}

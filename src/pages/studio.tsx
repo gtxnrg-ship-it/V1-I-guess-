@@ -8,6 +8,7 @@ import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { HerOrb } from "@/components/her/Logo";
+import { GalaxyBackdrop } from "@/components/her/GalaxyBackdrop";
 import { useTheme } from "@/components/her/theme";
 import { ChatPanel } from "@/components/her/ChatPanel";
 import { PreviewPane } from "@/components/her/PreviewPane";
@@ -62,32 +63,33 @@ export default function Studio() {
       <button key={t.id} data-testid={`tab-${mobile ? "mobile-" : ""}${t.id}`} onClick={onClick} aria-disabled={locked}
         title={locked ? "Locked" : undefined}
         className={mobile
-          ? `relative flex flex-1 flex-col items-center gap-0.5 py-2 text-[10.5px] font-medium ${locked ? "opacity-35" : ""} ${active ? "text-foreground" : "text-muted-foreground"}`
-          : `inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[13px] font-medium transition-colors ${locked ? "opacity-35" : ""} ${active ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground"}`}>
+          ? `studio-mobile-tab relative flex flex-1 flex-col items-center gap-0.5 py-2 text-[10.5px] font-medium ${locked ? "opacity-35" : ""} ${active ? "is-active text-foreground" : "text-muted-foreground"}`
+          : `studio-workspace-tab inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[13px] font-medium transition-colors ${locked ? "opacity-35" : ""} ${active ? "is-active text-foreground" : "text-muted-foreground hover:text-foreground"}`}>
         <Icon className={mobile ? "h-[18px] w-[18px]" : "h-3.5 w-3.5"} />{t.label}
       </button>
     );
   };
 
   return (
-    <div className="flex h-[100dvh] flex-col bg-background text-foreground">
-      <header className="flex h-12 shrink-0 items-center gap-2 border-b border-border px-3 pt-[env(safe-area-inset-top)] md:px-4">
-        <HerOrb size={22} />
-        <span className="hidden font-display text-[19px] leading-none sm:inline">Kuro-chan</span>
-        <span className="mx-1 h-4 w-px bg-border" />
+    <div className="studio-shell relative isolate flex h-[100dvh] flex-col overflow-hidden bg-background text-foreground">
+      <GalaxyBackdrop />
+      <header className="studio-header relative z-10 flex h-14 shrink-0 items-center gap-2 px-3 pt-[env(safe-area-inset-top)] md:px-5">
+        <span className="studio-brand-mark"><HerOrb size={29} className="her-orb-glow" /></span>
+        <span className="hidden min-w-[112px] sm:block"><span className="block font-display text-[16px] font-semibold leading-tight">Kuro-chan</span><span className="studio-eyebrow">AI PRODUCT STUDIO</span></span>
+        <span className="mx-1 h-6 w-px bg-border/70" />
         <ProjectMenu busy={running} onSwitched={() => setSelection(null)} />
         <div className="ml-auto flex items-center gap-1">
-          <button data-testid="button-key-status" onClick={() => openTab("keys")} className="hidden items-center gap-1.5 rounded-lg px-2 py-1.5 text-[12.5px] text-muted-foreground hover:bg-muted hover:text-foreground sm:inline-flex">
-            <span className={`h-1.5 w-1.5 rounded-full ${aiKeys ? "bg-emerald-500" : st.settings.freeStarter ? "bg-amber-500" : "bg-rose-500"}`} />
+          <button data-testid="button-key-status" onClick={() => openTab("keys")} className="studio-status hidden items-center gap-2 px-2.5 py-1.5 text-[12px] text-muted-foreground sm:inline-flex">
+            <span className={`h-1.5 w-1.5 rounded-full ${aiKeys ? "bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.75)]" : st.settings.freeStarter ? "bg-amber-400" : "bg-rose-400"}`} />
             {aiKeys ? `${aiKeys} ${aiKeys === 1 ? "key" : "keys"}` : st.settings.freeStarter ? "Free starter" : "No keys"}
           </button>
-          <button data-testid="button-theme" aria-label="Toggle theme" onClick={toggle} className="grid h-8 w-8 place-items-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground">
+          <button data-testid="button-theme" aria-label="Toggle theme" onClick={toggle} className="studio-icon-button grid h-8 w-8 place-items-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground">
             {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
           </button>
-          <button data-testid="button-export-zip" title="Download project as ZIP" onClick={() => downloadZip(p.files, (p.name || "app").toLowerCase().replace(/[^a-z0-9]+/g, "-"))} className="hidden items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-[13px] font-medium text-muted-foreground hover:bg-muted hover:text-foreground min-[480px]:inline-flex">
+          <button data-testid="button-export-zip" title="Download project as ZIP" onClick={() => downloadZip(p.files, (p.name || "app").toLowerCase().replace(/[^a-z0-9]+/g, "-"))} className="studio-zip-button hidden items-center gap-1.5 px-2.5 py-1.5 text-[13px] font-medium text-muted-foreground hover:bg-muted hover:text-foreground min-[480px]:inline-flex">
             <Download className="h-3.5 w-3.5" /><span>ZIP</span>
           </button>
-          <button data-testid="button-publish" onClick={() => setPublishOpen(true)} className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-[13px] font-medium text-primary-foreground hover:opacity-90">
+          <button data-testid="button-publish" onClick={() => setPublishOpen(true)} className="studio-publish inline-flex items-center gap-1.5 px-3.5 py-2 text-[13px] font-semibold text-primary-foreground hover:opacity-90">
             <Github className="h-3.5 w-3.5" /><span className="hidden min-[400px]:inline">Publish</span>
           </button>
         </div>
@@ -96,9 +98,9 @@ export default function Studio() {
       {isMobile ? (
         <>
           <main className="min-h-0 flex-1">{mobileTab === "chat" ? chat : pane(mobileTab)}</main>
-          <nav className="flex shrink-0 border-t border-border bg-background pb-[env(safe-area-inset-bottom)]">
+          <nav className="studio-mobile-nav relative z-10 flex shrink-0 pb-[env(safe-area-inset-bottom)]">
             <button data-testid="tab-mobile-chat" onClick={() => setMobileTab("chat")}
-              className={`relative flex flex-1 flex-col items-center gap-0.5 py-2 text-[10.5px] font-medium ${mobileTab === "chat" ? "text-foreground" : "text-muted-foreground"}`}>
+              className={`studio-mobile-tab relative flex flex-1 flex-col items-center gap-0.5 py-2 text-[10.5px] font-medium ${mobileTab === "chat" ? "is-active text-foreground" : "text-muted-foreground"}`}>
               <MessageCircle className="h-[18px] w-[18px]" />Chat
               {running && mobileTab !== "chat" && <span className="absolute right-[30%] top-1.5 h-1.5 w-1.5 animate-pulse rounded-full bg-[hsl(var(--ember))]" />}
             </button>
@@ -106,10 +108,10 @@ export default function Studio() {
           </nav>
         </>
       ) : (
-        <Split left={<div className="h-full bg-background">{chat}</div>} right={
-          <div className="flex h-full flex-col bg-sidebar/40 p-2 pl-0">
-            <div className="ml-2 flex h-full min-h-0 flex-col overflow-hidden rounded-xl border border-border bg-card">
-              <div className="flex items-center gap-0.5 border-b border-border px-2 py-1.5">
+        <Split left={<div className="studio-chat-stage relative z-10 h-full">{chat}</div>} right={
+          <div className="studio-workspace-stage relative z-10 flex h-full flex-col p-2 pl-0">
+            <div className="studio-workspace-frame ml-2 flex h-full min-h-0 flex-col overflow-hidden rounded-xl border bg-card">
+              <div className="studio-workspace-nav flex items-center gap-0.5 px-2 py-1.5">
                 {TABS.map((t) => tabBtn(t, tab === t.id, () => setTab(t.id)))}
                 {running && <span className="ml-auto mr-2 inline-flex items-center gap-1.5 text-[12px] text-muted-foreground"><Loader2 className="h-3 w-3 animate-spin" /> Kuro-chan is working</span>}
               </div>
