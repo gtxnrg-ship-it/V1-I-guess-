@@ -136,6 +136,39 @@ async function testGitHubApiErrors() {
   console.log("✓ GitHub API error handling tests passed");
 }
 
+
+async function testGitHubCommitRejectsMovedBranch() {
+  console.log("Testing concurrent GitHub publish protection...");
+
+  class MovingHeadGH extends GH {
+    headCalls = 0;
+    writes: string[] = [];
+    async headSha(): Promise<string | null> {
+      this.headCalls++;
+      return this.headCalls === 1 ? "parent-sha" : "newer-remote-sha";
+    }
+    async ok(method: string, path: string): Promise<any> {
+      this.writes.push(method + " " + path);
+      if (path === "/repos/owner/repo/git/commits/parent-sha") return { tree: { sha: "base-tree" } };
+      if (path === "/repos/owner/repo/git/trees") return { sha: "new-tree" };
+      if (path === "/repos/owner/repo/git/commits") return { sha: "new-commit" };
+      throw new Error("Unexpected mocked GitHub request: " + method + " " + path);
+    }
+  }
+
+  const client = new MovingHeadGH("test-token");
+  let message = "";
+  try {
+    await client.commitFiles("owner", "repo", "main", [{ path: "src/App.tsx", content: "new code" }], "test publish");
+  } catch (error) {
+    message = error instanceof Error ? error.message : String(error);
+  }
+
+  assert(message.includes("repository changed while preparing this publish"), "A moving remote branch should stop the publish");
+  assert(!client.writes.some((w) => w.includes("/git/refs/heads/main")), "A stale publish must not move the remote branch ref");
+  console.log("✓ concurrent GitHub publish protection tests passed");
+}
+
 async function runAll() {
   try {
     testParseArgs();
@@ -144,6 +177,7 @@ async function runAll() {
     testCreateZipBlob();
     testGitHubBase64RoundTrip();
     await testGitHubApiErrors();
+    await testGitHubCommitRejectsMovedBranch();
     console.log("\nALL TESTS PASSED SUCCESSFULLY!");
   } catch (err) {
     console.error("\nTEST FAILURE:", err);
