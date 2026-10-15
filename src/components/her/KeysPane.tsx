@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
-import { KeyRound, Eye, EyeOff, Loader2, Plus, RefreshCw, Trash2, ChevronDown, Code2, MessageCircle, Settings2, ShieldCheck, Database, Save, Telescope, Map as MapIcon, ScanEye, Sparkles, Lock, Unlock, ExternalLink } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { KeyRound, Eye, EyeOff, Loader2, Plus, RefreshCw, Trash2, ChevronDown, Code2, MessageCircle, Settings2, ShieldCheck, Database, Save, Telescope, Map as MapIcon, ScanEye, Sparkles, Lock, Unlock, ExternalLink, Download, Upload, Cpu, Smartphone, CheckCircle2, AlertTriangle, XCircle } from "lucide-react";
+import { detectDeviceSpecs, getLocalModelRecommendations } from "@/lib/hardware";
 import { SiGooglegemini, SiAnthropic, SiGithub, SiMistralai, SiHuggingface, SiNvidia, SiPerplexity, SiOpenrouter, SiX } from "react-icons/si";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
@@ -35,6 +36,20 @@ function usageFor(keyId: string) {
   return { today, weekCalls: week.reduce((a, x) => a + x.calls, 0), weekTokens: week.reduce((a, x) => a + x.input + x.output, 0) };
 }
 
+function usageSummary() {
+  const usage = db.getState().settings.usage;
+  const windowDays = Object.keys(usage).sort().slice(-7);
+  const totals = windowDays.reduce((acc, day) => {
+    for (const rec of Object.values(usage[day] || {})) {
+      acc.calls += rec.calls;
+      acc.tokens += rec.input + rec.output;
+      acc.errors += rec.errors;
+    }
+    return acc;
+  }, { calls: 0, tokens: 0, errors: 0 });
+  return totals;
+}
+
 export function KeysPane() {
   const { toast } = useToast();
   const st = db.useKuro();
@@ -46,7 +61,7 @@ export function KeysPane() {
   const [busy, setBusy] = useState(false);
 
   const add = async () => {
-    if (!key.trim()) return;
+    if (!key.trim() && !base.trim()) return;
     setBusy(true);
     try {
       const { rec, note } = await addKey(key, { label: label.trim() || undefined, baseUrl: base.trim() || undefined });
@@ -57,10 +72,25 @@ export function KeysPane() {
   };
   const aiKeys = st.keys.filter((k) => k.kind === "ai");
   const allModels = aiKeys.flatMap((k) => k.models.map((m) => ({ keyId: k.id, keyLabel: k.label, model: m.id, name: m.name || prettyModel(m.id) })));
+  const activity = usageSummary();
 
   return (
     <div className="her-scroll h-full overflow-y-auto">
       <div className="mx-auto max-w-[680px] space-y-8 px-4 py-6 md:px-6">
+        <section className="rounded-2xl border border-border bg-card p-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[hsl(var(--cyan))]">Recent usage</div>
+              <div className="mt-1 text-[15px] font-semibold text-foreground">{activity.calls} calls · {fmtTokens(activity.tokens)} tokens</div>
+            </div>
+            <div className="flex flex-wrap gap-2 text-[12px] text-muted-foreground">
+              <span className="rounded-md bg-muted px-2 py-1 tabular-nums">{activity.errors} limit/error hits</span>
+              <span className="rounded-md bg-muted px-2 py-1 tabular-nums">7-day window</span>
+            </div>
+          </div>
+          <p className="mt-2 text-[12.5px] text-muted-foreground">This is a local usage snapshot, so it helps you keep an eye on recent API activity and rate-limit events without guessing at your bill.</p>
+        </section>
+
         <section>
           <h2 className="text-[15px] font-semibold">Paste any API key</h2>
           <p className="mt-1 text-[13.5px] text-muted-foreground">Gemini, Claude, OpenRouter, Groq, Grok, Mistral, Cerebras, Hugging Face, GitHub tokens, Tavily and more. I detect the provider, find every model it unlocks, and rank them.</p>
@@ -75,16 +105,38 @@ export function KeysPane() {
             {adv && (
               <div className="mt-2 grid gap-2 sm:grid-cols-2">
                 <input data-testid="input-key-label" value={label} onChange={(e) => setLabel(e.target.value)} placeholder="Label (optional)" className="h-10 rounded-xl bg-muted px-3 text-[13px] outline-none" />
-                <input data-testid="input-key-base" value={base} onChange={(e) => setBase(e.target.value)} placeholder="Custom endpoint (OpenAI-compatible)" className="h-10 rounded-xl bg-muted px-3 font-mono text-[12px] outline-none placeholder:font-sans" />
+                <input data-testid="input-key-base" value={base} onChange={(e) => setBase(e.target.value)} placeholder="Endpoint URL (OpenAI-compatible)" className="h-10 rounded-xl bg-muted px-3 font-mono text-[12px] outline-none placeholder:font-sans" />
               </div>
             )}
             <div className="mt-3 flex items-center gap-2">
               <button onClick={() => setAdv((a) => !a)} className="inline-flex items-center gap-1 text-[12.5px] text-muted-foreground hover:text-foreground"><Settings2 className="h-3.5 w-3.5" />{adv ? "Hide options" : "Options"}</button>
               <span className="ml-auto hidden items-center gap-1 text-[12px] text-muted-foreground sm:inline-flex"><ShieldCheck className="h-3.5 w-3.5" /> Stays on this device</span>
-              <button data-testid="button-add-key" disabled={busy || !key.trim()} onClick={add}
+              <button data-testid="button-add-key" disabled={busy || (!key.trim() && !base.trim())} onClick={add}
                 className="ml-auto inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-primary px-3.5 py-2 text-[13px] font-medium text-primary-foreground hover:opacity-90 disabled:opacity-40 sm:ml-0">
-                {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />} Add key
+                {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />} {base.trim() && !key.trim() ? "Connect endpoint" : "Add key"}
               </button>
+            </div>
+          </div>
+          <div className="mt-3 space-y-2">
+            <HardwareAdvisor />
+            <div className="flex items-start gap-3 rounded-xl border border-border bg-card p-3">
+              <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-muted"><Code2 className="h-4 w-4" /></span>
+              <div className="min-w-0 flex-1">
+                <div className="text-[13px] font-medium">Run a local model with Ollama</div>
+                <p className="mt-0.5 text-[12px] text-muted-foreground">Free on your computer. Install <a className="underline underline-offset-2" href="https://ollama.com/download" target="_blank" rel="noopener noreferrer">Ollama</a>, pull a model, then connect its endpoint (`http://localhost:11434/v1`).</p>
+              </div>
+              <button onClick={() => { setLabel("Ollama (local)"); setBase("http://localhost:11434/v1"); setAdv(true); }} className="shrink-0 rounded-lg border border-border px-2.5 py-1.5 text-[12px] hover:bg-muted">Connect</button>
+            </div>
+            <div className="flex items-start gap-3 rounded-xl border border-border bg-card p-3">
+              <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-muted"><Sparkles className="h-4 w-4 text-[hsl(var(--cyan))]" /></span>
+              <div className="min-w-0 flex-1">
+                <div className="text-[13px] font-medium">LM Studio / LocalAI / Jan</div>
+                <p className="mt-0.5 text-[12px] text-muted-foreground">Run GGUF/local LLMs via <a className="underline underline-offset-2" href="https://lmstudio.ai" target="_blank" rel="noopener noreferrer">LM Studio</a> (`:1234`) or Jan/LocalAI (`:8080`). Zero API key required.</p>
+              </div>
+              <div className="flex gap-1.5">
+                <button onClick={() => { setLabel("LM Studio"); setBase("http://localhost:1234/v1"); setAdv(true); }} className="shrink-0 rounded-lg border border-border px-2 py-1 text-[11.5px] hover:bg-muted">LM Studio</button>
+                <button onClick={() => { setLabel("LocalAI"); setBase("http://localhost:8080/v1"); setAdv(true); }} className="shrink-0 rounded-lg border border-border px-2 py-1 text-[11.5px] hover:bg-muted">LocalAI</button>
+              </div>
             </div>
           </div>
           {!aiKeys.length && (
@@ -221,6 +273,7 @@ function AppSettings() {
   const { toast } = useToast();
   db.useKuro();
   const project = db.project();
+  const importInput = useRef<HTMLInputElement>(null);
   const [rows, setRows] = useState<{ k: string; v: string }[]>([]);
   useEffect(() => {
     const env = project?.env || {};
@@ -233,6 +286,45 @@ function AppSettings() {
     for (const r of rows) { const k = r.k.trim().toUpperCase(); if (k && r.v.trim()) env[k.startsWith("VITE_") ? k : `VITE_${k}`] = r.v.trim(); }
     db.updateProject(project.id, { env });
     toast({ title: "App settings saved", description: "The preview uses them right away. They're added when you publish too." });
+  };
+  const exportProject = () => {
+    const bundle = { format: "kuro-chan-project", version: 1, project: { name: project.name, files: project.files, env: project.env } };
+    const url = URL.createObjectURL(new Blob([JSON.stringify(bundle, null, 2)], { type: "application/json" }));
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${project.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "kuro-chan-project"}.json`;
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 0);
+  };
+  const importProject = async (file: File) => {
+    try {
+      const bundle = JSON.parse(await file.text());
+      const source = bundle?.project;
+      if (bundle?.format !== "kuro-chan-project" || bundle.version !== 1 || !source || typeof source.name !== "string" || !source.files || typeof source.files !== "object" || Array.isArray(source.files)) {
+        throw new Error("That file isn't a supported Kuro-chan project export.");
+      }
+      const files: Record<string, string> = {};
+      for (const [path, content] of Object.entries(source.files)) {
+        if (!path || path.startsWith("/") || path.includes("\\") || path.split("/").some((part) => !part || part === "." || part === "..") || ["__proto__", "constructor", "prototype"].includes(path) || typeof content !== "string") {
+          throw new Error("The export contains an invalid project file.");
+        }
+        files[path] = content;
+      }
+      if (!Object.keys(files).length) throw new Error("The export doesn't contain any project files.");
+      const env: Record<string, string> = {};
+      if (source.env != null) {
+        if (typeof source.env !== "object" || Array.isArray(source.env)) throw new Error("The export contains invalid app settings.");
+        for (const [name, value] of Object.entries(source.env)) {
+          if (!/^VITE_[A-Z0-9_]+$/.test(name) || typeof value !== "string") throw new Error("The export contains invalid app settings.");
+          env[name] = value;
+        }
+      }
+      const imported = db.createProject(`${source.name.slice(0, 80)} (imported)`, files);
+      db.updateProject(imported.id, { env });
+      toast({ title: "Project imported", description: `${imported.name} is ready to edit.` });
+    } catch (error) {
+      toast({ title: "Couldn't import project", description: error instanceof Error ? error.message : "Invalid project file.", variant: "destructive" });
+    }
   };
   return (
     <section>
@@ -259,30 +351,63 @@ function AppSettings() {
           <button data-testid="button-env-add" onClick={() => setRows((rs) => [...rs, { k: "VITE_", v: "" }])} className="inline-flex items-center gap-1 rounded-lg border border-border px-2.5 py-1.5 text-[12.5px] hover:bg-muted"><Plus className="h-3 w-3" /> Add setting</button>
           <button data-testid="button-env-save" onClick={save} className="ml-auto inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-[12.5px] font-medium text-primary-foreground"><Save className="h-3 w-3" /> Save</button>
         </div>
+        <div className="flex flex-wrap items-center gap-2 border-t border-border pt-3">
+          <button onClick={exportProject} className="inline-flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-[12.5px] hover:bg-muted"><Download className="h-3.5 w-3.5" /> Export project</button>
+          <button onClick={() => importInput.current?.click()} className="inline-flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-[12.5px] hover:bg-muted"><Upload className="h-3.5 w-3.5" /> Import project</button>
+          <input ref={importInput} type="file" accept="application/json,.json" className="hidden" onChange={(event) => {
+            const file = event.currentTarget.files?.[0];
+            if (file) void importProject(file);
+            event.currentTarget.value = "";
+          }} />
+          <span className="basis-full text-[11.5px] text-muted-foreground">Exports source files and app settings, but not API keys. Keep the file private if its settings are sensitive.</span>
+        </div>
       </div>
     </section>
   );
 }
 
-/** Settings: storage info, and (only after the hidden sequence) the admin email door. */
+/** Settings: normal user controls live here, while the hidden admin door stays tucked behind an explicit advanced toggle. */
 function HiddenSettings() {
   const { toast } = useToast();
   const st = db.useKuro();
   const [email, setEmail] = useState("");
   const [checking, setChecking] = useState(false);
+  const [showAdvanced, setShowAdvanced] = useState(false);
   const s = st.settings;
   return (
     <section data-testid="section-settings">
-      <h2 className="text-[15px] font-semibold">Settings</h2>
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="text-[15px] font-semibold">Settings</h2>
+        {(s.eggFound || s.adminUnlocked) && (
+          <button type="button" onClick={() => setShowAdvanced((v) => !v)} className="rounded-lg border border-border bg-background px-2.5 py-1 text-[12px] text-muted-foreground hover:bg-muted hover:text-foreground">
+            {showAdvanced ? "Hide advanced" : "Advanced"}
+          </button>
+        )}
+      </div>
       <div className="mt-3 space-y-3 rounded-2xl border border-border bg-card p-3.5 text-[13px]">
         <div className="flex items-start gap-2.5 text-muted-foreground">
           <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0" />
           <span>{st.persistent ? "Your keys, apps and chats are saved in this browser only. Nothing goes to any server of mine; AI calls go straight from your device to the provider." : "This browser blocked storage, so nothing is saved after you close the page. Open Kuro-chan in its own tab to keep your work."}</span>
         </div>
-        {s.eggFound && !s.adminUnlocked && (
+        <div className="rounded-xl border border-border bg-background p-2.5">
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <span className="text-[12.5px] font-medium">Voice</span>
+            <span className="text-[11.5px] text-muted-foreground">{db.keyOf("openai") ? "OpenAI TTS ready" : "Browser voice fallback"}</span>
+          </div>
+          <Select value={s.voiceProvider || "browser"} onValueChange={(v) => db.setSettings({ voiceProvider: v as "browser" | "openai" })}>
+            <SelectTrigger className="h-9 w-full text-[12.5px]">
+              <SelectValue placeholder="Voice output" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="browser">Browser voice</SelectItem>
+              <SelectItem value="openai" disabled={!db.keyOf("openai")}>OpenAI TTS{!db.keyOf("openai") ? " (add an OpenAI key first)" : ""}</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        {showAdvanced && s.eggFound && !s.adminUnlocked && (
           <div className="her-rise rounded-xl border border-[hsl(var(--ember))]/40 bg-[hsl(var(--ember))]/5 p-3" data-testid="admin-door">
             <div className="flex items-center gap-2 font-medium"><Lock className="h-4 w-4 text-[hsl(var(--ember))]" /> Admin access</div>
-            <p className="mt-1 text-[12.5px] text-muted-foreground">Enter the admin email to unlock the admin panel.</p>
+            <p className="mt-1 text-[12.5px] text-muted-foreground">This extra door is hidden on purpose. Open Advanced in Settings to reveal it, then enter the admin email.</p>
             <div className="mt-2 flex gap-2">
               <input data-testid="input-admin-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="name@example.com" autoComplete="off"
                 onKeyDown={(e) => e.key === "Enter" && (e.currentTarget.nextElementSibling as HTMLButtonElement)?.click()}
@@ -298,7 +423,7 @@ function HiddenSettings() {
             </div>
           </div>
         )}
-        {s.adminUnlocked && (
+        {showAdvanced && s.adminUnlocked && (
           <div className="flex items-center gap-2 text-muted-foreground">
             <Unlock className="h-4 w-4 shrink-0 text-emerald-600" /><span className="flex-1">Admin unlocked for {s.adminEmail}</span>
             <button data-testid="button-admin-lock" onClick={lockAdmin} className="rounded-lg border border-border px-2.5 py-1 text-[12px] hover:bg-muted">Lock</button>
@@ -326,7 +451,8 @@ function KeyCard({ k }: { k: KeyRec }) {
             <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${k.status === "active" ? "bg-emerald-500" : "bg-rose-500"}`} title={k.statusMsg || k.status} />
           </div>
           <div className="mt-0.5 flex flex-wrap gap-x-2 text-[12px] text-muted-foreground">
-            <span className="font-mono">{k.hint}</span>
+            <span className="font-mono">{k.secret ? k.hint : "No API key"}</span>
+            {k.baseUrl && <span className="max-w-full truncate font-mono" title={k.baseUrl}>{k.baseUrl}</span>}
             {k.kind === "ai" && <span>· {k.models.length} models</span>}
             {k.login && <span>· @{k.login}</span>}
             {k.kind === "tool" && <span>· research</span>}
@@ -372,6 +498,54 @@ function KeyCard({ k }: { k: KeyRec }) {
     </div>
   );
 }
+function HardwareAdvisor() {
+  const specs = detectDeviceSpecs();
+  const recs = getLocalModelRecommendations(specs);
+
+  return (
+    <div className="rounded-xl border border-border bg-card p-3.5" data-testid="hardware-advisor">
+      <div className="flex items-center gap-2 text-[13px] font-medium text-foreground">
+        <Smartphone className="h-4 w-4 text-[hsl(var(--cyan))]" /> Mobile & Hardware Advisor
+      </div>
+      <div className="mt-1.5 flex flex-wrap items-center gap-2 text-[12px] text-muted-foreground">
+        <span className="inline-flex items-center gap-1 rounded-md bg-muted px-2 py-0.5 font-mono text-[11.5px]">
+          <Cpu className="h-3 w-3" /> {specs.cores} CPU Cores
+        </span>
+        <span className="inline-flex items-center gap-1 rounded-md bg-muted px-2 py-0.5 font-mono text-[11.5px]">
+          RAM: ~{specs.ramGB}GB
+        </span>
+      </div>
+      <p className="mt-2 text-[12px] text-muted-foreground">
+        Model compatibility based on your device specs:
+      </p>
+      <div className="mt-2 space-y-1.5 border-t border-border/70 pt-2">
+        {recs.map((m) => (
+          <div key={m.name} className="flex items-center justify-between text-[12px]">
+            <span className="font-medium text-foreground">{m.name}</span>
+            <span className="flex items-center gap-1.5">
+              {m.status === "optimal" && (
+                <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-500">
+                  <CheckCircle2 className="h-3 w-3" /> Optimal
+                </span>
+              )}
+              {m.status === "playable" && (
+                <span className="inline-flex items-center gap-1 text-[11px] font-medium text-amber-500">
+                  <AlertTriangle className="h-3 w-3" /> Passable
+                </span>
+              )}
+              {m.status === "heavy" && (
+                <span className="inline-flex items-center gap-1 text-[11px] font-medium text-rose-500">
+                  <XCircle className="h-3 w-3" /> Heavy / Laggy
+                </span>
+              )}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 const Tag = ({ children, c }: { children: any; c?: "emerald" }) => (
   <span className={`rounded px-1.5 py-px text-[10.5px] ${c === "emerald" ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300" : "bg-muted text-muted-foreground"}`}>{children}</span>
 );

@@ -74,6 +74,8 @@ export interface Project {
   id: string;
   name: string;
   repo: string | null;
+  shipped?: boolean;
+  privateRepo?: boolean;
   env: Record<string, string>;
   files: Record<string, string>;
   createdAt: number;
@@ -100,6 +102,9 @@ export interface Settings {
   freeStarter: boolean;
   roleOverrides: Partial<Record<Role, string>>; // "keyId::modelId"
   usage: Record<string, Record<string, UsageDay>>; // day -> keyId -> usage
+  voiceProvider?: "browser" | "openai";
+  voiceModel?: string;
+  voiceName?: string;
   adminEmail?: string;
   adminUnlocked?: boolean;
   eggFound?: boolean;

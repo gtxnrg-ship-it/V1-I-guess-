@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { ArrowUp, Square, RotateCcw, ImagePlus, Mic, X, MousePointerClick, Volume2, VolumeX } from "lucide-react";
+import { ArrowUp, Square, RotateCcw, ImagePlus, Mic, X, MousePointerClick, Volume2, VolumeX, Sparkles } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { AssistantMessage } from "./AssistantMessage";
 import { HerOrb } from "./Logo";
@@ -21,6 +21,51 @@ const SELF_SUGGESTIONS = [
   "Add a keyboard shortcut to stop a build",
 ];
 
+async function speakAssistantReply(text: string, voiceProvider: "browser" | "openai", openaiKey?: string) {
+  const safeText = text
+    .replace(/```[\s\S]*?```/g, "Code block omitted.")
+    .replace(/[*_#`\[\]()]/g, "")
+    .trim();
+
+  if (!safeText) return;
+
+  if (voiceProvider === "openai" && openaiKey) {
+    try {
+      const response = await fetch("https://api.openai.com/v1/audio/speech", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${openaiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "gpt-4o-mini-tts",
+          voice: "alloy",
+          input: safeText.slice(0, 4096),
+        }),
+      });
+      if (response.ok) {
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        const audio = new Audio(url);
+        audio.onended = () => URL.revokeObjectURL(url);
+        audio.play().catch(() => URL.revokeObjectURL(url));
+        return;
+      }
+    } catch {
+      // fall back to browser speech below if the premium voice provider is unavailable
+    }
+  }
+
+  if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
+  window.speechSynthesis.cancel();
+  const ut = new SpeechSynthesisUtterance(safeText);
+  ut.rate = 1.05; ut.pitch = 1.1;
+  const voices = window.speechSynthesis.getVoices();
+  const preferredVoice = voices.find((v) => v.lang.startsWith("en") && (v.name.includes("Female") || v.name.includes("Samantha") || v.name.includes("Victoria") || v.name.includes("Zira") || v.name.includes("Google US English")));
+  if (preferredVoice) ut.voice = preferredVoice;
+  window.speechSynthesis.speak(ut);
+}
+
 export function ChatPanel({ scope = "app", onOpenKeys, draft, setDraft, selection, clearSelection, onSent }: {
   scope?: agents.Scope; onOpenKeys: () => void; draft: string; setDraft: (s: string) => void;
   selection?: PickedElement | null; clearSelection?: () => void; onSent?: () => void;
@@ -31,8 +76,13 @@ export function ChatPanel({ scope = "app", onOpenKeys, draft, setDraft, selectio
   const messages: Message[] = st.messages[pid] || [];
   const running = st.busy;
   const [images, setImages] = useState<Img[]>([]);
-  const [autoVoice, setAutoVoice] = useState(false);
+  const [autoVoice, setAutoVoice] = useState(true);
   const prevRunning = useRef(running);
+  const initialMessage = messages[messages.length - 1];
+  const lastSpokenId = useRef(initialMessage?.role === "assistant" && initialMessage.data?.done ? initialMessage.id : "");
+  const speechAvailable = typeof window !== "undefined" && "speechSynthesis" in window;
+  const premiumVoiceReady = !!db.keyOf("openai");
+  const voiceProvider = st.settings.voiceProvider === "openai" && premiumVoiceReady ? "openai" : "browser";
   const fileRef = useRef<HTMLInputElement>(null);
   const dict = useDictation(draft, setDraft, (m) => { haptic("error"); toast({ title: "Voice input", description: m }); });
 
@@ -46,20 +96,15 @@ export function ChatPanel({ scope = "app", onOpenKeys, draft, setDraft, selectio
   useEffect(() => {
     if (!autoVoice || running || !messages.length) return;
     const last = messages[messages.length - 1];
-    if (last && last.role === "assistant" && last.data?.done) {
+    if (last && last.role === "assistant" && last.data?.done && lastSpokenId.current !== last.id) {
+      lastSpokenId.current = last.id;
       const text = (last.data.blocks || []).filter((b: any) => b.type === "text").map((b: any) => b.text).join("\n\n");
-      const cleanText = text.replace(/```[\s\S]*?```/g, "Code block omitted.").replace(/[*_#`[\]()]/g, "");
-      if (cleanText.trim() && "speechSynthesis" in window) {
-        window.speechSynthesis.cancel();
-        const ut = new SpeechSynthesisUtterance(cleanText);
-        ut.rate = 1.05; ut.pitch = 1.1;
-        const voices = window.speechSynthesis.getVoices();
-        const femaleVoice = voices.find((v) => v.lang.startsWith("en") && (v.name.includes("Female") || v.name.includes("Samantha") || v.name.includes("Victoria") || v.name.includes("Zira") || v.name.includes("Google US English")));
-        if (femaleVoice) ut.voice = femaleVoice;
-        window.speechSynthesis.speak(ut);
-      }
+      if (text.trim()) void speakAssistantReply(text, voiceProvider, db.keyOf("openai")?.secret);
     }
-  }, [messages, running, autoVoice]);
+  }, [messages, running, autoVoice, voiceProvider]);
+  useEffect(() => () => {
+    if ("speechSynthesis" in window) window.speechSynthesis.cancel();
+  }, []);
   const addFiles = async (files: FileList | File[] | null) => {
     const list = Array.from(files || []).filter((f) => f.type.startsWith("image/"));
     if (!list.length) return;
@@ -101,48 +146,38 @@ export function ChatPanel({ scope = "app", onOpenKeys, draft, setDraft, selectio
   const lastId = messages[messages.length - 1]?.id;
 
   return (
-    <div className="relative flex h-full min-h-0 flex-col">
+    <div className="studio-chat-panel relative flex h-full min-h-0 flex-col">
       {!isEmpty && running && (
-        <div className="absolute right-4 top-4 z-50">
-          <button
-            onClick={() => { haptic("medium"); dict.toggle(); }}
-            title="Tap orb to talk"
-            className="transition-transform hover:scale-110 active:scale-95"
-          >
-            <HerOrb size={32} state="thinking" className="her-orb-glow cursor-pointer" />
-          </button>
+        <div className="absolute right-4 top-4 z-50 pointer-events-none">
+          <HerOrb size={32} state="thinking" className="her-orb-glow" />
         </div>
       )}
       <div ref={scroller} onScroll={(e) => { const el = e.currentTarget; stick.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80; }}
         className="her-scroll min-h-0 flex-1 overflow-y-auto">
         {isEmpty ? (
-          <div className="flex min-h-full flex-col items-center justify-center px-6 py-10 text-center">
-            <button
-              onClick={() => {
-                haptic("medium");
-                dict.toggle();
-                if (!dict.listening && "speechSynthesis" in window) {
-                  window.speechSynthesis.cancel();
-                  const ut = new SpeechSynthesisUtterance(scope === "self" ? "Finally. What do you want changed about me?" : "Finally. What do you want built?");
-                  ut.rate = 1.05; ut.pitch = 1.1;
-                  window.speechSynthesis.speak(ut);
-                }
-              }}
-              title="Tap Kuro-chan to talk to her"
-              className="group cursor-pointer rounded-full p-2 transition-transform hover:scale-105 active:scale-95"
-            >
-              <HerOrb size={88} className="her-orb-glow" state={dict.listening ? "speaking" : running ? "thinking" : "idle"} />
-            </button>
-            <h1 className="mt-6 font-display text-[34px] leading-none tracking-tight">{scope === "self" ? "Let's improve me." : "Hi, I'm Kuro-chan."}</h1>
-            <p className="mt-3 max-w-[360px] text-[14px] leading-relaxed text-muted-foreground">
-              {scope === "self" ? "Tell me what to change about myself. I'll talk it through, research, build it on my own code, and ship it to my GitHub repo." : "Tell me what you want. I'll ask a few questions, research it, then my team builds it here. Websites, apps, games."}
+          <div className="studio-welcome flex min-h-full flex-col items-center justify-center px-6 py-10 text-center">
+            <HerOrb size={76} className="her-orb-glow" state={running ? "thinking" : "idle"} />
+            <div className="studio-welcome-label mt-4"><Sparkles className="h-3 w-3" /> {scope === "self" ? "SELF-IMPROVEMENT MODE" : "YOUR AI BUILD PARTNER"}</div>
+            <h1 className="studio-welcome-title mt-4 font-display text-[36px] font-semibold leading-[1.08]">{scope === "self" ? "Let's make me\nbetter." : <>An idea becomes<br /><span>a product.</span></>}</h1>
+            <p className="mt-3 max-w-[370px] text-[14px] leading-relaxed text-muted-foreground">
+              {scope === "self" ? "Tell me what to change. I'll plan it, build it into my own code, and ship it to GitHub." : "Describe what you want to create. I'll plan, research, build, and test it with you, right here."}
             </p>
-            <div className="mt-8 grid w-full max-w-[420px] gap-2">
+            <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
+              <button type="button" onClick={() => { setAutoVoice(true); if (!dict.listening) dict.toggle(); }}
+                className="inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-[12.5px] font-medium text-primary-foreground hover:opacity-90">
+                <Mic className="h-3.5 w-3.5" /> Talk to Kuro-chan
+              </button>
+              <button type="button" onClick={() => { setAutoVoice(true); setDraft("Build me a polished SaaS dashboard with auth and billing."); }}
+                className="inline-flex items-center gap-2 rounded-full border border-border bg-background px-4 py-2 text-[12.5px] font-medium text-foreground hover:bg-muted">
+                <Sparkles className="h-3.5 w-3.5" /> Try a complex prompt
+              </button>
+            </div>
+            <div className="mt-7 grid w-full max-w-[460px] gap-2 sm:grid-cols-2">
               {(scope === "self" ? SELF_SUGGESTIONS : SUGGESTIONS).map((s) => (
                 <button key={s} data-testid="button-suggestion" onClick={() => { haptic("medium"); send(s); }}
-                  className="group flex items-center gap-3 rounded-xl border border-border bg-card px-3.5 py-2.5 text-left text-[13.5px] transition-all hover:border-foreground/20 hover:shadow-sm">
+                  className="studio-suggestion group flex min-h-12 items-center gap-3 px-3.5 py-2.5 text-left text-[12.5px] transition-all">
                   <span className="flex-1">{s}</span>
-                  <ArrowUp className="h-3.5 w-3.5 rotate-45 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+                  <ArrowUp className="h-3.5 w-3.5 rotate-45 text-cyan-200/60 transition-transform group-hover:translate-x-0.5 group-hover:text-cyan-100" />
                 </button>
               ))}
             </div>
@@ -167,7 +202,7 @@ export function ChatPanel({ scope = "app", onOpenKeys, draft, setDraft, selectio
       <div className="px-3 pb-3 md:px-4 md:pb-4">
         <div
           onDragOver={(e) => e.preventDefault()} onDrop={(e) => { e.preventDefault(); addFiles(e.dataTransfer.files); }}
-          className="mx-auto max-w-[720px] rounded-2xl border border-border bg-card shadow-[0_2px_12px_-4px_rgba(0,0,0,0.08)] transition-colors focus-within:border-foreground/25">
+          className="studio-composer mx-auto max-w-[720px] rounded-2xl border bg-card transition-colors focus-within:border-foreground/25">
           {(selection || images.length > 0) && (
             <div className="flex flex-wrap items-center gap-2 px-3 pt-3">
               {selection && (
@@ -195,13 +230,23 @@ export function ChatPanel({ scope = "app", onOpenKeys, draft, setDraft, selectio
             className="block w-full resize-none bg-transparent px-4 pb-1 pt-3.5 text-[15px] leading-relaxed outline-none placeholder:text-muted-foreground/70"
           />
           <div className="flex items-center gap-2 px-2.5 pb-2.5 pt-1">
-            <span className="pl-1.5 text-[11.5px] text-muted-foreground/80">{running ? "Working…" : "She talks it through before building."}</span>
+            <span className="pl-1.5 text-[11.5px] text-muted-foreground/80">{running ? "Working…" : !(speechAvailable || premiumVoiceReady) ? "Voice output isn’t supported in this browser." : autoVoice ? (voiceProvider === "openai" ? "Premium voice on — she speaks naturally." : "Voice on — she speaks replies back.") : "Type or talk — either works."}</span>
             <div className="ml-auto flex items-center gap-1">
               <input ref={fileRef} type="file" accept="image/*" multiple hidden data-testid="input-attach" onChange={(e) => { addFiles(e.target.files); e.target.value = ""; }} />
               <button data-testid="button-attach" aria-label="Attach image" title="Attach a screenshot or reference" onClick={() => fileRef.current?.click()}
                 className="grid h-8 w-8 place-items-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"><ImagePlus className="h-4 w-4" /></button>
-              <button data-testid="button-auto-voice" aria-label={autoVoice ? "Disable voice output" : "Enable voice output"} title={autoVoice ? "Kuro-chan will speak replies (Active)" : "Kuro-chan speaks replies"} onClick={() => { setAutoVoice((v) => !v); if (autoVoice && "speechSynthesis" in window) window.speechSynthesis.cancel(); }}
-                className={`grid h-8 w-8 place-items-center rounded-full transition-colors ${autoVoice ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}>
+              <button data-testid="button-auto-voice" aria-label={(speechAvailable || premiumVoiceReady) ? autoVoice ? "Disable voice output" : "Enable voice output" : "Voice output unavailable"}
+                title={(speechAvailable || premiumVoiceReady) ? autoVoice ? "Kuro-chan will speak replies (Active)" : "Kuro-chan speaks replies" : "This browser does not support spoken replies"}
+                disabled={!(speechAvailable || premiumVoiceReady)}
+                onClick={() => {
+                  if (!autoVoice && !running) {
+                    const last = messages[messages.length - 1];
+                    if (last?.role === "assistant" && last.data?.done) lastSpokenId.current = last.id;
+                  }
+                  setAutoVoice((v) => !v);
+                  if (autoVoice && speechAvailable) window.speechSynthesis.cancel();
+                }}
+                className={`grid h-8 w-8 place-items-center rounded-full transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${autoVoice ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}>
                 {autoVoice ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
               </button>
               <button data-testid="button-mic" aria-label={dict.listening ? "Stop listening" : "Speak"} title="Speak instead of typing" onClick={dict.toggle}

@@ -1,15 +1,31 @@
-// Minimal GitHub REST client that runs in the browser: create repos, push whole trees (works on empty repos),
-// read a repo's files, open PRs, enable Pages, watch Actions.
 const API = "https://api.github.com";
-export const b64 = (s: string) => { const bytes = new TextEncoder().encode(s); let bin = ""; for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000)); return btoa(bin); };
-export const unb64 = (s: string) => { const bin = atob(s.replace(/\n/g, "")); const bytes = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i); return new TextDecoder().decode(bytes); };
+
+export const b64 = (s: string) => {
+  const bytes = new TextEncoder().encode(s);
+  let bin = "";
+  for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  return btoa(bin);
+};
+
+export const unb64 = (s: string) => {
+  const bin = atob(s.replace(/\n/g, ""));
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return new TextDecoder().decode(bytes);
+};
 
 export class GH {
   constructor(private token: string) {}
+
   async req(method: string, path: string, body?: any): Promise<{ status: number; json: any }> {
     const r = await fetch(`${API}${path}`, {
       method,
-      headers: { Authorization: `Bearer ${this.token}`, Accept: "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28", ...(body ? { "Content-Type": "application/json" } : {}) },
+      headers: {
+        Authorization: `Bearer ${this.token}`,
+        Accept: "application/vnd.github+json",
+        "X-GitHub-Api-Version": "2022-11-28",
+        ...(body ? { "Content-Type": "application/json" } : {}),
+      },
       body: body ? JSON.stringify(body) : undefined,
       signal: AbortSignal.timeout(45000),
     });
@@ -18,6 +34,7 @@ export class GH {
     try { json = t ? JSON.parse(t) : null; } catch { json = t; }
     return { status: r.status, json };
   }
+
   async ok(method: string, path: string, body?: any) {
     const r = await this.req(method, path, body);
     if (r.status >= 300) {
@@ -27,6 +44,7 @@ export class GH {
     }
     return r.json;
   }
+
   async me(): Promise<string> { return (await this.ok("GET", "/user")).login; }
 
   async ensureRepo(spec: string, opts: { private?: boolean; description?: string } = {}) {
@@ -74,7 +92,6 @@ export class GH {
     return { sha: commit.sha, url: `https://github.com/${owner}/${name}/commit/${commit.sha}` };
   }
 
-  /** All text files of a repo (skips binaries and big files). */
   async readTree(owner: string, name: string, branch: string, filter: (p: string) => boolean = () => true): Promise<Record<string, string>> {
     const sha = await this.headSha(owner, name, branch);
     if (!sha) return {};
@@ -94,6 +111,7 @@ export class GH {
     const pr = await this.ok("POST", `/repos/${owner}/${name}/pulls`, { title, head, base, body });
     return { url: pr.html_url as string, number: pr.number as number };
   }
+
   async mergePR(owner: string, name: string, n: number) { return this.ok("PUT", `/repos/${owner}/${name}/pulls/${n}/merge`, { merge_method: "squash" }); }
 
   async enablePages(owner: string, name: string) {

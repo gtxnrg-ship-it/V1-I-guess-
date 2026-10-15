@@ -1,4 +1,3 @@
-// The Researcher's toolkit. Everything here works straight from a browser, and most of it is free with no key.
 import { keyOf } from "./db";
 
 export interface Hit { title: string; url: string; snippet: string }
@@ -7,18 +6,34 @@ const clip = (s: string, n: number) => (s.length > n ? s.slice(0, n) + "…" : s
 const strip = (s: string) => s.replace(/<[^>]+>/g, "").replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&amp;/g, "&").replace(/\s+/g, " ").trim();
 
 async function tavily(q: string, key: string): Promise<Hit[]> {
-  const r = await fetch("https://api.tavily.com/search", { method: "POST", signal: T(20000), headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` }, body: JSON.stringify({ query: q, max_results: 8, search_depth: "basic" }) });
+  const r = await fetch("https://api.tavily.com/search", {
+    method: "POST",
+    signal: T(20000),
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${key}`,
+    },
+    body: JSON.stringify({ query: q, max_results: 8, search_depth: "basic" }),
+  });
   if (!r.ok) throw new Error(`Tavily ${r.status}`);
   const j = await r.json();
   return (j.results || []).map((x: any) => ({ title: x.title, url: x.url, snippet: clip(x.content || "", 500) }));
 }
+
 async function jina(q: string, key: string): Promise<Hit[]> {
-  const r = await fetch(`https://s.jina.ai/?q=${encodeURIComponent(q)}`, { signal: T(25000), headers: { Authorization: `Bearer ${key}`, Accept: "application/json", "X-Respond-With": "no-content" } });
+  const r = await fetch(`https://s.jina.ai/?q=${encodeURIComponent(q)}`, {
+    signal: T(25000),
+    headers: {
+      Authorization: `Bearer ${key}`,
+      Accept: "application/json",
+      "X-Respond-With": "no-content",
+    },
+  });
   if (!r.ok) throw new Error(`Jina ${r.status}`);
   const j = await r.json();
   return (j.data || []).slice(0, 8).map((x: any) => ({ title: x.title, url: x.url, snippet: clip(x.description || x.content || "", 500) }));
 }
-/** Google Search grounding through the user's Gemini key: real web results, free tier included. */
+
 async function geminiSearch(q: string, key: string): Promise<{ answer: string; hits: Hit[] }> {
   const body = { contents: [{ role: "user", parts: [{ text: `Search the web and give a dense, factual answer with specifics (names, versions, numbers, URLs) for: ${q}` }] }], tools: [{ google_search: {} }] };
   let lastErr = "";
@@ -33,16 +48,19 @@ async function geminiSearch(q: string, key: string): Promise<{ answer: string; h
   }
   throw new Error(lastErr || "Gemini search unavailable");
 }
+
 async function wikipedia(q: string): Promise<Hit[]> {
   const r = await fetch(`https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(q)}&format=json&origin=*&srlimit=4`, { signal: T(12000) });
   const j = await r.json();
   return (j.query?.search || []).map((x: any) => ({ title: `Wikipedia: ${x.title}`, url: `https://en.wikipedia.org/wiki/${encodeURIComponent(x.title.replace(/ /g, "_"))}`, snippet: strip(x.snippet || "") }));
 }
+
 async function stack(q: string): Promise<Hit[]> {
   const r = await fetch(`https://api.stackexchange.com/2.3/search/advanced?order=desc&sort=relevance&q=${encodeURIComponent(q)}&site=stackoverflow&pagesize=4&accepted=True`, { signal: T(12000) });
   const j = await r.json();
   return (j.items || []).map((x: any) => ({ title: `Stack Overflow: ${strip(x.title)}`, url: x.link, snippet: `${x.score} votes · ${(x.tags || []).slice(0, 4).join(", ")}` }));
 }
+
 async function hn(q: string): Promise<Hit[]> {
   const r = await fetch(`https://hn.algolia.com/api/v1/search?query=${encodeURIComponent(q)}&tags=story&hitsPerPage=4`, { signal: T(12000) });
   const j = await r.json();
@@ -55,17 +73,21 @@ export async function webSearch(q: string): Promise<{ engine: string; answer?: s
   if (tv) try { return { engine: "Tavily", hits: await tavily(q, tv.secret) }; } catch (e: any) { notes.push(e.message); }
   if (jn) try { return { engine: "Jina", hits: await jina(q, jn.secret) }; } catch (e: any) { notes.push(e.message); }
   if (gm) try { const g = await geminiSearch(q, gm.secret); if (g.answer || g.hits.length) return { engine: "Google (via Gemini)", ...g }; } catch (e: any) { notes.push(e.message); }
-  // Free, keyless fallback: developer-focused sources that allow browser calls.
   const parts = await Promise.allSettled([github(q, 4), wikipedia(q), stack(q), hn(q)]);
   const hits = parts.flatMap((p) => (p.status === "fulfilled" ? p.value : []));
   return { engine: "Free sources (GitHub, Wikipedia, Stack Overflow, Hacker News)" + (notes.length ? ` after: ${notes.join("; ")}` : ""), hits };
 }
 
 export async function readUrl(url: string): Promise<string> {
+  const jinaKey = keyOf("jina")?.secret;
   try {
-    const r = await fetch(`https://r.jina.ai/${url}`, { signal: T(30000), headers: { Accept: "text/plain", ...(keyOf("jina") ? { Authorization: `Bearer ${keyOf("jina")!.secret}` } : {}) } });
+    const r = await fetch(`https://r.jina.ai/${url}`, {
+      signal: T(30000),
+      headers: { Accept: "text/plain", ...(jinaKey ? { Authorization: `Bearer ${jinaKey}` } : {}) },
+    });
     if (r.ok) return clip(await r.text(), 12000);
   } catch { /* fall through */ }
+
   const r = await fetch(url, { signal: T(20000) });
   return clip(strip(await r.text()), 12000);
 }
@@ -81,13 +103,18 @@ export async function npmSearch(q: string): Promise<string> {
 
 export async function github(q: string, n = 6): Promise<Hit[]> {
   const gh = keyOf("github");
-  const r = await fetch(`https://api.github.com/search/repositories?q=${encodeURIComponent(q)}&sort=stars&per_page=${n}`, { signal: T(15000), headers: { Accept: "application/vnd.github+json", ...(gh ? { Authorization: `Bearer ${gh.secret}` } : {}) } });
+  const r = await fetch(`https://api.github.com/search/repositories?q=${encodeURIComponent(q)}&sort=stars&per_page=${n}`, {
+    signal: T(15000),
+    headers: {
+      Accept: "application/vnd.github+json",
+      ...(gh ? { Authorization: `Bearer ${gh.secret}` } : {}),
+    },
+  });
   if (!r.ok) throw new Error(`GitHub search ${r.status}`);
   const j = await r.json();
   return (j.items || []).map((x: any) => ({ title: `${x.full_name} ★${x.stargazers_count}`, url: x.html_url, snippet: clip(x.description || "", 200) + (x.license?.spdx_id ? ` · ${x.license.spdx_id}` : "") }));
 }
 
-/** A package's README, straight from the npm CDN: the most reliable docs a model can read. */
 export async function packageDocs(pkg: string, focus?: string): Promise<string> {
   let ver = "latest";
   try { const m = await fetch(`https://registry.npmjs.org/${pkg}/latest`, { signal: T(10000) }); if (m.ok) ver = (await m.json()).version; } catch { /* */ }
@@ -116,7 +143,6 @@ export const latestVersion = async (pkg: string): Promise<string | null> => {
 };
 
 export interface Photo { url: string; thumb: string; alt: string; credit: string; source: string }
-/** Real photos for apps: Pexels or Unsplash if a key is saved, else Openverse and Wikimedia Commons (free, no key). */
 export async function findPhotos(q: string, n = 6): Promise<{ source: string; photos: Photo[] }> {
   const tries: [string, () => Promise<Photo[]>][] = [];
   const pex = keyOf("pexels"), uns = keyOf("unsplash");

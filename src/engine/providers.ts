@@ -13,11 +13,18 @@ export interface ProviderDef {
   signup?: string;
 }
 
+export const LOCAL_PROVIDERS: ProviderDef[] = [
+  { id: "ollama", name: "Ollama (local)", dialect: "openai", base: "http://localhost:11434/v1", signup: "https://ollama.com/download" },
+  { id: "lmstudio", name: "LM Studio (local)", dialect: "openai", base: "http://localhost:1234/v1", signup: "https://lmstudio.ai" },
+  { id: "localai", name: "LocalAI / Jan / vLLM", dialect: "openai", base: "http://localhost:8080/v1" },
+];
+
 export const PROVIDERS: ProviderDef[] = [
+  ...LOCAL_PROVIDERS,
   { id: "google", name: "Google Gemini", dialect: "gemini", base: "https://generativelanguage.googleapis.com/v1beta", modelsDev: "google", prefixes: ["AIza"], signup: "https://aistudio.google.com/apikey" },
   { id: "anthropic", name: "Anthropic", dialect: "anthropic", base: "https://api.anthropic.com", modelsDev: "anthropic", prefixes: ["sk-ant-"], signup: "https://console.anthropic.com" },
   { id: "openrouter", name: "OpenRouter", dialect: "openai", base: "https://openrouter.ai/api/v1", modelsDev: "openrouter", prefixes: ["sk-or-"], signup: "https://openrouter.ai/keys" },
-  { id: "groq", name: "Groq", dialect: "openai", base: "https://api.groq.com/openai/v1", modelsDev: "groq", prefixes: ["gsk_"], signup: "https://console.groq.com/keys" },
+  { id: "groq", name: "Groq", dialect: "openai", base: "https://api.groq.com/openai/v1", modelsDev: "groq", prefixes: ["gsk_"] , signup: "https://console.groq.com/keys" },
   { id: "xai", name: "xAI Grok", dialect: "openai", base: "https://api.x.ai/v1", modelsDev: "xai", prefixes: ["xai-"] },
   { id: "cerebras", name: "Cerebras", dialect: "openai", base: "https://api.cerebras.ai/v1", modelsDev: "cerebras", prefixes: ["csk-"], signup: "https://cloud.cerebras.ai" },
   { id: "nvidia", name: "NVIDIA NIM", dialect: "openai", base: "https://integrate.api.nvidia.com/v1", modelsDev: "nvidia", prefixes: ["nvapi-"], noBrowser: true },
@@ -33,7 +40,6 @@ export const PROVIDERS: ProviderDef[] = [
   { id: "cohere", name: "Cohere", dialect: "openai", base: "https://api.cohere.ai/compatibility/v1", modelsDev: "cohere" },
 ];
 
-/** Free, no-key starter so anyone can try Kuro-chan before adding a key. */
 export const FREE: ProviderDef = { id: "pollinations", name: "Free starter", dialect: "openai", base: "https://text.pollinations.ai/openai" };
 export const FREE_MODELS: ModelInfo[] = [{ id: "openai", name: "GPT-OSS 20B (free)", tools: true, reasoning: true, vision: false, free: true, power: 50, speed: 60 }];
 
@@ -101,7 +107,8 @@ export async function listModels(p: ProviderDef, key: string): Promise<{ ok: boo
       if (!r.ok) return { ok: false, models: [], error: r.json?.error?.message || `HTTP ${r.status}` };
       return { ok: true, models: (r.json.data || []).map((m: any) => m.id) };
     }
-    const r = await getJSON(`${p.base}/models`, { Authorization: `Bearer ${key}` });
+    const headers: Record<string, string> = key ? { Authorization: `Bearer ${key}` } : {};
+    const r = await getJSON(`${p.base}/models`, headers);
     if (!r.ok) return { ok: false, models: [], error: r.json?.error?.message || r.json?.message || `HTTP ${r.status}` };
     const arr = Array.isArray(r.json) ? r.json : r.json?.data || r.json?.models || [];
     return { ok: true, models: arr.map((m: any) => m.id || m.name).filter(Boolean) };
@@ -162,7 +169,6 @@ export async function detect(rawKey: string, opts: { baseUrl?: string } = {}): P
     throw new Error(`${byPrefix.name} rejected this key: ${r.error || "rejected"}`);
   }
 
-  // Probe all AI providers concurrently when no prefix matches
   const errors: string[] = [];
   const results = await Promise.allSettled(
     PROVIDERS.map(async (p) => {
@@ -177,7 +183,8 @@ export async function detect(rawKey: string, opts: { baseUrl?: string } = {}): P
       const { provider, models } = res.value;
       return { kind: "ai", provider: provider.id, name: provider.name, base: provider.base, models: await enrich(provider, models) };
     }
+    errors.push(res.reason?.message || String(res.reason));
   }
 
-  return { kind: "secret", provider: "secret", name: "Unknown key", models: [], note: "I couldn't match it to an AI provider, so I saved it as a named secret." };
+  return { kind: "secret", provider: "secret", name: "Unknown key", models: [], note: errors.join("; ") || "I couldn't match it to an AI provider, so I saved it as a named secret." };
 }
