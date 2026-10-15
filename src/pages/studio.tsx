@@ -62,7 +62,8 @@ export default function Studio() {
         title={locked ? "Locked" : undefined}
         className={mobile
           ? `relative flex flex-1 flex-col items-center gap-0.5 py-2 text-[10.5px] font-medium ${locked ? "opacity-35" : ""} ${active ? "text-foreground" : "text-muted-foreground"}`
-          : `inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[13px] font-medium transition-colors ${locked ? "opacity-35" : ""} ${active ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground"}`}>
+          : `inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[13px] font-medium transition-colors ${locked ? "opacity-35" : ""} ${active ? "bg-muted text-foreground" : "text-muted-foreground"}`}
+      >
         <Icon className={mobile ? "h-[18px] w-[18px]" : "h-3.5 w-3.5"} />{t.label}
       </button>
     );
@@ -76,14 +77,14 @@ export default function Studio() {
         <span className="mx-1 h-4 w-px bg-border" />
         <ProjectMenu busy={running} onSwitched={() => setSelection(null)} />
         <div className="ml-auto flex items-center gap-1">
-          <button data-testid="button-key-status" onClick={() => openTab("keys")} className="hidden items-center gap-1.5 rounded-lg px-2 py-1.5 text-[12.5px] text-muted-foreground hover:bg-muted hover:text-foreground sm:inline-flex">
+          <button data-testid="button-key-status" onClick={() => openTab("keys")} className="hidden items-center gap-1.5 rounded-lg px-2 py-1.5 text-[12.5px] text-muted-foreground hover:bg-muted h[...]
             <span className={`h-1.5 w-1.5 rounded-full ${aiKeys ? "bg-emerald-500" : st.settings.freeStarter ? "bg-amber-500" : "bg-rose-500"}`} />
             {aiKeys ? `${aiKeys} ${aiKeys === 1 ? "key" : "keys"}` : st.settings.freeStarter ? "Free starter" : "No keys"}
           </button>
-          <button data-testid="button-theme" aria-label="Toggle theme" onClick={toggle} className="grid h-8 w-8 place-items-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground">
+          <button data-testid="button-theme" aria-label="Toggle theme" onClick={toggle} className="grid h-8 w-8 place-items-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foregr[...]
             {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
           </button>
-          <button data-testid="button-publish" onClick={() => setPublishOpen(true)} className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-[13px] font-medium text-primary-foreground hover:opacity-90">
+          <button data-testid="button-publish" onClick={() => setPublishOpen(true)} className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-[13px] font-medium text-prima[...]
             <Github className="h-3.5 w-3.5" /><span className="hidden min-[400px]:inline">Publish</span>
           </button>
         </div>
@@ -107,7 +108,7 @@ export default function Studio() {
             <div className="ml-2 flex h-full min-h-0 flex-col overflow-hidden rounded-xl border border-border bg-card">
               <div className="flex items-center gap-0.5 border-b border-border px-2 py-1.5">
                 {TABS.map((t) => tabBtn(t, tab === t.id, () => setTab(t.id)))}
-                {running && <span className="ml-auto mr-2 inline-flex items-center gap-1.5 text-[12px] text-muted-foreground"><Loader2 className="h-3 w-3 animate-spin" /> Kuro-chan is working</span>}
+                {running && <span className="ml-auto mr-2 inline-flex items-center gap-1.5 text-[12px] text-muted-foreground"><Loader2 className="h-3 w-3 animate-spin" /> Kuro-chan is working</sp[...]
               </div>
               <div className="min-h-0 flex-1">{pane(tab)}</div>
             </div>
@@ -135,11 +136,11 @@ function ProjectMenu({ busy, onSwitched }: { busy: boolean; onSwitched: () => vo
     try {
       const gh = new GH(tok.secret);
       const info = await gh.ensureRepo(spec);
-      const files = await gh.readTree(info.owner, info.name, info.defaultBranch, (p) => !/^(node_modules|dist|build|android|ios|\.git)\//.test(p) && !/(^|\/)(package-lock\.json|yarn\.lock|pnpm-lock\.yaml)$/.test(p));
+      const files = await gh.readTree(info.owner, info.name, info.defaultBranch, (p) => !/^(node_modules|dist|build|android|ios|\.git)\//.test(p) && !/(^|\/)\(package-lock\.json|yarn\.lock|pnpm-lock\.yaml\)$/i.test(p));
       const empty = !Object.keys(files).filter((p) => p !== ".kuro").length;
       const created = db.createProject(info.name, empty ? starterFiles(info.name) : files);
       db.updateProject(created.id, { repo: `${info.owner}/${info.name}` });
-      toast({ title: empty ? "Empty repo connected" : `Imported ${Object.keys(files).length} files`, description: empty ? "I started it with a clean template. Publish pushes it to that repo." : "Tell me what to change. Publish pushes it back." });
+      toast({ title: empty ? "Empty repo connected" : `Imported ${Object.keys(files).length} files`, description: empty ? "I started it with a clean template. Publish pushes it to that repo." : "Imported files from the repository." });
       setDialog(null); onSwitched();
     } catch (e) { toast({ title: "Couldn't import", description: errMsg(e), variant: "destructive" }); }
     setImporting(false);
@@ -184,11 +185,11 @@ function ProjectMenu({ busy, onSwitched }: { busy: boolean; onSwitched: () => vo
         <DialogContent className="sm:max-w-[380px]">
           <DialogHeader>
             <DialogTitle className="text-[17px]">{dialog === "new" ? "New app" : dialog === "import" ? "Import from GitHub" : "Rename app"}</DialogTitle>
-            <DialogDescription className="text-[13.5px]">{dialog === "new" ? "A fresh project with its own chat, files and GitHub repo." : dialog === "import" ? "Paste a repo link or owner/name. Empty repos work too." : "This only changes the name you see."}</DialogDescription>
+            <DialogDescription className="text-[13.5px]">{dialog === "new" ? "A fresh project with its own chat, files and GitHub repo." : dialog === "import" ? "Paste a repo link or owner/name. I will copy its files." : "Rename the app."}</DialogDescription>
           </DialogHeader>
-          <input data-testid="input-project-name" autoFocus value={name} onChange={(e) => setName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && save()} placeholder={dialog === "import" ? "github.com/you/your-repo" : "e.g. Habit Tracker"}
+          <input data-testid="input-project-name" autoFocus value={name} onChange={(e) => setName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && save()} placeholder={dialog === "import" ? "owner/repo or https://github.com/owner/repo" : "My App"}
             className="h-10 w-full rounded-lg border border-border bg-background px-3 text-[14px] outline-none focus:border-foreground/30" />
-          <button data-testid="button-project-save" disabled={!name.trim() || importing} onClick={save} className="w-full rounded-lg bg-primary py-2.5 text-[14px] font-medium text-primary-foreground disabled:opacity-50">
+          <button data-testid="button-project-save" disabled={!name.trim() || importing} onClick={save} className="w-full rounded-lg bg-primary py-2.5 text-[14px] font-medium text-primary-foreground">
             {importing ? "Importing…" : dialog === "new" ? "Create app" : dialog === "import" ? "Import" : "Save"}
           </button>
         </DialogContent>
@@ -204,12 +205,13 @@ function PublishDialog({ open, onOpenChange, onOpenKeys }: { open: boolean; onOp
   const [repo, setRepo] = useState("");
   const [ship, setShip] = useState(true);
   const [priv, setPriv] = useState(false);
+  const [sessionOnly, setSessionOnly] = useState(false);
   const [busy, setBusy] = useState(false);
   const [step, setStep] = useState("");
   const [links, setLinks] = useState<{ label: string; url: string }[] | null>(null);
   const token = st.keys.find((k) => k.provider === "github");
   const slug = (p?.name || "my-app").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-  useEffect(() => { if (open) { setRepo(p?.repo || slug); setLinks(null); } }, [open]); // eslint-disable-line
+  useEffect(() => { if (open) { setRepo(p?.repo || slug); setLinks(null); setSessionOnly(false); } }, [open]); // eslint-disable-line
 
   const go = async () => {
     if (!token) return;
@@ -235,11 +237,20 @@ function PublishDialog({ open, onOpenChange, onOpenKeys }: { open: boolean; onOp
       }
       setStep("Pushing files");
       await gh.commitFiles(info.owner, info.name, info.defaultBranch, Object.entries(files).map(([path, content]) => ({ path, content })), `Update from Kuro-chan: ${p.name}`);
-      if (ship && !priv) { setStep("Turning on GitHub Pages"); try { await gh.enablePages(info.owner, info.name); } catch (e) { toast({ title: "Pages needs a manual switch", description: errMsg(e) }); } }
-      db.updateProject(p.id, { repo: full });
+      if (ship && !priv) { setStep("Turning on GitHub Pages"); try { await gh.enablePages(info.owner, info.name); } catch (e) { toast({ title: "Pages needs a manual switch", description: errMsg(e), variant: "destructive" }); } }
+      // Only persist the repo to project settings when NOT session-only
+      if (!sessionOnly) db.updateProject(p.id, { repo: full });
       setLinks(out);
     } catch (e) { toast({ title: "Publish failed", description: errMsg(e), variant: "destructive" }); }
     setBusy(false); setStep("");
+  };
+
+  const createTemp = () => {
+    // Create a convenient unique repo name and mark session-only so we don't persist it
+    const n = `${slug || 'my-app'}-${Date.now().toString(36).slice(-6)}`;
+    setRepo(n);
+    setSessionOnly(true);
+    toast({ title: "Temporary repo name generated", description: `Using repository ${n} for this publish session only.` });
   };
 
   return (
@@ -254,12 +265,13 @@ function PublishDialog({ open, onOpenChange, onOpenKeys }: { open: boolean; onOp
             Add a GitHub token in Keys first. Use a fine-grained token with <b>Contents</b>, <b>Workflows</b>, <b>Pages</b> and <b>Administration</b> set to read and write.
             <div className="mt-3 flex gap-2">
               <button data-testid="button-publish-open-keys" onClick={onOpenKeys} className="rounded-lg bg-primary px-3 py-1.5 text-[13px] font-medium text-primary-foreground">Open Keys</button>
-              <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-[13px]">Make a token <ExternalLink className="h-3 w-3" /></a>
+              <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-[13px]">Create token</a>
             </div>
           </div>
         ) : links ? (
           <div className="space-y-2">
-            <div className="rounded-xl bg-emerald-50 p-3 text-[13px] text-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-300">Published. GitHub Actions is now building{ship ? " your website and Android APK" : ""}.</div>
+            <div className="rounded-xl bg-emerald-50 p-3 text-[13px] text-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-300">Published. GitHub Actions is now building{ship ? " your website and APK." : " your repository."}</div>
+            {sessionOnly && <div className="rounded-xl bg-yellow-50 p-3 text-[13px] text-yellow-900">Note: this repo was used for this session only and was not saved to the project settings.</div>}
             {links.map((l) => (
               <a key={l.url} href={l.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-[12.5px] hover:bg-muted">
                 <ExternalLink className="h-3.5 w-3.5 shrink-0" /><span className="min-w-0"><span className="block font-medium">{l.label}</span><span className="block truncate text-muted-foreground">{l.url}</span></span>
@@ -270,17 +282,26 @@ function PublishDialog({ open, onOpenChange, onOpenKeys }: { open: boolean; onOp
           <div className="space-y-4">
             <div>
               <label className="text-[12.5px] font-medium text-muted-foreground">Repository</label>
-              <input data-testid="input-publish-repo" value={repo} onChange={(e) => setRepo(e.target.value)} placeholder="my-app or owner/my-app" className="mt-1 h-10 w-full rounded-lg border border-border bg-background px-3 font-mono text-[13px] outline-none focus:border-foreground/30" />
+              <input data-testid="input-publish-repo" value={repo} onChange={(e) => setRepo(e.target.value)} placeholder="my-app or owner/my-app" className="mt-1 h-10 w-full rounded-lg border border-border bg-background px-3 text-[14px] outline-none focus:border-foreground/30" />
             </div>
+
+            <div className="flex items-center gap-2">
+              <label className="flex items-start gap-3">
+                <Switch data-testid="switch-session-only" checked={sessionOnly} onCheckedChange={setSessionOnly} />
+                <span><span className="block text-[13.5px] font-medium">Session-only</span><span className="block text-[12.5px] text-muted-foreground">Use this repo for this publish only and don't save it.</span></span>
+              </label>
+              <button onClick={createTemp} className="ml-auto rounded-lg border border-border px-2 py-1 text-[13px]">Create temporary repo</button>
+            </div>
+
             <label className="flex items-start gap-3">
               <Switch data-testid="switch-ship" checked={ship} onCheckedChange={setShip} />
-              <span><span className="block text-[13.5px] font-medium">Ship it: website and Android APK</span><span className="block text-[12.5px] text-muted-foreground">Adds GitHub Actions, turns on Pages, and puts download links in the README.</span></span>
+              <span><span className="block text-[13.5px] font-medium">Ship it: website and Android APK</span><span className="block text-[12.5px] text-muted-foreground">Adds GitHub Actions, turns the README into a landing page and builds the APK.</span></span>
             </label>
             <label className="flex items-start gap-3">
               <Switch data-testid="switch-private" checked={priv} onCheckedChange={setPriv} />
               <span><span className="block text-[13.5px] font-medium">Private repo</span><span className="block text-[12.5px] text-muted-foreground">Free GitHub Pages needs a public repo.</span></span>
             </label>
-            <button data-testid="button-publish-confirm" disabled={busy || !repo.trim()} onClick={go} className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-2.5 text-[14px] font-medium text-primary-foreground disabled:opacity-50">
+            <button data-testid="button-publish-confirm" disabled={busy || !repo.trim()} onClick={go} className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-2.5 text-[14px] font-medium text-primary-foreground">
               {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Github className="h-4 w-4" />} {busy ? step + "…" : "Push to GitHub"}
             </button>
           </div>

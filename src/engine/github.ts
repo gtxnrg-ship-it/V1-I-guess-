@@ -6,7 +6,7 @@ export const unb64 = (s: string) => { const bin = atob(s.replace(/\n/g, "")); co
 
 export class GH {
   constructor(private token: string) {}
-  async req(method: string, path: string, body?: any): Promise<{ status: number; json: any }> {
+  async req(method: string, path: string, body?: any): Promise<{ status: number; json: any; headers: Headers }> {
     const r = await fetch(`${API}${path}`, {
       method,
       headers: { Authorization: `Bearer ${this.token}`, Accept: "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28", ...(body ? { "Content-Type": "application/json" } : {}) },
@@ -16,7 +16,7 @@ export class GH {
     const t = await r.text();
     let json: any = null;
     try { json = t ? JSON.parse(t) : null; } catch { json = t; }
-    return { status: r.status, json };
+    return { status: r.status, json, headers: r.headers };
   }
   async ok(method: string, path: string, body?: any) {
     const r = await this.req(method, path, body);
@@ -37,7 +37,7 @@ export class GH {
     let created = false;
     if (r.status === 404) {
       const path = owner === login ? "/user/repos" : `/orgs/${owner}/repos`;
-      r = { status: 201, json: await this.ok("POST", path, { name, private: opts.private ?? false, description: opts.description || "Built with Kuro-chan", auto_init: false }) };
+      r = { status: 201, json: await this.ok("POST", path, { name, private: opts.private ?? false, description: opts.description || "Built with Kuro-chan", auto_init: false }), headers: r.headers };
       created = true;
     } else if (r.status >= 300) throw new Error(`Can't access ${owner}/${name}: ${r.json?.message}`);
     return { owner, name, defaultBranch: r.json.default_branch || "main", htmlUrl: r.json.html_url, created, private: r.json.private };
