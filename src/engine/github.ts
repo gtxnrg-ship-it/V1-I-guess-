@@ -48,9 +48,13 @@ export class GH {
   async me(): Promise<string> { return (await this.ok("GET", "/user")).login; }
 
   async ensureRepo(spec: string, opts: { private?: boolean; description?: string } = {}) {
+    const clean = spec.trim().replace(/^https?:\/\/github\.com\//, "").replace(/\.git$/, "").replace(/\/$/, "");
+    const parts = clean.split("/").filter(Boolean);
+    if (!clean || parts.length > 2 || parts.length === 0) {
+      throw new Error("Enter a repository name or a GitHub repository URL such as owner/repository. Branch, file, and extra path segments are not supported.");
+    }
     const login = await this.me();
-    const clean = spec.replace(/^https?:\/\/github\.com\//, "").replace(/\.git$/, "").replace(/\/$/, "");
-    const [owner, name] = clean.includes("/") ? clean.split("/") : [login, clean];
+    const [owner, name] = parts.length === 2 ? parts : [login, parts[0]];
     let r = await this.req("GET", `/repos/${owner}/${name}`);
     let created = false;
     if (r.status === 404) {
@@ -87,6 +91,11 @@ export class GH {
     });
     const commit = await this.ok("POST", `/repos/${owner}/${name}/git/commits`, { message, tree: tree.sha, parents: [parent] });
     const exists = await this.headSha(owner, name, branch);
+    // Do not move a branch if someone pushed after we read its parent commit.
+    // This is a compare-and-swap guard against accidentally overwriting newer work.
+    if (!opts.fromBranch && exists !== parent) {
+      throw new Error("The repository changed while preparing this publish. Nothing was pushed. Refresh the project from GitHub and review the changes before trying again.");
+    }
     if (exists) await this.ok("PATCH", `/repos/${owner}/${name}/git/refs/heads/${branch}`, { sha: commit.sha, force: false });
     else await this.ok("POST", `/repos/${owner}/${name}/git/refs`, { ref: `refs/heads/${branch}`, sha: commit.sha });
     return { sha: commit.sha, url: `https://github.com/${owner}/${name}/commit/${commit.sha}` };

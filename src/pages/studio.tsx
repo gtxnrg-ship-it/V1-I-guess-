@@ -158,11 +158,13 @@ function ProjectMenu({ busy, onSwitched }: { busy: boolean; onSwitched: () => vo
     try {
       const gh = new GH(tok.secret);
       const info = await gh.ensureRepo(spec);
+      const baseSha = await gh.headSha(info.owner, info.name, info.defaultBranch);
       const files = await gh.readTree(info.owner, info.name, info.defaultBranch, (p) => !/^(node_modules|dist|build|android|ios|\.git)\//.test(p) && !/(^|\/)(package-lock\.json|yarn\.lock|pnpm-lock\.yaml)$/.test(p));
       const empty = !Object.keys(files).filter((p) => p !== ".kuro").length;
       const created = db.createProject(info.name, empty ? starterFiles(info.name) : files);
       db.updateProject(created.id, {
         repo: `${info.owner}/${info.name}`,
+        repoBaseSha: baseSha || undefined,
         privateRepo: info.private,
         shipped: Boolean(files[".github/workflows/deploy-website.yml"] && files[".github/workflows/build-android.yml"]),
       });
@@ -258,6 +260,10 @@ function PublishDialog({ open, onOpenChange, onOpenKeys }: { open: boolean; onOp
       setStep("Checking the repository");
       const info = await gh.ensureRepo(repo.trim(), { private: priv, description: `${p.name}, built with Kuro-chan` });
       const full = `${info.owner}/${info.name}`;
+      const remoteHead = await gh.headSha(info.owner, info.name, info.defaultBranch);
+      if (p.repo && p.repo.toLowerCase() === full.toLowerCase() && p.repoBaseSha && remoteHead && remoteHead !== p.repoBaseSha) {
+        throw new Error(`This repository changed since you imported it (remote commit ${remoteHead.slice(0, 7)}; saved baseline ${p.repoBaseSha.slice(0, 7)}). I stopped before pushing so newer work is not overwritten. Re-import the latest repository into a separate project, then bring your changes across before publishing.`);
+      }
       const files: Record<string, string> = { ...p.files };
       delete files[".kuro/research.md"];
       setStep("Listing packages");
@@ -277,8 +283,9 @@ function PublishDialog({ open, onOpenChange, onOpenKeys }: { open: boolean; onOp
       }
       setStep("Pushing files");
       await gh.commitFiles(info.owner, info.name, info.defaultBranch, Object.entries(files).map(([path, content]) => ({ path, content })), `Update from Kuro-chan: ${p.name}`);
+      const publishedHead = await gh.headSha(info.owner, info.name, info.defaultBranch);
       if (ship && !info.private) { setStep("Turning on GitHub Pages"); try { await gh.enablePages(info.owner, info.name); } catch (e) { toast({ title: "Pages needs a manual switch", description: errMsg(e) }); } }
-      if (!sessionOnly) db.updateProject(p.id, { repo: full, privateRepo: info.private, shipped: ship || p.shipped });
+      if (!sessionOnly) db.updateProject(p.id, { repo: full, repoBaseSha: publishedHead || undefined, privateRepo: info.private, shipped: ship || p.shipped });
       setPublishedPrivate(info.private);
       setLinks(out);
     } catch (e) { toast({ title: "Publish failed", description: errMsg(e), variant: "destructive" }); }
@@ -298,7 +305,7 @@ function PublishDialog({ open, onOpenChange, onOpenKeys }: { open: boolean; onOp
       <DialogContent className="sm:max-w-[440px]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-[17px]"><Rocket className="h-4 w-4" /> Publish to GitHub</DialogTitle>
-          <DialogDescription className="text-[13.5px]">I'll push your whole project. Empty repo? Fine. Missing repo? I'll create it.</DialogDescription>
+          <DialogDescription className="text-[13.5px]">Review the publish summary before pushing. For connected projects, I check whether the remote repository changed since import.</DialogDescription>
         </DialogHeader>
         {!token ? (
           <div className="rounded-xl bg-muted p-4 text-[13.5px]">
@@ -324,6 +331,11 @@ function PublishDialog({ open, onOpenChange, onOpenKeys }: { open: boolean; onOp
           </div>
         ) : (
           <div className="space-y-4">
+            <div className="rounded-xl border border-border bg-muted/40 p-3 text-[12.5px]">
+              <div className="flex items-center justify-between gap-3"><span className="font-medium">Publish preflight</span><span className="text-muted-foreground">{Object.keys(p.files).length} project files</span></div>
+              <p className="mt-1 text-muted-foreground">The current publish sends your project files to the selected repository default branch. Local environment values are excluded; only variable names are written to .env.example.</p>
+              {p.repo && <p className="mt-1 text-muted-foreground">{p.repoBaseSha ? `Last observed remote commit: ${p.repoBaseSha.slice(0, 7)}` : "No saved remote baseline yet; this project may have been connected before change detection was added."}</p>}
+            </div>
             <div>
               <label className="text-[12.5px] font-medium text-muted-foreground">Repository</label>
               <input data-testid="input-publish-repo" value={repo} onChange={(e) => setRepo(e.target.value)} placeholder="my-app or owner/my-app" className="mt-1 h-10 w-full rounded-lg border border-border bg-background px-3 font-mono text-[13px] outline-none focus:border-foreground/30" />

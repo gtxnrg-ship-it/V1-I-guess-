@@ -74,6 +74,8 @@ export interface Project {
   id: string;
   name: string;
   repo: string | null;
+  /** Last remote commit observed when importing or successfully publishing this project. */
+  repoBaseSha?: string;
   shipped?: boolean;
   privateRepo?: boolean;
   env: Record<string, string>;
