@@ -3,12 +3,13 @@
   "version": "2.0.0",
   "private": true,
   "type": "module",
-  "description": "Kuro-chan: a free, open-source AI app builder that runs entirely in your browser.",
+  "description": "Kuro-chan: a browser-first, open-source AI app builder with GitHub-first workflows.",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "check": "tsc --noEmit"
+    "check": "tsc --noEmit",
+    "test": "npx --yes tsx@4.20.6 src/lib/kuro.test.ts"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.7",
