@@ -9,7 +9,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "check": "tsc --noEmit",
-    "test": "npx --yes tsx@4.20.6 src/lib/kuro.test.ts"
+    "test": "npx --yes tsx@4.20.6 src/lib/kuro.test.ts",
+    "e2e": "playwright test"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.7",
@@ -42,6 +43,7 @@
     "postcss": "^8.4.47",
     "tailwindcss": "^3.4.17",
     "typescript": "5.6.3",
-    "vite": "^7.3.0"
+    "vite": "^7.3.0",
+    "@playwright/test": "1.64.1"
   }
 }
