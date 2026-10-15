@@ -1,5 +1,5 @@
-const { test, expect } = require('@playwright/test');
-const fs = require('fs');
+import { test, expect } from '@playwright/test';
+import fs from 'fs';
 
 test.describe('Kuro-chan studio smoke', () => {
   test('loads /studio and captures console output and screenshot', async ({ page }) => {
