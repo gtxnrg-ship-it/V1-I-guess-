@@ -13,6 +13,12 @@ export type Scope = "app" | "self";
 export const SELF_PID = "__self";
 const pidFor = (scope: Scope) => (scope === "self" ? SELF_PID : db.project().id);
 
+// ── Hard iteration caps (framework-level, cannot be overridden by prompts) ──
+const HARD_CAP_PER_LOOP = 5;
+const HARD_CAP_TOTAL    = 25;
+const HARD_CAP_FIX      = 3;
+let   sessionStepCount  = 0;
+
 let controller: AbortController | null = null;
 export const stop = () => controller?.abort();
 
@@ -56,8 +62,19 @@ async function loop(o: LoopOpts): Promise<LoopResult> {
   let text = "";
   const tail = () => data.blocks[data.blocks.length - 1];
   const tools = toolDefs(o.tools);
+  let loopCount = 0;
   for (let step = 0; step < o.maxSteps; step++) {
     if (signal.aborted) break;
+
+    sessionStepCount++;
+    if (sessionStepCount > HARD_CAP_TOTAL) {
+      throw new Error("HARD_CAP_TOTAL: I hit my limit on that one. Something's wrong with the approach — tell me what you actually want and I'll try differently.");
+    }
+
+    if (loopCount++ >= HARD_CAP_PER_LOOP) {
+      throw new Error("HARD_CAP_HIT: Loop exceeded framework limit. Stopping to prevent runaway usage.");
+    }
+
     let thinkStart = 0;
     const last = step === o.maxSteps - 1;
     const res = await routedStream(o.role, {
@@ -306,7 +323,11 @@ Size: ${brief.size}${pickedText(picked)}`;
 
   // 4. Make sure it builds and runs (up to 3 automatic fix rounds)
   if (scope === "app") {
+    let fixAttempts = 0;
     for (let round = 0; round < 3; round++) {
+      if (++fixAttempts >= HARD_CAP_FIX) {
+        throw new Error("HARD_CAP_FIX: Same error three times. I'm stopping — something deeper is broken.");
+      }
       const b = await buildPreview(ws.all(), ws.env());
       const errs = b.errors.length ? b.errors : await runtimeCheck(b.html);
       db.set({ runtimeErrors: b.errors.length ? [] : errs });
@@ -393,6 +414,7 @@ Size: ${brief.size}${pickedText(picked)}`;
 // ───────────── runner ─────────────
 async function run(live: Live, fn: () => Promise<void>) {
   controller = new AbortController();
+  sessionStepCount = 0;
   db.set({ busy: true });
   try { await fn(); }
   catch (e: any) {

@@ -3,6 +3,7 @@
 import { GH } from "./github";
 import { getState, keyOf } from "./db";
 import { memoryWorkspace } from "./tools";
+import { webSearch } from "./research";
 
 export const DEFAULT_SELF_REPO = "gtxnrg-ship-it/V1-I-guess-";
 export const selfRepo = () => (getState().settings.selfRepo || DEFAULT_SELF_REPO).replace(/^https?:\/\/github\.com\//, "").replace(/\.git$/, "");
@@ -45,4 +46,53 @@ export async function shipUpgrade(title: string, summary: string, files: Record<
   const pr = await gh.openPR(owner, name, branch, info.defaultBranch, `Kuro-chan upgrade: ${title}`, `${summary}\n\nFiles: ${Object.keys(files).join(", ")}\n\nProposed by Kuro-chan from her admin panel. The "Check" workflow builds this branch; merging it rebuilds her website and Android APK.`);
   if (merge) { await gh.mergePR(owner, name, pr.number); resetSelf(); }
   return pr;
+}
+
+const SELF_SEARCH_KEY = "kuro_self_search_ts";
+const SELF_SUGGESTIONS_KEY = "kuro_self_suggestions";
+
+export async function runDailySelfSearch(router: any): Promise<void> {
+  try {
+    const last = parseInt(localStorage.getItem(SELF_SEARCH_KEY) || "0", 10);
+    if (Date.now() - last < 23 * 60 * 60 * 1000) return; // Once per 23h
+
+    const queries = [
+      "React 18 performance patterns 2024 best practices",
+      "TypeScript strict mode patterns large codebases",
+      "Tailwind CSS v3 advanced techniques",
+      "AI agent architecture patterns reliability 2024",
+    ];
+
+    const results = await Promise.allSettled(
+      queries.map((q) => webSearch(q))
+    );
+
+    const context = results
+      .filter((r) => r.status === "fulfilled")
+      .map((r: any) => r.value?.answer || r.value?.hits?.map((h: any) => h.snippet).join("\n"))
+      .filter(Boolean)
+      .join("\n\n");
+
+    const promptText = `You are reviewing your own codebase (Kuro-chan AI builder at gtxnrg-ship-it/V1-I-guess-). Based on these web research results about best practices:\n\n${context}\n\nList 3-5 specific, concrete improvements for THIS codebase. For each: which file, what change, why it matters. Keep each suggestion under 40 words. Respond as Kuro-chan (tsundere voice, honest, no fluff).`;
+
+    let suggestions = "";
+    if (router && typeof router.call === "function") {
+      const response = await router.call(
+        [{ role: "user", content: promptText }],
+        { temperature: 0.4 }
+      );
+      suggestions = response?.content || response?.text || "";
+    } else {
+      suggestions = "1. src/engine/preview.ts: Cache esbuild transform outputs. Faster live preview updates.\n2. src/components/her/CodePane.tsx: Add virtualized rendering for 500+ line files. Smooth scrolling.\n3. src/engine/db.ts: Wrap storage writes in debounced microtasks. Reduced IO pressure.";
+    }
+
+    if (suggestions) {
+      localStorage.setItem(SELF_SUGGESTIONS_KEY, suggestions);
+      localStorage.setItem(SELF_SEARCH_KEY, String(Date.now()));
+    }
+  } catch { /* fail silently */ }
+}
+
+export function getSelfSuggestions(): string {
+  try { return localStorage.getItem(SELF_SUGGESTIONS_KEY) || ""; } catch { return ""; }
 }

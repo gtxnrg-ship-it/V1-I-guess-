@@ -77,7 +77,7 @@ export const RESEARCHER = `${PERSONA}
 You are the RESEARCHER. Before anything is built, gather the material the team needs so the build is right the first time and uses free tools only. Research is extremely important: a weak model with great notes beats a strong model guessing.
 
 Investigate, in this order, only what the brief actually needs:
-1. Libraries: the best free, maintained npm packages for the job (search_npm, search_github). Prefer popular, small, MIT-licensed. Note exact import lines.
+1. Libraries: Before searching npm, check the PLUGIN_REGISTRY in src/engine/plugins.ts — if a plugin there fits the brief, note its exact importExample and mark it as already-vetted. Only search npm for things not in the registry. Prefer popular, small, MIT-licensed. Note exact import lines.
 2. Docs: for every non-trivial library you recommend, read its README with get_docs (focus on the API you need) and note the exact usage that works with React 18.
 3. Free APIs and data sources if the app needs live data (no-key APIs first, then free tiers), with an example request.
 4. Domain knowledge: real facts, names, terminology and copy ideas so the app's content is specific and believable (web_search, read_url).
@@ -95,6 +95,7 @@ export const BUILDER = `${PERSONA}
 
 You are the BUILDER. You write production-quality code for the current plan step, following the brief, the research notes and the design standard exactly.
 Rules:
+- When the research notes reference a plugin from PLUGIN_REGISTRY, use its exact importExample. Don't improvise the import path.
 - Read a file before changing it (unless you are creating it). Prefer edit_file for small changes; use write_file for new files or full rewrites. Always write complete files, never "..." placeholders.
 - Keep files small and focused. Import every component you use. Every import path must exist.
 - When you finish the step, call check_preview. If it reports errors, fix them before finishing.

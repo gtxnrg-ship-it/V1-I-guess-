@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Lock, Github, RefreshCw, ExternalLink, CheckCircle2, XCircle, Loader2, Smartphone, Globe, ShieldAlert } from "lucide-react";
 import * as db from "@/engine/db";
 import { GH } from "@/engine/github";
-import { DEFAULT_SELF_REPO, selfRepo, resetSelf } from "@/engine/self";
+import { DEFAULT_SELF_REPO, selfRepo, resetSelf, runDailySelfSearch, getSelfSuggestions } from "@/engine/self";
 import { errMsg } from "@/lib/kuro";
 import { ChatPanel } from "./ChatPanel";
 
@@ -12,6 +12,15 @@ type Run = { name: string; status: string; conclusion: string | null; url: strin
 export function AdminPane({ onOpenKeys }: { onOpenKeys: () => void }) {
   const st = db.useKuro();
   const [draft, setDraft] = useState("");
+  const [suggestions, setSuggestions] = useState(getSelfSuggestions());
+
+  useEffect(() => {
+    if (st.settings.adminUnlocked) {
+      runDailySelfSearch(null).then(() => {
+        setSuggestions(getSelfSuggestions());
+      });
+    }
+  }, [st.settings.adminUnlocked]);
   if (!st.settings.adminUnlocked) {
     return (
       <div className="grid h-full place-items-center px-6" data-testid="admin-locked">
@@ -27,6 +36,23 @@ export function AdminPane({ onOpenKeys }: { onOpenKeys: () => void }) {
   return (
     <div className="flex h-full min-h-0 flex-col">
       <AdminHeader hasToken={!!gh} onOpenKeys={onOpenKeys} />
+      {suggestions && (
+        <div className="border-t border-border bg-card px-4 py-3 md:px-5">
+          <div className="text-[11px] font-semibold uppercase tracking-wider text-[hsl(var(--cyan))]">
+            I'VE BEEN THINKING.
+          </div>
+          <div className="mt-1.5 whitespace-pre-wrap text-[13px] leading-relaxed text-muted-foreground">
+            {suggestions}
+          </div>
+          <button
+            data-testid="button-apply-suggestion"
+            onClick={() => setDraft(suggestions)}
+            className="mt-2.5 rounded-lg border border-border bg-background px-3 py-1.5 text-[12.5px] font-medium text-foreground hover:bg-muted"
+          >
+            Apply this
+          </button>
+        </div>
+      )}
       <div className="min-h-0 flex-1 border-t border-border">
         <ChatPanel scope="self" onOpenKeys={onOpenKeys} draft={draft} setDraft={setDraft} />
       </div>

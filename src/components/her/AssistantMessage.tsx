@@ -422,7 +422,8 @@ export function AssistantMessage({ data, live, pid, msgId, scope, onOpenKeys, on
         )}
         {data.error && data.error !== "NO_KEYS" && (
           <div className="her-rise flex items-start gap-2 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2.5 text-[13px] text-rose-800 dark:border-rose-900/60 dark:bg-rose-950/40 dark:text-rose-300">
-            <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" /><span className="break-words">{data.error}</span>
+            <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+            <span className="break-words">{data.error.startsWith("HARD_CAP_") ? data.error.replace(/^HARD_CAP_[A-Z]+:\s*/, "") : data.error}</span>
           </div>
         )}
       </div>
