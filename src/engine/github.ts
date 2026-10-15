@@ -87,6 +87,11 @@ export class GH {
     });
     const commit = await this.ok("POST", `/repos/${owner}/${name}/git/commits`, { message, tree: tree.sha, parents: [parent] });
     const exists = await this.headSha(owner, name, branch);
+    // Do not move a branch if someone pushed after we read its parent commit.
+    // This is a compare-and-swap guard against accidentally overwriting newer work.
+    if (!opts.fromBranch && exists !== parent) {
+      throw new Error("The repository changed while preparing this publish. Nothing was pushed. Refresh the project from GitHub and review the changes before trying again.");
+    }
     if (exists) await this.ok("PATCH", `/repos/${owner}/${name}/git/refs/heads/${branch}`, { sha: commit.sha, force: false });
     else await this.ok("POST", `/repos/${owner}/${name}/git/refs`, { ref: `refs/heads/${branch}`, sha: commit.sha });
     return { sha: commit.sha, url: `https://github.com/${owner}/${name}/commit/${commit.sha}` };
