@@ -28,7 +28,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh release download --repo ${{ github.repository }} --pattern app-debug.apk --output dist/Kuro-chan.apk || echo "No APK yet"
-      - uses: actions/configure-pages@v5
+      - uses: actions/configure-pages@v6
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
