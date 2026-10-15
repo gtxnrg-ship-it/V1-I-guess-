@@ -163,6 +163,35 @@ export async function send(text: string, opts: { images?: Img[]; picked?: Picked
   if (db.getState().busy) return;
   const scope = opts.scope || "app";
   const pid = pidFor(scope);
+
+  // Session catch-up: if returning to an existing project after 30+ min, brief them
+  const CATCHUP_KEY = `kuro_last_active_${pid}`;
+  const SUMMARY_KEY = `kuro_last_summary_${pid}`;
+  const now = Date.now();
+  let lastActive = 0;
+  let lastSummary = "";
+  try {
+    lastActive = parseInt(localStorage.getItem(CATCHUP_KEY) || "0", 10);
+    lastSummary = localStorage.getItem(SUMMARY_KEY) || "";
+  } catch {}
+
+  const messages = db.messages(pid);
+  const isReturning = lastSummary && (now - lastActive) > 30 * 60 * 1000;
+
+  if (isReturning && messages.length === 0) {
+    // Inject a catch-up message as the first assistant message before Talker runs
+    const catchupPrompt = `The user just returned to this project. Last session summary: "${lastSummary}".
+In Kuro-chan's voice (tsundere, 1-2 sentences max), brief them on where things are and what's ready.
+Something like: "You're back. Last time [one-sentence summary]. [One line on current state]."
+Don't ask a question — just orient them, then wait.`;
+    text = catchupPrompt + "\n\n---\n\n" + text;
+  }
+
+  // Update last active timestamp
+  try {
+    localStorage.setItem(CATCHUP_KEY, String(now));
+  } catch {}
+
   db.addMessage({ role: "user", content: text, images: opts.images?.length ? opts.images.slice(0, 4) : undefined, picked: opts.picked || null }, pid);
   const live = startLive(pid);
   await run(live, async () => {
@@ -351,6 +380,14 @@ Size: ${brief.size}${pickedText(picked)}`;
     data.snapshotId = s.id;
     data.filesChanged = changedCount;
   }
+
+  // Save summary and active timestamp for session catch-up
+  try {
+    const pid = pidFor(scope);
+    const summaryText = textOf(data) || brief.summary || "Built something new.";
+    localStorage.setItem(`kuro_last_summary_${pid}`, summaryText);
+    localStorage.setItem(`kuro_last_active_${pid}`, String(Date.now()));
+  } catch {}
 }
 
 // ───────────── runner ─────────────

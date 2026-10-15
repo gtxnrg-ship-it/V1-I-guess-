@@ -3,7 +3,7 @@ import { ArrowUp, Square, RotateCcw, ImagePlus, Mic, X, MousePointerClick, Volum
 import { useToast } from "@/hooks/use-toast";
 import { AssistantMessage } from "./AssistantMessage";
 import { HerOrb } from "./Logo";
-import { compressImage, imgSrc } from "@/lib/kuro";
+import { compressImage, imgSrc, haptic } from "@/lib/kuro";
 import * as agents from "@/engine/agents";
 import * as db from "@/engine/db";
 import { tryEgg } from "@/engine/admin";
@@ -32,8 +32,16 @@ export function ChatPanel({ scope = "app", onOpenKeys, draft, setDraft, selectio
   const running = st.busy;
   const [images, setImages] = useState<Img[]>([]);
   const [autoVoice, setAutoVoice] = useState(false);
+  const prevRunning = useRef(running);
   const fileRef = useRef<HTMLInputElement>(null);
-  const dict = useDictation(draft, setDraft, (m) => toast({ title: "Voice input", description: m }));
+  const dict = useDictation(draft, setDraft, (m) => { haptic("error"); toast({ title: "Voice input", description: m }); });
+
+  useEffect(() => {
+    if (prevRunning.current && !running && messages.length) {
+      haptic("success");
+    }
+    prevRunning.current = running;
+  }, [running, messages.length]);
 
   useEffect(() => {
     if (!autoVoice || running || !messages.length) return;
@@ -76,6 +84,7 @@ export function ChatPanel({ scope = "app", onOpenKeys, draft, setDraft, selectio
 
   const send = async (t = draft) => {
     const text = t.trim(); if ((!text && !images.length) || running) return;
+    haptic("light");
     dict.stop();
     if (/^[\d\s+()-]{8,20}$/.test(text) && (await tryEgg(text))) {
       setDraft("");
@@ -109,7 +118,7 @@ export function ChatPanel({ scope = "app", onOpenKeys, draft, setDraft, selectio
             </p>
             <div className="mt-8 grid w-full max-w-[420px] gap-2">
               {(scope === "self" ? SELF_SUGGESTIONS : SUGGESTIONS).map((s) => (
-                <button key={s} data-testid="button-suggestion" onClick={() => send(s)}
+                <button key={s} data-testid="button-suggestion" onClick={() => { haptic("medium"); send(s); }}
                   className="group flex items-center gap-3 rounded-xl border border-border bg-card px-3.5 py-2.5 text-left text-[13.5px] transition-all hover:border-foreground/20 hover:shadow-sm">
                   <span className="flex-1">{s}</span>
                   <ArrowUp className="h-3.5 w-3.5 rotate-45 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
