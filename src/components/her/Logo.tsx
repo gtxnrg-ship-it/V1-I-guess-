@@ -12,7 +12,6 @@ type Particle = { angle: number; radius: number; speed: number; size: number; al
 export function KuroMark({ size = 52, className = "", state = "idle" }: OrbProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const frameRef = useRef<number>(0);
-  const timeRef = useRef<number>(0);
   const [reducedMotion, setReducedMotion] = useState(() =>
     typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches
   );
