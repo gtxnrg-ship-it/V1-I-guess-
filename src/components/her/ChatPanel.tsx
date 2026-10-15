@@ -358,7 +358,7 @@ function useDictation(draft: string, setDraft: (s: string) => void, onError: (m:
     resetBase();
   };
   const start = () => {
-    if (listeningRef.current) return;
+    if (listeningRef.current || rec.current) return;
     const SR = typeof window !== "undefined"
       ? (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
       : null;
@@ -421,7 +421,7 @@ function useDictation(draft: string, setDraft: (s: string) => void, onError: (m:
     }
   };
   const toggle = () => {
-    if (listeningRef.current) stop();
+    if (listeningRef.current || rec.current) stop();
     else start();
   };
   useEffect(() => () => {
