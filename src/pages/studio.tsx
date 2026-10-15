@@ -52,8 +52,8 @@ export default function Studio() {
 
   const aiKeys = st.keys.filter((k) => k.kind === "ai").length;
   const repoParts = (p.repo || "").split("/").filter(Boolean);
-  const siteUrl = repoParts.length === 2 ? `https://${repoParts[0].toLowerCase()}.github.io/${repoParts[1]}/` : "";
-  const apkUrl = repoParts.length === 2 ? `https://github.com/${p.repo}/releases/latest/download/app-debug.apk` : "";
+  const siteUrl = p.shipped && !p.privateRepo && repoParts.length === 2 ? `https://${repoParts[0].toLowerCase()}.github.io/${repoParts[1]}/` : "";
+  const apkUrl = p.shipped && !p.privateRepo && repoParts.length === 2 ? `https://github.com/${p.repo}/releases/latest/download/app-debug.apk` : "";
   const tabBtn = (t: (typeof TABS)[number], active: boolean, onClick: () => void, mobile = false) => (
     <button key={t.id} data-testid={`tab-${mobile ? "mobile-" : ""}${t.id}`} onClick={onClick}
       className={mobile
@@ -154,7 +154,11 @@ function ProjectMenu({ busy, onSwitched }: { busy: boolean; onSwitched: () => vo
       const files = await gh.readTree(info.owner, info.name, info.defaultBranch, (p) => !/^(node_modules|dist|build|android|ios|\.git)\//.test(p) && !/(^|\/)(package-lock\.json|yarn\.lock|pnpm-lock\.yaml)$/.test(p));
       const empty = !Object.keys(files).filter((p) => p !== ".kuro").length;
       const created = db.createProject(info.name, empty ? starterFiles(info.name) : files);
-      db.updateProject(created.id, { repo: `${info.owner}/${info.name}` });
+      db.updateProject(created.id, {
+        repo: `${info.owner}/${info.name}`,
+        privateRepo: info.private,
+        shipped: Boolean(files[".github/workflows/deploy-website.yml"] && files[".github/workflows/build-android.yml"]),
+      });
       toast({ title: empty ? "Empty repo connected" : `Imported ${Object.keys(files).length} files`, description: empty ? "I started it with a clean template. Publish pushes it to that repo." : "Tell me what to change. Publish pushes it back." });
       setDialog(null); onSwitched();
     } catch (e) { toast({ title: "Couldn't import", description: errMsg(e), variant: "destructive" }); }
@@ -233,9 +237,10 @@ function PublishDialog({ open, onOpenChange, onOpenKeys }: { open: boolean; onOp
   const [busy, setBusy] = useState(false);
   const [step, setStep] = useState("");
   const [links, setLinks] = useState<{ label: string; url: string }[] | null>(null);
+  const [publishedPrivate, setPublishedPrivate] = useState(false);
   const token = st.keys.find((k) => k.provider === "github");
   const slug = (p?.name || "my-app").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-  useEffect(() => { if (open) { setRepo(p?.repo || slug); setLinks(null); } }, [open]); // eslint-disable-line
+  useEffect(() => { if (open) { setRepo(p?.repo || slug); setLinks(null); setPublishedPrivate(false); } }, [open]); // eslint-disable-line
 
   const go = async () => {
     if (!token) return;
@@ -257,12 +262,13 @@ function PublishDialog({ open, onOpenChange, onOpenKeys }: { open: boolean; onOp
         Object.assign(files, s.files);
         const base = files["README.md"] || `# ${p.name}\n`;
         files["README.md"] = base.includes("## Try it") ? base : base.trimEnd() + "\n" + s.readme;
-        out.push({ label: "Website (live in a few minutes)", url: s.site }, { label: "Android APK (ready in about 10 minutes)", url: s.apk });
+        if (!info.private) out.push({ label: "Website (live in a few minutes)", url: s.site }, { label: "Android APK (ready in about 10 minutes)", url: s.apk });
       }
       setStep("Pushing files");
       await gh.commitFiles(info.owner, info.name, info.defaultBranch, Object.entries(files).map(([path, content]) => ({ path, content })), `Update from Kuro-chan: ${p.name}`);
-      if (ship && !priv) { setStep("Turning on GitHub Pages"); try { await gh.enablePages(info.owner, info.name); } catch (e) { toast({ title: "Pages needs a manual switch", description: errMsg(e) }); } }
-      db.updateProject(p.id, { repo: full });
+      if (ship && !info.private) { setStep("Turning on GitHub Pages"); try { await gh.enablePages(info.owner, info.name); } catch (e) { toast({ title: "Pages needs a manual switch", description: errMsg(e) }); } }
+      db.updateProject(p.id, { repo: full, privateRepo: info.private, shipped: ship || p.shipped });
+      setPublishedPrivate(info.private);
       setLinks(out);
     } catch (e) { toast({ title: "Publish failed", description: errMsg(e), variant: "destructive" }); }
     setBusy(false); setStep("");
@@ -285,7 +291,11 @@ function PublishDialog({ open, onOpenChange, onOpenKeys }: { open: boolean; onOp
           </div>
         ) : links ? (
           <div className="space-y-2">
-            <div className="rounded-xl bg-emerald-50 p-3 text-[13px] text-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-300">Published. GitHub Actions is now building{ship ? " your website and Android APK" : ""}.</div>
+            <div className="rounded-xl bg-emerald-50 p-3 text-[13px] text-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-300">
+              {ship && publishedPrivate
+                ? "Pushed to your private repo. GitHub is building the APK; only people with repo access can download it. The website won’t be publicly hosted."
+                : `Published. GitHub Actions is now building${ship ? " your website and Android APK" : ""}.`}
+            </div>
             {links.map((l) => (
               <a key={l.url} href={l.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-[12.5px] hover:bg-muted">
                 <ExternalLink className="h-3.5 w-3.5 shrink-0" /><span className="min-w-0"><span className="block font-medium">{l.label}</span><span className="block truncate text-muted-foreground">{l.url}</span></span>

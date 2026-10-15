@@ -74,6 +74,8 @@ export interface Project {
   id: string;
   name: string;
   repo: string | null;
+  shipped?: boolean;
+  privateRepo?: boolean;
   env: Record<string, string>;
   files: Record<string, string>;
   createdAt: number;

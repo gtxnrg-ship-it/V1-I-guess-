@@ -33,7 +33,8 @@ export function ChatPanel({ scope = "app", onOpenKeys, draft, setDraft, selectio
   const [images, setImages] = useState<Img[]>([]);
   const [autoVoice, setAutoVoice] = useState(true);
   const prevRunning = useRef(running);
-  const lastSpokenId = useRef("");
+  const initialMessage = messages[messages.length - 1];
+  const lastSpokenId = useRef(initialMessage?.role === "assistant" && initialMessage.data?.done ? initialMessage.id : "");
   const speechAvailable = typeof window !== "undefined" && "speechSynthesis" in window;
   const fileRef = useRef<HTMLInputElement>(null);
   const dict = useDictation(draft, setDraft, (m) => { haptic("error"); toast({ title: "Voice input", description: m }); });
@@ -199,7 +200,14 @@ export function ChatPanel({ scope = "app", onOpenKeys, draft, setDraft, selectio
               <button data-testid="button-auto-voice" aria-label={speechAvailable ? autoVoice ? "Disable voice output" : "Enable voice output" : "Voice output unavailable"}
                 title={speechAvailable ? autoVoice ? "Kuro-chan will speak replies (Active)" : "Kuro-chan speaks replies" : "This browser does not support spoken replies"}
                 disabled={!speechAvailable}
-                onClick={() => { setAutoVoice((v) => !v); if (autoVoice && speechAvailable) window.speechSynthesis.cancel(); }}
+                onClick={() => {
+                  if (!autoVoice && !running) {
+                    const last = messages[messages.length - 1];
+                    if (last?.role === "assistant" && last.data?.done) lastSpokenId.current = last.id;
+                  }
+                  setAutoVoice((v) => !v);
+                  if (autoVoice && speechAvailable) window.speechSynthesis.cancel();
+                }}
                 className={`grid h-8 w-8 place-items-center rounded-full transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${autoVoice ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}>
                 {autoVoice ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
               </button>
