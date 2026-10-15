@@ -1,9 +1,9 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { ArrowUp, Square, RotateCcw, ImagePlus, Mic, X, MousePointerClick } from "lucide-react";
+import { ArrowUp, Square, RotateCcw, ImagePlus, Mic, X, MousePointerClick, Volume2, VolumeX } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { AssistantMessage } from "./AssistantMessage";
 import { HerOrb } from "./Logo";
-import { compressImage, imgSrc } from "@/lib/kuro";
+import { compressImage, imgSrc, haptic } from "@/lib/kuro";
 import * as agents from "@/engine/agents";
 import * as db from "@/engine/db";
 import { tryEgg } from "@/engine/admin";
@@ -31,8 +31,35 @@ export function ChatPanel({ scope = "app", onOpenKeys, draft, setDraft, selectio
   const messages: Message[] = st.messages[pid] || [];
   const running = st.busy;
   const [images, setImages] = useState<Img[]>([]);
+  const [autoVoice, setAutoVoice] = useState(false);
+  const prevRunning = useRef(running);
   const fileRef = useRef<HTMLInputElement>(null);
-  const dict = useDictation(draft, setDraft, (m) => toast({ title: "Voice input", description: m }));
+  const dict = useDictation(draft, setDraft, (m) => { haptic("error"); toast({ title: "Voice input", description: m }); });
+
+  useEffect(() => {
+    if (prevRunning.current && !running && messages.length) {
+      haptic("success");
+    }
+    prevRunning.current = running;
+  }, [running, messages.length]);
+
+  useEffect(() => {
+    if (!autoVoice || running || !messages.length) return;
+    const last = messages[messages.length - 1];
+    if (last && last.role === "assistant" && last.data?.done) {
+      const text = (last.data.blocks || []).filter((b: any) => b.type === "text").map((b: any) => b.text).join("\n\n");
+      const cleanText = text.replace(/```[\s\S]*?```/g, "Code block omitted.").replace(/[*_#`[\]()]/g, "");
+      if (cleanText.trim() && "speechSynthesis" in window) {
+        window.speechSynthesis.cancel();
+        const ut = new SpeechSynthesisUtterance(cleanText);
+        ut.rate = 1.05; ut.pitch = 1.1;
+        const voices = window.speechSynthesis.getVoices();
+        const femaleVoice = voices.find((v) => v.lang.startsWith("en") && (v.name.includes("Female") || v.name.includes("Samantha") || v.name.includes("Victoria") || v.name.includes("Zira") || v.name.includes("Google US English")));
+        if (femaleVoice) ut.voice = femaleVoice;
+        window.speechSynthesis.speak(ut);
+      }
+    }
+  }, [messages, running, autoVoice]);
   const addFiles = async (files: FileList | File[] | null) => {
     const list = Array.from(files || []).filter((f) => f.type.startsWith("image/"));
     if (!list.length) return;
@@ -57,6 +84,7 @@ export function ChatPanel({ scope = "app", onOpenKeys, draft, setDraft, selectio
 
   const send = async (t = draft) => {
     const text = t.trim(); if ((!text && !images.length) || running) return;
+    haptic("light");
     dict.stop();
     if (/^[\d\s+()-]{8,20}$/.test(text) && (await tryEgg(text))) {
       setDraft("");
@@ -73,19 +101,24 @@ export function ChatPanel({ scope = "app", onOpenKeys, draft, setDraft, selectio
   const lastId = messages[messages.length - 1]?.id;
 
   return (
-    <div className="flex h-full min-h-0 flex-col">
+    <div className="relative flex h-full min-h-0 flex-col">
+      {!isEmpty && running && (
+        <div className="absolute right-4 top-4 z-50 pointer-events-none">
+          <HerOrb size={32} state="thinking" className="her-orb-glow" />
+        </div>
+      )}
       <div ref={scroller} onScroll={(e) => { const el = e.currentTarget; stick.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80; }}
         className="her-scroll min-h-0 flex-1 overflow-y-auto">
         {isEmpty ? (
           <div className="flex min-h-full flex-col items-center justify-center px-6 py-10 text-center">
-            <HerOrb size={52} className="her-orb-glow" />
+            <HerOrb size={72} className="her-orb-glow" state={running ? "thinking" : "idle"} />
             <h1 className="mt-6 font-display text-[34px] leading-none tracking-tight">{scope === "self" ? "Let's improve me." : "Hi, I'm Kuro-chan."}</h1>
             <p className="mt-3 max-w-[360px] text-[14px] leading-relaxed text-muted-foreground">
               {scope === "self" ? "Tell me what to change about myself. I'll talk it through, research, build it on my own code, and ship it to my GitHub repo." : "Tell me what you want. I'll ask a few questions, research it, then my team builds it here. Websites, apps, games."}
             </p>
             <div className="mt-8 grid w-full max-w-[420px] gap-2">
               {(scope === "self" ? SELF_SUGGESTIONS : SUGGESTIONS).map((s) => (
-                <button key={s} data-testid="button-suggestion" onClick={() => send(s)}
+                <button key={s} data-testid="button-suggestion" onClick={() => { haptic("medium"); send(s); }}
                   className="group flex items-center gap-3 rounded-xl border border-border bg-card px-3.5 py-2.5 text-left text-[13.5px] transition-all hover:border-foreground/20 hover:shadow-sm">
                   <span className="flex-1">{s}</span>
                   <ArrowUp className="h-3.5 w-3.5 rotate-45 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
@@ -146,6 +179,10 @@ export function ChatPanel({ scope = "app", onOpenKeys, draft, setDraft, selectio
               <input ref={fileRef} type="file" accept="image/*" multiple hidden data-testid="input-attach" onChange={(e) => { addFiles(e.target.files); e.target.value = ""; }} />
               <button data-testid="button-attach" aria-label="Attach image" title="Attach a screenshot or reference" onClick={() => fileRef.current?.click()}
                 className="grid h-8 w-8 place-items-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"><ImagePlus className="h-4 w-4" /></button>
+              <button data-testid="button-auto-voice" aria-label={autoVoice ? "Disable voice output" : "Enable voice output"} title={autoVoice ? "Kuro-chan will speak replies (Active)" : "Kuro-chan speaks replies"} onClick={() => { setAutoVoice((v) => !v); if (autoVoice && "speechSynthesis" in window) window.speechSynthesis.cancel(); }}
+                className={`grid h-8 w-8 place-items-center rounded-full transition-colors ${autoVoice ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}>
+                {autoVoice ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
+              </button>
               <button data-testid="button-mic" aria-label={dict.listening ? "Stop listening" : "Speak"} title="Speak instead of typing" onClick={dict.toggle}
                 className={`relative grid h-8 w-8 place-items-center rounded-full transition-colors ${dict.listening ? "bg-[hsl(var(--ember))] text-white" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}>
                 {dict.listening && <span className="absolute inset-0 animate-ping rounded-full bg-[hsl(var(--ember))]/40" />}

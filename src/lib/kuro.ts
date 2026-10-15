@@ -23,3 +23,15 @@ export async function compressImage(file: Blob, max = 1280): Promise<{ mime: str
   } finally { URL.revokeObjectURL(url); }
 }
 export const imgSrc = (i: { mime: string; data: string }) => `data:${i.mime};base64,${i.data}`;
+
+/** Haptic feedback for mobile — short tap for light, double for medium, pattern for success */
+export function haptic(type: "light" | "medium" | "success" | "error" = "light") {
+  if (typeof navigator === "undefined" || !navigator.vibrate) return;
+  const patterns: Record<typeof type, number | number[]> = {
+    light: 30,
+    medium: 60,
+    success: [40, 30, 40],
+    error: [80, 40, 80],
+  };
+  try { navigator.vibrate(patterns[type]); } catch {}
+}

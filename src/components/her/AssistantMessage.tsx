@@ -5,7 +5,7 @@ import type { AssistantData, Block } from "@/engine/types";
 import {
   ChevronRight, FileText, FilePen, Trash2, FolderTree, Eye, Search, Globe, Brain, ListChecks, Check, X, Loader2, Shuffle, Copy,
   Sparkles, KeyRound, AlertTriangle, Pencil, Play, Cpu, History, FileDiff, Camera, Package, Github, BookOpen, MessageCircle,
-  Telescope, Map as MapIcon, Hammer, ScanEye, Database, ExternalLink, Circle, GitPullRequestArrow, Rocket, Code2,
+  Telescope, Map as MapIcon, Hammer, ScanEye, Database, ExternalLink, Circle, GitPullRequestArrow, Rocket, Code2, Volume2, VolumeX,
 } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useToast } from "@/hooks/use-toast";
@@ -298,6 +298,36 @@ function RestoreButton({ id }: { id: string }) {
   );
 }
 
+function SpeakButton({ text }: { text: string }) {
+  const [speaking, setSpeaking] = useState(false);
+  const speak = () => {
+    if (!("speechSynthesis" in window)) return;
+    if (speaking) {
+      window.speechSynthesis.cancel();
+      setSpeaking(false);
+      return;
+    }
+    window.speechSynthesis.cancel();
+    const cleanText = text.replace(/```[\s\S]*?```/g, "Code block omitted.").replace(/[*_#`[\]()]/g, "");
+    if (!cleanText.trim()) return;
+    const ut = new SpeechSynthesisUtterance(cleanText);
+    ut.rate = 1.05;
+    ut.pitch = 1.1;
+    const voices = window.speechSynthesis.getVoices();
+    const femaleVoice = voices.find((v) => v.lang.startsWith("en") && (v.name.includes("Female") || v.name.includes("Samantha") || v.name.includes("Victoria") || v.name.includes("Zira") || v.name.includes("Google US English")));
+    if (femaleVoice) ut.voice = femaleVoice;
+    ut.onend = () => setSpeaking(false);
+    ut.onerror = () => setSpeaking(false);
+    setSpeaking(true);
+    window.speechSynthesis.speak(ut);
+  };
+  return (
+    <button data-testid="button-speak" aria-label={speaking ? "Stop speaking" : "Speak reply"} title={speaking ? "Stop speaking" : "Read out loud"} onClick={speak} className="rounded-md p-1 hover:bg-muted hover:text-foreground">
+      {speaking ? <VolumeX className="h-3.5 w-3.5 text-[hsl(var(--ember))]" /> : <Volume2 className="h-3.5 w-3.5" />}
+    </button>
+  );
+}
+
 function ModelFooter({ data, text }: { data: AssistantData; text: string }) {
   const { toast } = useToast();
   const models = data.models || [];
@@ -329,9 +359,12 @@ function ModelFooter({ data, text }: { data: AssistantData; text: string }) {
       {data.done && !!data.filesChanged && <span className="hidden items-center gap-1 px-1 sm:inline-flex"><FileDiff className="h-3.5 w-3.5" />{data.filesChanged} {data.filesChanged === 1 ? "file" : "files"}</span>}
       {data.done && data.snapshotId && <RestoreButton id={data.snapshotId} />}
       {data.done && text && (
-        <button data-testid="button-copy" aria-label="Copy" className="rounded-md p-1 hover:bg-muted hover:text-foreground" onClick={() => { navigator.clipboard?.writeText(text); toast({ title: "Copied" }); }}>
-          <Copy className="h-3.5 w-3.5" />
-        </button>
+        <>
+          <SpeakButton text={text} />
+          <button data-testid="button-copy" aria-label="Copy" className="rounded-md p-1 hover:bg-muted hover:text-foreground" onClick={() => { navigator.clipboard?.writeText(text); toast({ title: "Copied" }); }}>
+            <Copy className="h-3.5 w-3.5" />
+          </button>
+        </>
       )}
     </div>
   );
@@ -389,7 +422,8 @@ export function AssistantMessage({ data, live, pid, msgId, scope, onOpenKeys, on
         )}
         {data.error && data.error !== "NO_KEYS" && (
           <div className="her-rise flex items-start gap-2 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2.5 text-[13px] text-rose-800 dark:border-rose-900/60 dark:bg-rose-950/40 dark:text-rose-300">
-            <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" /><span className="break-words">{data.error}</span>
+            <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+            <span className="break-words">{data.error.startsWith("HARD_CAP_") ? data.error.replace(/^HARD_CAP_[A-Z]+:\s*/, "") : data.error}</span>
           </div>
         )}
       </div>

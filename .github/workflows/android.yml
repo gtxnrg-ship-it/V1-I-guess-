@@ -2,14 +2,21 @@ name: Build Kuro-chan APK
 on:
   push:
     branches: [main]
+  pull_request:
+    types: [closed]
+    branches: [main]
   workflow_dispatch:
+
 permissions:
   contents: write
+
 concurrency:
   group: apk
   cancel-in-progress: true
+
 jobs:
   apk:
+    if: github.event_name != 'pull_request' || github.event.pull_request.merged == true
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -30,9 +37,19 @@ jobs:
           sed -i 's#<uses-permission android:name="android.permission.INTERNET" />#<uses-permission android:name="android.permission.INTERNET" />\n    <uses-permission android:name="android.permission.RECORD_AUDIO" />\n    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />#' android/app/src/main/AndroidManifest.xml
       - run: npx cap sync android
       - run: cd android && chmod +x gradlew && ./gradlew assembleDebug
+      - name: Check APK build artifact
+        id: check_apk
+        run: |
+          if [ -f android/app/build/outputs/apk/debug/app-debug.apk ]; then
+            echo "apk_exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "APK file not found!"
+            exit 1
+          fi
       - uses: softprops/action-gh-release@v2
+        if: steps.check_apk.outputs.apk_exists == 'true'
         with:
-          tag_name: build-${{ github.run_number }}
+          tag_name: ${{ github.event_name == 'pull_request' && format('build-pr-{0}-{1}', github.event.pull_request.number, github.sha) || format('build-{0}', github.run_number) }}
           name: Kuro-chan Android build ${{ github.run_number }}
           body: Install app-debug.apk on your Android phone (allow "install from unknown sources" when asked).
           files: android/app/build/outputs/apk/debug/app-debug.apk

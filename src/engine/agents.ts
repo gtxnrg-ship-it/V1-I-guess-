@@ -13,6 +13,12 @@ export type Scope = "app" | "self";
 export const SELF_PID = "__self";
 const pidFor = (scope: Scope) => (scope === "self" ? SELF_PID : db.project().id);
 
+// ── Hard iteration caps (framework-level, cannot be overridden by prompts) ──
+const HARD_CAP_PER_LOOP = 5;
+const HARD_CAP_TOTAL    = 25;
+const HARD_CAP_FIX      = 3;
+let   sessionStepCount  = 0;
+
 let controller: AbortController | null = null;
 export const stop = () => controller?.abort();
 
@@ -56,8 +62,19 @@ async function loop(o: LoopOpts): Promise<LoopResult> {
   let text = "";
   const tail = () => data.blocks[data.blocks.length - 1];
   const tools = toolDefs(o.tools);
+  let loopCount = 0;
   for (let step = 0; step < o.maxSteps; step++) {
     if (signal.aborted) break;
+
+    sessionStepCount++;
+    if (sessionStepCount > HARD_CAP_TOTAL) {
+      throw new Error("HARD_CAP_TOTAL: I hit my limit on that one. Something's wrong with the approach — tell me what you actually want and I'll try differently.");
+    }
+
+    if (loopCount++ >= HARD_CAP_PER_LOOP) {
+      throw new Error("HARD_CAP_HIT: Loop exceeded framework limit. Stopping to prevent runaway usage.");
+    }
+
     let thinkStart = 0;
     const last = step === o.maxSteps - 1;
     const res = await routedStream(o.role, {
@@ -163,6 +180,35 @@ export async function send(text: string, opts: { images?: Img[]; picked?: Picked
   if (db.getState().busy) return;
   const scope = opts.scope || "app";
   const pid = pidFor(scope);
+
+  // Session catch-up: if returning to an existing project after 30+ min, brief them
+  const CATCHUP_KEY = `kuro_last_active_${pid}`;
+  const SUMMARY_KEY = `kuro_last_summary_${pid}`;
+  const now = Date.now();
+  let lastActive = 0;
+  let lastSummary = "";
+  try {
+    lastActive = parseInt(localStorage.getItem(CATCHUP_KEY) || "0", 10);
+    lastSummary = localStorage.getItem(SUMMARY_KEY) || "";
+  } catch {}
+
+  const messages = db.messages(pid);
+  const isReturning = lastSummary && (now - lastActive) > 30 * 60 * 1000;
+
+  if (isReturning && messages.length === 0) {
+    // Inject a catch-up message as the first assistant message before Talker runs
+    const catchupPrompt = `The user just returned to this project. Last session summary: "${lastSummary}".
+In Kuro-chan's voice (tsundere, 1-2 sentences max), brief them on where things are and what's ready.
+Something like: "You're back. Last time [one-sentence summary]. [One line on current state]."
+Don't ask a question — just orient them, then wait.`;
+    text = catchupPrompt + "\n\n---\n\n" + text;
+  }
+
+  // Update last active timestamp
+  try {
+    localStorage.setItem(CATCHUP_KEY, String(now));
+  } catch {}
+
   db.addMessage({ role: "user", content: text, images: opts.images?.length ? opts.images.slice(0, 4) : undefined, picked: opts.picked || null }, pid);
   const live = startLive(pid);
   await run(live, async () => {
@@ -277,7 +323,11 @@ Size: ${brief.size}${pickedText(picked)}`;
 
   // 4. Make sure it builds and runs (up to 3 automatic fix rounds)
   if (scope === "app") {
+    let fixAttempts = 0;
     for (let round = 0; round < 3; round++) {
+      if (++fixAttempts >= HARD_CAP_FIX) {
+        throw new Error("HARD_CAP_FIX: Same error three times. I'm stopping — something deeper is broken.");
+      }
       const b = await buildPreview(ws.all(), ws.env());
       const errs = b.errors.length ? b.errors : await runtimeCheck(b.html);
       db.set({ runtimeErrors: b.errors.length ? [] : errs });
@@ -351,11 +401,20 @@ Size: ${brief.size}${pickedText(picked)}`;
     data.snapshotId = s.id;
     data.filesChanged = changedCount;
   }
+
+  // Save summary and active timestamp for session catch-up
+  try {
+    const pid = pidFor(scope);
+    const summaryText = textOf(data) || brief.summary || "Built something new.";
+    localStorage.setItem(`kuro_last_summary_${pid}`, summaryText);
+    localStorage.setItem(`kuro_last_active_${pid}`, String(Date.now()));
+  } catch {}
 }
 
 // ───────────── runner ─────────────
 async function run(live: Live, fn: () => Promise<void>) {
   controller = new AbortController();
+  sessionStepCount = 0;
   db.set({ busy: true });
   try { await fn(); }
   catch (e: any) {
