@@ -2,12 +2,12 @@
 import { routedStream, bestFor, hasAnyModel } from "./router";
 import { LLMError, type HMsg, type Img } from "./llm";
 import { runTool, toolDefs, toolTitle, SETS, appWorkspace, type Workspace, type ToolOut } from "./tools";
-import { buildPreview } from "./preview";
+import { buildQaHarness } from "./qa-harness";
 import { runtimeCheck, look } from "./eyes";
 import * as db from "./db";
 import * as P from "./prompts";
 import { SELF_STACK, selfWorkspace } from "./self";
-import type { AgentName, AssistantData, Block, Brief, Message, PickedElement, PlanStep, Role } from "./types";
+import type { AgentName, AssistantData, Block, Brief, Message, PlanStep, Role } from "./types";
 
 export type Scope = "app" | "self";
 export const SELF_PID = "__self";
@@ -38,11 +38,6 @@ function startLive(pid: string): Live {
   return { pid, id: m.id, data, flush, t0 };
 }
 const textOf = (d: AssistantData) => d.blocks.filter((b) => b.type === "text").map((b: any) => b.text).join("\n\n");
-
-function pickedText(sel?: PickedElement | null) {
-  if (!sel) return "";
-  return `\n\n[SELECTED ELEMENT] The person tapped this element in the preview:\n<${sel.tag}> text: "${sel.text}"\nclasses: ${sel.classes || "(none)"}\nlocation: ${sel.path}\nhtml: ${sel.html}`;
-}
 
 // ───────────── one agent's tool loop ─────────────
 interface LoopOpts {
@@ -140,7 +135,7 @@ function history(pid: string): HMsg[] {
   rows.forEach((m, i) => {
     if (m.role === "user") {
       const recent = i >= rows.length - 4;
-      out.push({ role: "user", text: (m.content || " ") + pickedText(m.picked) + (!recent && m.images?.length ? `\n[${m.images.length} image(s) attached earlier]` : ""), images: recent ? m.images : undefined });
+      out.push({ role: "user", text: (m.content || " ") + (!recent && m.images?.length ? `\n[${m.images.length} image(s) attached earlier]` : ""), images: recent ? m.images : undefined });
       return;
     }
     const d = m.data;
@@ -176,7 +171,7 @@ function talkerSystem(scope: Scope) {
 }
 
 // ───────────── public: talk ─────────────
-export async function send(text: string, opts: { images?: Img[]; picked?: PickedElement | null; scope?: Scope } = {}) {
+export async function send(text: string, opts: { images?: Img[]; scope?: Scope } = {}) {
   if (db.getState().busy) return;
   const scope = opts.scope || "app";
   const pid = pidFor(scope);
@@ -209,7 +204,7 @@ Don't ask a question — just orient them, then wait.`;
     localStorage.setItem(CATCHUP_KEY, String(now));
   } catch {}
 
-  db.addMessage({ role: "user", content: text, images: opts.images?.length ? opts.images.slice(0, 4) : undefined, picked: opts.picked || null }, pid);
+  db.addMessage({ role: "user", content: text, images: opts.images?.length ? opts.images.slice(0, 4) : undefined }, pid);
   const live = startLive(pid);
   await run(live, async () => {
     if (!hasAnyModel()) throw new LLMError(0, "NO_KEYS");
@@ -243,17 +238,16 @@ export async function approve(pid: string, msgId: string, briefId: string, scope
   setBriefStatus(pid, msgId, briefId, "approved");
   db.addMessage({ role: "user", content: `Build it: ${blk.brief.title}` }, pid);
   const recentUser = db.messages(pid).filter((x) => x.role === "user").slice(-6);
-  const picked = [...recentUser].reverse().find((x) => x.picked)?.picked || null;
   const images = recentUser.flatMap((x) => x.images || []).slice(-3);
   const live = startLive(pid);
   await run(live, async () => {
     if (!hasAnyModel()) throw new LLMError(0, "NO_KEYS");
     const ws = scope === "self" ? await selfWorkspace() : appWorkspace();
-    await buildPipeline(live, blk.brief, ws, scope, picked, images);
+    await buildPipeline(live, blk.brief, ws, scope, images);
   });
 }
 
-async function buildPipeline(live: Live, brief: Brief, ws: Workspace, scope: Scope, picked: PickedElement | null, images: Img[]) {
+async function buildPipeline(live: Live, brief: Brief, ws: Workspace, scope: Scope, images: Img[]) {
   const data = live.data;
   const before = JSON.stringify(ws.all());
   if (scope === "app" && !db.snapshots().length) db.takeSnapshot("Starting point");
@@ -264,7 +258,7 @@ Features:
 ${brief.features.map((f) => `- ${f}`).join("\n")}
 Design direction: ${brief.design}
 Backend: ${brief.backend || "none"}
-Size: ${brief.size}${pickedText(picked)}`;
+Size: ${brief.size}`;
   const stack = scope === "self" ? SELF_STACK : `${P.STACK}`;
   const builderSystem = scope === "self" ? P.BUILDER.replace(P.STACK, SELF_STACK) : P.BUILDER;
 
@@ -329,13 +323,13 @@ Size: ${brief.size}${pickedText(picked)}`;
         throw new Error("HARD_CAP_FIX: The app still has errors after the allowed fix attempts. I'm stopping — something deeper is broken.");
       }
       fixAttempts++;
-      const b = await buildPreview(ws.all(), ws.env());
+      const b = await buildQaHarness(ws.all(), ws.env());
       const errs = b.errors.length ? b.errors : await runtimeCheck(b.html);
       db.set({ runtimeErrors: errs });
       if (!errs.length) break;
       await loop({
         live, agent: "Builder", label: "Fixing errors", role: "code", system: builderSystem, ws,
-        messages: [{ role: "user", text: `${ctx}\n\nThe app has these ${b.errors.length ? "build" : "runtime"} errors:\n${errs.join("\n")}\n\nProject files:\n${filesSummary(ws)}\n\nFind the cause, fix it, then call check_preview.` }],
+        messages: [{ role: "user", text: `${ctx}\n\nThe app has these ${b.errors.length ? "build" : "runtime"} errors:\n${errs.join("\n")}\n\nProject files:\n${filesSummary(ws)}\n\nFind the cause, fix it, then call verify_project.` }],
         tools: SETS.build, maxSteps: 10, quiet: true,
       });
     }
@@ -349,7 +343,7 @@ Size: ${brief.size}${pickedText(picked)}`;
       data.blocks.push({ type: "agent", name: "Checker", label: "Looking at it like a designer" });
       const shotBlk: Extract<Block, { type: "tool" }> = { type: "tool", id: `look-${Date.now()}`, name: "look", title: "Looked at the app on desktop and phone", status: "running" };
       data.blocks.push(shotBlk); live.flush(true);
-      const b = await buildPreview(ws.all(), ws.env());
+      const b = await buildQaHarness(ws.all(), ws.env());
       const l = await look(b.html, "both");
       Object.assign(shotBlk, { status: l.shots.length ? "ok" : "error", thumbs: l.shots, stat: l.errors.length ? `${l.errors.length} errors` : `${l.shots.length} screenshots`, detail: l.shotError || (l.errors.length ? l.errors.join("\n") : undefined) });
       live.flush(true);
@@ -368,7 +362,7 @@ Size: ${brief.size}${pickedText(picked)}`;
         if (issues.length) {
           await loop({
             live, agent: "Builder", label: "Polishing", role: "code", system: builderSystem, ws,
-            messages: [{ role: "user", text: `${ctx}\n\nThe design reviewer found these problems. Fix every one:\n${issues.map((x, i) => `${i + 1}. ${x}`).join("\n")}\n\nProject files:\n${filesSummary(ws)}\n\nRead the relevant files, fix them, then call check_preview.` }],
+            messages: [{ role: "user", text: `${ctx}\n\nThe design reviewer found these problems. Fix every one:\n${issues.map((x, i) => `${i + 1}. ${x}`).join("\n")}\n\nProject files:\n${filesSummary(ws)}\n\nRead the relevant files, fix them, then call verify_project.` }],
             tools: SETS.build, maxSteps: 14, quiet: true,
           });
           issuesFixed = issues.length;
@@ -390,7 +384,7 @@ Size: ${brief.size}${pickedText(picked)}`;
   // 7. Warm wrap-up
   const after = ws.all();
   const changedCount = Object.keys(after).filter((p) => JSON.parse(before)[p] !== after[p]).length;
-  const errsLeft = scope === "app" ? (await buildPreview(after, ws.env())).errors : [];
+  const errsLeft = scope === "app" ? (await buildQaHarness(after, ws.env())).errors : [];
   data.blocks.push({ type: "agent", name: "Talker", label: "Done" });
   await loop({
     live, agent: "Talker", label: "Done", role: "talk", system: P.SUMMARY, ws, tools: [],

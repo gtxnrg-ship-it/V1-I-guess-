@@ -1,4 +1,4 @@
-// Bundles the project in the browser (esbuild-wasm) and turns it into a self-contained HTML page.
+// Builds an isolated QA harness from project files so automated verification can inspect compile/runtime errors and test-only screenshots. This is not exposed as a user-facing project preview.
 import * as esbuild from "esbuild-wasm";
 import wasmURL from "esbuild-wasm/esbuild.wasm?url";
 import { importedPackages } from "./package-imports";
@@ -10,7 +10,7 @@ function boot() {
   return ready;
 }
 
-// Runs inside every preview: reports errors, powers tap-to-select, and takes its own screenshots.
+// Runs only inside the sandboxed QA harness: reports runtime errors and captures test screenshots. No user-facing preview or element picker is provided.
 const BRIDGE = `(function(){function mk(){var d={};return{getItem:function(k){k=String(k);return Object.prototype.hasOwnProperty.call(d,k)?d[k]:null},setItem:function(k,v){d[String(k)]=String(v)},removeItem:function(k){delete d[String(k)]},clear:function(){d={}},key:function(i){return Object.keys(d)[i]||null},get length(){return Object.keys(d).length}}}
 ['localStorage','sessionStorage'].forEach(function(n){try{window[n].getItem('x')}catch(e){try{Object.defineProperty(window,n,{value:mk(),configurable:true})}catch(_){}}});
 try{document.cookie}catch(e){try{var c='';Object.defineProperty(document,'cookie',{get:function(){return c},set:function(v){c=String(v).split(';')[0]},configurable:true})}catch(_){}}})();
@@ -20,18 +20,7 @@ window.addEventListener('error',function(e){send((e.message||'Error')+(e.filenam
 window.addEventListener('unhandledrejection',function(e){send('Unhandled promise: '+(e.reason&&e.reason.message||e.reason))});
 var ce=console.error;console.error=function(){try{var a=[].slice.call(arguments).map(function(x){return x&&x.message?x.message:typeof x==='object'?JSON.stringify(x):String(x)}).join(' ');if(!/Warning: |DevTools|tailwindcss.com should not be used/.test(a))send('console.error: '+a)}catch(e){}return ce.apply(console,arguments)};
 window.addEventListener('load',function(){parent.postMessage({__her:'loaded'},'*')});
-var picking=false,box=null,cur=null;
-function ensure(){if(box)return;box=document.createElement('div');box.setAttribute('data-kuro','1');box.style.cssText='position:fixed;pointer-events:none;z-index:2147483647;border:2px solid #ec5f3a;background:rgba(236,95,58,.08);border-radius:6px;transition:all .06s;display:none';document.documentElement.appendChild(box)}
-function place(el){var r=el.getBoundingClientRect();box.style.display='block';box.style.left=r.left+'px';box.style.top=r.top+'px';box.style.width=r.width+'px';box.style.height=r.height+'px'}
-function path(el){var p=[];while(el&&el.nodeType===1&&p.length<5&&el!==document.body){var s=el.tagName.toLowerCase();if(el.id)s+='#'+el.id;p.unshift(s);el=el.parentElement}return p.join(' > ')}
-function describe(el){var t=(el.innerText||el.alt||el.placeholder||'').trim().replace(/\\s+/g,' ').slice(0,120);var h=el.outerHTML;return{tag:el.tagName.toLowerCase(),text:t,classes:(el.getAttribute('class')||'').slice(0,200),path:path(el),html:h.length>400?h.slice(0,400)+'…':h}}
-function over(e){if(!picking)return;cur=e.target;ensure();place(cur)}
-function click(e){if(!picking)return;e.preventDefault();e.stopPropagation();parent.postMessage({__her:'picked',el:describe(e.target)},'*');setPick(false)}
-function setPick(on){picking=on;document.documentElement.style.cursor=on?'crosshair':'';if(!on&&box)box.style.display='none'}
-document.addEventListener('mouseover',over,true);document.addEventListener('click',click,true);
-document.addEventListener('touchstart',function(e){if(picking){cur=e.target;ensure();place(cur)}},{capture:true,passive:true});
 window.addEventListener('message',function(e){var d=e.data||{};
-if(d.__her==='pick')setPick(!!d.on);
 if(d.__her==='errors')parent.postMessage({__her:'runtime-error',errors:errs},'*');
 if(d.__her==='shot'){(async function(){try{var m=await import('https://esm.sh/modern-screenshot@4.6.0');
 var de=document.documentElement;var h=Math.min(Math.max(de.scrollHeight,innerHeight),d.maxH||2600);
@@ -60,7 +49,7 @@ const hashOf = (files: Record<string, string>, env: Record<string, string>) => {
   return `${s.length}:${h}`;
 };
 
-export async function buildPreview(files: Record<string, string>, env: Record<string, string> = {}): Promise<{ html: string; errors: string[] }> {
+export async function buildQaHarness(files: Record<string, string>, env: Record<string, string> = {}): Promise<{ html: string; errors: string[] }> {
   const hash = hashOf(files, env);
   if (cache && cache.hash === hash) return cache;
   const indexHtml = files["index.html"] || `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><script src="https://cdn.tailwindcss.com"></script></head><body><div id="root"></div></body></html>`;

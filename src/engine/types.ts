@@ -48,9 +48,6 @@ export interface AssistantData {
   filesChanged?: number;
 }
 
-/** Element the creator tapped in the preview. */
-export interface PickedElement { tag: string; text: string; classes: string; path: string; html: string }
-
 export interface Img { mime: string; data: string } // base64, no data: prefix
 
 export interface KeyRec {
@@ -90,7 +87,6 @@ export interface Message {
   role: "user" | "assistant";
   content: string;
   images?: Img[];
-  picked?: PickedElement | null;
   data?: AssistantData;
   createdAt: number;
 }

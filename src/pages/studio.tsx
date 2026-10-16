@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Moon, Sun, Github, Eye, Code2, KeyRound, MessageCircle, Loader2, Rocket, ExternalLink, ChevronDown, Check, Plus, Pencil, Trash2, Download, Globe } from "lucide-react";
+import { Moon, Sun, Github, Code2, KeyRound, MessageCircle, Loader2, Rocket, ExternalLink, ChevronDown, Check, Plus, Pencil, Trash2, Download, Globe } from "lucide-react";
 import { downloadZip } from "@/lib/zip";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Split } from "@/components/her/Split";
@@ -11,20 +11,17 @@ import { HerOrb } from "@/components/her/Logo";
 import { GalaxyBackdrop } from "@/components/her/GalaxyBackdrop";
 import { useTheme } from "@/components/her/theme";
 import { ChatPanel } from "@/components/her/ChatPanel";
-import { PreviewPane } from "@/components/her/PreviewPane";
 import { CodeBrowser } from "@/components/her/CodePane";
 import { KeysPane } from "@/components/her/KeysPane";
+import { LocalModelsPane } from "@/components/her/LocalModelsPane";
 import * as db from "@/engine/db";
-import * as agents from "@/engine/agents";
 import { GH } from "@/engine/github";
 import { shipFiles, syncDependencies } from "@/engine/ship";
 import { starterFiles, type StarterVariant } from "@/engine/template";
 import { errMsg } from "@/lib/kuro";
-import type { PickedElement } from "@/engine/types";
 
-type Tab = "preview" | "code" | "keys";
+type Tab = "code" | "keys";
 const TABS: { id: Tab; label: string; icon: any }[] = [
-  { id: "preview", label: "Preview", icon: Eye },
   { id: "code", label: "Code", icon: Code2 },
   { id: "keys", label: "Settings", icon: KeyRound },
 ];
@@ -34,28 +31,24 @@ export default function Studio() {
   const isMobile = useIsMobile();
   const st = db.useKuro();
   const p = db.project();
-  const [tab, setTab] = useState<Tab>("preview");
+  const [tab, setTab] = useState<Tab>("keys");
   const [mobileTab, setMobileTab] = useState<"chat" | Tab>("chat");
-  const [selection, setSelection] = useState<PickedElement | null>(null);
   const [draft, setDraft] = useState("");
   const [publishOpen, setPublishOpen] = useState(false);
   const running = st.busy;
-  const developerMode = !!st.settings.adminUnlocked;
-  const visibleTabs = TABS.filter((t) => t.id !== "code" || developerMode);
+  const visibleTabs = TABS;
 
   useEffect(() => {
-    if (!visibleTabs.some((t) => t.id === tab)) setTab("preview");
+    if (!visibleTabs.some((t) => t.id === tab)) setTab("keys");
     if (!visibleTabs.some((t) => t.id === mobileTab)) setMobileTab("chat");
   }, [mobileTab, tab, visibleTabs]);
 
   const openTab = useCallback((t: Tab) => { setTab(t); setMobileTab(t); }, []);
-  const onPick = useCallback((el: PickedElement) => { setSelection(el); setMobileTab("chat"); }, []);
 
   const chat = <ChatPanel scope="app" onOpenKeys={() => openTab("keys")} draft={draft} setDraft={setDraft}
-    selection={selection} clearSelection={() => setSelection(null)} onSent={() => isMobile && setMobileTab("chat")} />;
-  const pane = (t: Tab) => t === "preview" ? <PreviewPane onFix={(m) => { setMobileTab("chat"); agents.send(m); }} onPick={onPick} />
-    : t === "code" ? <CodeBrowser files={p.files} />
-    : <KeysPane />;
+    onSent={() => isMobile && setMobileTab("chat")} />;
+  const pane = (t: Tab) => t === "code" ? <CodeBrowser files={p.files} />
+    : <div className="her-scroll h-full min-h-0 overflow-y-auto"><KeysPane /><div className="mx-auto max-w-3xl p-3"><LocalModelsPane /></div></div>;
 
   const aiKeys = st.keys.filter((k) => k.kind === "ai").length;
   const repoParts = (p.repo || "").split("/").filter(Boolean);
@@ -77,7 +70,7 @@ export default function Studio() {
         <span className="studio-brand-mark"><HerOrb size={29} className="her-orb-glow" /></span>
         <span className="hidden min-w-[112px] sm:block"><span className="block font-display text-[16px] font-semibold leading-tight">Kuro-chan</span><span className="studio-eyebrow">AI PRODUCT STUDIO</span></span>
         <span className="mx-1 h-6 w-px bg-border/70" />
-        <ProjectMenu busy={running} onSwitched={() => setSelection(null)} />
+        <ProjectMenu busy={running} onSwitched={() => {}} />
         <div className="ml-auto flex items-center gap-1">
           <button data-testid="button-key-status" onClick={() => openTab("keys")} className="studio-status hidden items-center gap-2 px-2.5 py-1.5 text-[12px] text-muted-foreground sm:inline-flex">
             <span className={`h-1.5 w-1.5 rounded-full ${aiKeys ? "bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.75)]" : st.settings.freeStarter ? "bg-amber-400" : "bg-rose-400"}`} />
