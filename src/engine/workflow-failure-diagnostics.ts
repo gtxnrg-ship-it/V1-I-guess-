@@ -23,9 +23,9 @@ function safeLogLine(line: string): string {
   return clip(line
     .replace(/\b(gh[pousr]_[A-Za-z0-9_]{20,})\b/g, "[REDACTED_TOKEN]")
     .replace(/\bgithub_pat_[A-Za-z0-9_]{20,}\b/g, "[REDACTED_TOKEN]")
-    .replace(/(authorization\s*:\s*bearer\s+)\S+/ig, "$1[REDACTED]")
-    .replace(/((?:password|secret|token|api[_-]?key)\s*[=:]\s*)[^\s,;]+/ig, "$1[REDACTED]")
-    .replace(/\b[A-Z0-9_]*(?:TOKEN|SECRET|PASSWORD|API_KEY)[A-Z0-9_]*=[^\s]+/g, "[REDACTED_ENV_SECRET]")
+    .replace(/\\b[A-Z0-9_]*(?:TOKEN|SECRET|PASSWORD|API_KEY)[A-Z0-9_]*=[^\\s]+/g, "[REDACTED_ENV_SECRET]")
+    .replace(/(authorization\\s*:\\s*bearer\\s+)\\S+/ig, "$1[REDACTED]")
+    .replace(/((?:password|secret|token|api[_-]?key)\\s*[=:]\\s*)[^\\s,;]+/ig, "$1[REDACTED]")
   );
 }
 export function extractLogClues(log: string, max = 8): string[] {
