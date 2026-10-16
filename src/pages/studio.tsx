@@ -53,7 +53,6 @@ export default function Studio() {
     ...TABS,
   ];
   const selectView = (view: "chat" | Tab) => {
-    if (view !== "chat") setTab(view);
     setActiveView(view);
     setSidebarOpen(false);
   };
