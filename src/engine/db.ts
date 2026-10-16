@@ -1,6 +1,7 @@
 // Everything Kuro-chan knows lives in this browser (IndexedDB). Nothing is sent to any server of ours.
 import { useSyncExternalStore } from "react";
 import type { KeyRec, Message, Project, Settings, Snapshot, UsageDay } from "./types";
+import { containsSensitiveMemoryText, sanitizeProjectMemoryFacts } from "./project-memory";
 
 export interface State {
   ready: boolean;
@@ -153,14 +154,19 @@ export function saveProjectMemory(
   const facts = patch.facts ?? previous.facts;
   const decisions = patch.decisions ?? previous.decisions;
   const openQuestions = patch.openQuestions ?? previous.openQuestions;
+  const summary = patch.recentSummary === undefined ? previous.recentSummary : patch.recentSummary;
   updateProject(id, {
     memory: {
       ...previous,
       ...patch,
-      facts: facts.slice(-40),
-      decisions: decisions.slice(-40),
-      openQuestions: [...new Set(openQuestions.map((q) => q.trim()).filter(Boolean))].slice(-20),
-      recentSummary: patch.recentSummary === undefined ? previous.recentSummary : patch.recentSummary.slice(0, 1800),
+      facts: sanitizeProjectMemoryFacts(facts).slice(-40),
+      decisions: sanitizeProjectMemoryFacts(decisions).slice(-40),
+      openQuestions: [...new Set(openQuestions
+        .filter((q) => typeof q === "string" && !containsSensitiveMemoryText(q))
+        .map((q) => q.replace(/[\\u0000-\\u001f\\u007f]/g, " ").trim())
+        .filter(Boolean))].slice(-20),
+      recentSummary: summary === undefined ? previous.recentSummary
+        : containsSensitiveMemoryText(summary) ? "" : summary.slice(0, 1800),
       observedAt: patch.observedAt ?? Date.now(),
     },
   });
