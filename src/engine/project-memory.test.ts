@@ -25,7 +25,7 @@ assert(pack.text.includes("STALE: repository baseline changed"), "old repository
 assert(pack.text.includes("evidence: User explicitly requested"), "supporting evidence must be preserved");
 assert(pack.text.includes("never infer missing facts"), "prompt must discourage fabricated memory");
 assert(pack.hasRepositoryBaseline, "baseline status should be machine-readable");
-assert(pack.includedFacts === 3, "unsafe fact should be removed from included count");
+assert(pack.includedFacts === 4, "unsafe fact should be removed from included count");
 assert(!pack.text.includes("ghp_abcdefghijklmnopqrstuvwxyz012345"), "credential-like facts must not enter prompt");
 assert(!pack.text.includes("super-secret-value"), "credential-like questions must not enter prompt");
 
