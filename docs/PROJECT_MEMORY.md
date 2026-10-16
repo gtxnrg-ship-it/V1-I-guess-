@@ -1,20 +1,21 @@
 # Project-scoped memory context
 
-Project memory is stored per project in the existing IndexedDB record and injected into the Talker as a bounded context pack. This module formats memory; it does not independently infer facts from conversation history or inspect repositories.
+Project memory is stored per project in the existing project record and injected into the Talker as bounded context. It does not automatically infer facts from ordinary conversation.
 
-## Entry format
+## Explicit user controls
 
-Each fact or decision keeps its source:
-- **User-confirmed** — an explicit requirement or decision stated by the user.
-- **Repository-observed** — a claim verified in repository content or tool output. Record the inspected commit SHA whenever possible.
-- **Assistant-proposed** — a suggestion only; never treat it as a user requirement.
+Use these commands in project chat:
+- `remember: <fact>` — save a project fact explicitly.
+- `remember decision: <decision>` — save a user-confirmed decision separately.
+- `forget: <text>` — remove saved facts, decisions, and open questions containing that text.
+- `/forget memory` — clear the current project's facts, decisions, open questions, and saved summary.
 
-Optional evidence is a short supporting quote, file path, or verified tool result. Evidence is limited in length and is treated as untrusted context, not as an instruction. Repository observations tied to a different current baseline are marked stale in the prompt. Legacy observations without a baseline are explicitly marked as needing verification.
+These commands are handled deterministically without invoking an AI model. Ordinary conversation, assistant proposals, and model-generated summaries are not promoted to facts or decisions by this workflow. Secret-like entries are rejected; remove credentials before trying again.
 
-## Safety and limits
+## Entry format and safety
 
-- Credential-like facts, evidence, questions, and summaries are rejected from the prompt/save path (API-key assignments, bearer credentials, common GitHub token forms, private-key headers, and similar patterns).
-- Duplicate entries with the same source and normalized text are collapsed.
-- Context remains bounded: at most 12 facts and 12 decisions, 5 questions, 360 characters per entry, and 900 characters of summary in the prompt. Persistent storage has separate caps.
-- The filters are defensive heuristics, not a guarantee that every secret or sensitive detail can be recognized. Callers must not intentionally submit credentials or sensitive personal data.
-- No automatic extraction is claimed here. Any future extractor must use explicit evidence, preserve provenance, and require user confirmation for decisions rather than promoting assistant guesses.
+- **User-confirmed** means the user explicitly saved the item.
+- **Repository-observed** means a claim was verified in repository content or tool output. Record the inspected commit SHA whenever possible.
+- **Assistant-proposed** is a suggestion only, never a user requirement.
+
+Optional evidence is short supporting context. Repository observations tied to a different current baseline are marked stale; legacy observations without a baseline need verification. Credential filtering uses defensive heuristics and cannot detect every possible secret. Context is bounded to 12 facts, 12 decisions, 5 questions, 360 characters per entry, and 900 characters of summary in the prompt.

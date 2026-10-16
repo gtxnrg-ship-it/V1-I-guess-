@@ -1,4 +1,4 @@
-import { buildProjectContextPack, sanitizeProjectMemoryFact, sanitizeProjectMemoryFacts } from "./project-memory";
+import { buildProjectContextPack, parseProjectMemoryCommand, sanitizeProjectMemoryFact, sanitizeProjectMemoryFacts } from "./project-memory";
 
 function assert(condition: boolean, message: string) {
   if (!condition) throw new Error(`Assertion failed: ${message}`);
@@ -50,4 +50,12 @@ const deduped = sanitizeProjectMemoryFacts([
   { text: "Keep Android supported", source: "assistant-proposed" },
 ]);
 assert(deduped.length === 2, "duplicate entries with same provenance should be deduplicated");
-console.log("Project memory context tests passed");
+
+assert(parseProjectMemoryCommand("remember: User wants Android APK delivery.")?.action === "remember", "explicit remember command should be recognized");
+const decision = parseProjectMemoryCommand("/remember decision: Keep all current features free");
+assert(decision?.action === "remember" && decision.kind === "decision", "decisions should be typed separately");
+assert(parseProjectMemoryCommand("remember: access_token=super-secret-value") === null, "secret-like memory commands should be rejected");
+assert(parseProjectMemoryCommand("I wish Kuro-chan remembered this") === null, "ordinary conversation must not be captured implicitly");
+assert(parseProjectMemoryCommand("/forget memory")?.action === "forget-all", "forget-all command should be recognized");
+assert(parseProjectMemoryCommand("forget: Android APK")?.action === "forget-match", "targeted forget command should be recognized");
+console.log("Project memory context and command tests passed");
