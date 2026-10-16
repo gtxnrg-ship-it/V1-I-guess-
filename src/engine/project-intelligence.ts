@@ -1,6 +1,16 @@
 import type { ProjectIntelligenceFinding, ProjectIntelligenceReport } from "./types";
 
 const unique = (values: string[]) => [...new Set(values)];
+
+export function projectFingerprint(files: Record<string, string>): string {
+  const paths = Object.keys(files).sort();
+  let hash = 2166136261;
+  for (const path of paths) {
+    const value = path + "\\0" + files[path] + "\\0";
+    for (let i = 0; i < value.length; i++) { hash ^= value.charCodeAt(i); hash = Math.imul(hash, 16777619); }
+  }
+  return paths.length + ":" + (hash >>> 0).toString(16);
+}
 const normalize = (value: string) => {
   const parts: string[] = [];
   for (const part of value.replace(/\/g, "/").split("/")) {
@@ -76,6 +86,7 @@ export function analyzeProject(files: Record<string, string>): ProjectIntelligen
   const summary = "Analyzed " + paths.length + " files in " + name + ". Found " + architecture.length + " architecture areas, " + edges.length + " local import relationships, " + testFiles.length + " likely test files, and " + workflows.length + " GitHub Actions workflows. Findings are static signals to guide review; they are not a substitute for running the project's own checks.";
   return {
     generatedAt: new Date().toISOString(),
+    fingerprint: projectFingerprint(files),
     fileCount: paths.length,
     summary,
     architecture: unique(architecture),
