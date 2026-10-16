@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Moon, Sun, Github, Code2, KeyRound, MessageCircle, Loader2, Rocket, ExternalLink, ChevronDown, Check, Plus, Pencil, Trash2, Download, Globe } from "lucide-react";
+import { Moon, Sun, Github, Code2, KeyRound, MessageCircle, Loader2, Rocket, ExternalLink, ChevronDown, Check, Plus, Pencil, Trash2, Download, Globe, FolderKanban, Activity } from "lucide-react";
 import { downloadZip } from "@/lib/zip";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Split } from "@/components/her/Split";
@@ -13,6 +13,7 @@ import { useTheme } from "@/components/her/theme";
 import { ChatPanel } from "@/components/her/ChatPanel";
 import { CodeBrowser } from "@/components/her/CodePane";
 import { SettingsHub } from "@/components/her/SettingsHub";
+import { ProjectsActivity } from "@/components/her/ProjectsActivity";
 import * as db from "@/engine/db";
 import { GH } from "@/engine/github";
 import { inspectGitHubRepository } from "@/engine/live-repository-intelligence";
@@ -20,8 +21,10 @@ import { shipFiles, syncDependencies } from "@/engine/ship";
 import { starterFiles, type StarterVariant } from "@/engine/template";
 import { errMsg } from "@/lib/kuro";
 
-type Tab = "code" | "keys";
+type Tab = "projects" | "activity" | "code" | "keys";
 const TABS: { id: Tab; label: string; icon: any }[] = [
+  { id: "projects", label: "Projects", icon: FolderKanban },
+  { id: "activity", label: "Activity", icon: Activity },
   { id: "code", label: "Code", icon: Code2 },
   { id: "keys", label: "Settings", icon: KeyRound },
 ];
@@ -47,7 +50,9 @@ export default function Studio() {
 
   const chat = <ChatPanel scope="app" onOpenKeys={() => openTab("keys")} draft={draft} setDraft={setDraft}
     onSent={() => isMobile && setMobileTab("chat")} />;
-  const pane = (t: Tab) => t === "code" ? <CodeBrowser files={p.files} /> : <SettingsHub />;
+  const pane = (t: Tab) => t === "projects" || t === "activity"
+    ? <ProjectsActivity view={t} onOpenChat={() => setMobileTab("chat")} />
+    : t === "code" ? <CodeBrowser files={p.files} /> : <SettingsHub />;
 
   const aiKeys = st.keys.filter((k) => k.kind === "ai").length;
   const repoParts = (p.repo || "").split("/").filter(Boolean);
