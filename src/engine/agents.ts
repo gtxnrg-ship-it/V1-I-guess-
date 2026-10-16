@@ -71,19 +71,13 @@ async function loop(o: LoopOpts): Promise<LoopResult> {
       throw new Error("HARD_CAP_HIT: Loop exceeded framework limit. Stopping to prevent runaway usage.");
     }
 
-    let thinkStart = 0;
     const last = step === o.maxSteps - 1;
     const res = await routedStream(o.role, {
       system: o.system + (last && o.stopOn?.length ? `\n\nThis is your final turn: call ${o.stopOn.join(" or ")} now.` : ""),
       messages: [...o.messages, ...trace], tools, signal,
-      onThinking: (d) => {
-        if (!d) return;
-        const b = tail();
-        if (b?.type === "thinking" && !b.done) b.text += d;
-        else { thinkStart = Date.now(); data.blocks.push({ type: "thinking", text: d, ms: 0, done: false }); }
-        (tail() as any).ms = Date.now() - thinkStart;
-        live.flush();
-      },
+      // Model reasoning is private internal content. Never render raw thought tokens in chat.
+      // The UI can show high-level agent/tool progress without exposing chain-of-thought.
+      onThinking: (_d) => {},
       onText: (d) => {
         if (o.quiet) return;
         const b = tail();

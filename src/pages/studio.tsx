@@ -143,7 +143,79 @@ function ProjectMenu({ busy, onSwitched }: { busy: boolean; onSwitched: () => vo
   const { toast } = useToast();
   const [name, setName] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [oauthBusy, setOauthBusy] = useState(false);
+  const [oauthCode, setOauthCode] = useState("");
+  const [oauthUrl, setOauthUrl] = useState("https://github.com/login/device");
+  const [oauthMessage, setOauthMessage] = useState("");
   const current = db.project();
+
+  const connectGitHub = async () => {
+    const clientId = import.meta.env.VITE_GITHUB_CLIENT_ID?.trim();
+    if (!clientId) {
+      setOauthMessage("GitHub sign-in needs the public OAuth App client ID. Register a GitHub OAuth App with Device Flow enabled, then add VITE_GITHUB_CLIENT_ID to the app build environment. No client secret belongs in this app.");
+      return;
+    }
+    setOauthBusy(true);
+    setOauthMessage("Starting secure GitHub authorization…");
+    setOauthCode("");
+    try {
+      const deviceResponse = await fetch("https://github.com/login/device/code", {
+        method: "POST",
+        headers: { Accept: "application/json", "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({ client_id: clientId, scope: "repo workflow" }),
+      });
+      if (!deviceResponse.ok) throw new Error(`GitHub authorization setup failed (${deviceResponse.status}). Check the OAuth App's Device Flow setting and try again.`);
+      const device = await deviceResponse.json();
+      if (!device.device_code || !device.user_code || !device.verification_uri) {
+        throw new Error(device.error_description || device.error || "GitHub did not return a device authorization code.");
+      }
+      setOauthCode(device.user_code);
+      setOauthUrl(device.verification_uri);
+      setOauthMessage("Open GitHub, enter the code shown below, and approve access. Keep this window open while Kuro-chan waits.");
+      let interval = Math.max(5, Number(device.interval) || 5);
+      const expiresAt = Date.now() + Math.max(60, Number(device.expires_in) || 900) * 1000;
+      while (Date.now() < expiresAt) {
+        await new Promise((resolve) => window.setTimeout(resolve, interval * 1000));
+        const poll = await fetch("https://github.com/login/oauth/access_token", {
+          method: "POST",
+          headers: { Accept: "application/json", "Content-Type": "application/x-www-form-urlencoded" },
+          body: new URLSearchParams({
+            client_id: clientId,
+            device_code: device.device_code,
+            grant_type: "urn:ietf:params:oauth:grant-type:device_code",
+          }),
+        });
+        const result = await poll.json();
+        if (result.access_token) {
+          const token = String(result.access_token);
+          const login = await new GH(token).me();
+          db.getState().keys.filter((key) => key.provider === "github").forEach((key) => db.removeKey(key.id));
+          db.addKey({
+            id: db.uid(), label: `GitHub (@${login})`, kind: "github", provider: "github",
+            secret: token, hint: `••••${token.slice(-4)}`, models: [], status: "active",
+            requests: 0, errors: 0, login, createdAt: Date.now(),
+          });
+          setOauthMessage(`Connected successfully as @${login}. Choose a repository below to start a dedicated chat.`);
+          setOauthCode("");
+          toast({ title: "GitHub connected", description: `Signed in as @${login}. You can now import a repository.` });
+          return;
+        }
+        if (result.error === "authorization_pending") continue;
+        if (result.error === "slow_down") { interval += 5; continue; }
+        if (result.error === "expired_token") throw new Error("That authorization code expired. Start again to get a fresh code.");
+        if (result.error === "access_denied") throw new Error("GitHub authorization was cancelled.");
+        throw new Error(result.error_description || result.error || "GitHub authorization failed.");
+      }
+      throw new Error("That authorization code expired. Start again to get a fresh code.");
+    } catch (error) {
+      const message = errMsg(error);
+      setOauthMessage(message.includes("Failed to fetch") || message.includes("NetworkError")
+        ? "Kuro-chan couldn't reach GitHub's device authorization endpoint from this app. The OAuth App must be configured, and this platform may need a small secure callback service; no token was saved."
+        : message);
+    } finally {
+      setOauthBusy(false);
+    }
+  };
   const starterChoices: { id: StarterVariant; label: string; blurb: string }[] = [
     { id: "starter", label: "Starter", blurb: "A blank canvas" },
     { id: "paytm", label: "Paytm-style wallet", blurb: "Fast wallet + payments" },
@@ -205,7 +277,7 @@ function ProjectMenu({ busy, onSwitched }: { busy: boolean; onSwitched: () => vo
       <DropdownMenu onOpenChange={() => setConfirmDelete(false)}>
         <DropdownMenuTrigger asChild>
           <button data-testid="button-project-menu" className="inline-flex min-w-0 max-w-[150px] items-center gap-1 rounded-md px-1.5 py-1 text-[13.5px] font-medium hover:bg-muted sm:max-w-[220px]">
-            <span className="truncate">{current?.name || "My App"}</span><ChevronDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+            <span className="truncate">{!current?.name || current.name === "My App" ? "Kuro-chan" : current.name}</span><ChevronDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
           </button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" className="w-64">
@@ -235,6 +307,18 @@ function ProjectMenu({ busy, onSwitched }: { busy: boolean; onSwitched: () => vo
             <DialogTitle className="text-[17px]">{dialog === "new" ? "New project" : dialog === "import" ? "New chat from GitHub" : "Rename project"}</DialogTitle>
             <DialogDescription className="text-[13.5px]">{dialog === "new" ? "A fresh project with its own chat, files and memory." : dialog === "import" ? "Paste a repo link or owner/name. Empty repos work too; this creates a separate chat and memory for it." : "This only changes the name you see."}</DialogDescription>
           </DialogHeader>
+          {dialog === "import" && !db.keyOf("github") && (
+            <div className="rounded-xl border border-border bg-muted/30 p-3">
+              <div className="flex items-center gap-2 text-sm font-medium"><Github className="h-4 w-4" /> Connect GitHub first</div>
+              <p className="mt-1 text-xs leading-relaxed text-muted-foreground">Sign in once in this panel. After approval, Kuro-chan can list and import repositories you authorize—no need to visit Settings.</p>
+              {oauthCode && <div className="my-3 rounded-lg border border-border bg-background p-3 text-center"><div className="text-[10px] uppercase tracking-wider text-muted-foreground">Your one-time code</div><div className="my-1 font-mono text-2xl font-bold tracking-[0.18em]">{oauthCode}</div><a className="text-xs text-primary underline" href={oauthUrl} target="_blank" rel="noreferrer">Open GitHub to authorize <ExternalLink className="inline h-3 w-3" /></a></div>}
+              <button type="button" disabled={oauthBusy} onClick={connectGitHub} className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg border border-border bg-background px-3 py-2.5 text-sm font-medium hover:bg-muted disabled:opacity-60">
+                {oauthBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Github className="h-4 w-4" />}
+                {oauthBusy ? "Waiting for GitHub approval…" : oauthCode ? "Restart GitHub sign-in" : "Connect GitHub"}
+              </button>
+              {oauthMessage && <p role="status" className="mt-2 text-xs leading-relaxed text-muted-foreground">{oauthMessage}</p>}
+            </div>
+          )}
           <input data-testid="input-project-name" autoFocus value={name} onChange={(e) => setName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && save()} placeholder={dialog === "import" ? "github.com/you/your-repo" : "e.g. Habit Tracker"}
             className="h-10 w-full rounded-lg border border-border bg-background px-3 text-[14px] outline-none focus:border-foreground/30" />
           {dialog === "new" && (

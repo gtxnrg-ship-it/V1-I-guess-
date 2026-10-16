@@ -25,8 +25,11 @@ jobs:
           distribution: temurin
           java-version: 21
       - run: npm ci
-      - run: npm install --no-save @capacitor/core@7 @capacitor/cli@7 @capacitor/android@7
-      - run: npm run build
+      - run: npm install --no-save @capacitor/core@7 @capacitor/cli@7 @capacitor/android@7 @capacitor-community/text-to-speech@6.1.0
+      - name: Build web app
+        run: npm run build
+        env:
+          VITE_GITHUB_CLIENT_ID: ${{ vars.VITE_GITHUB_CLIENT_ID }}
       - run: npx cap add android
       - name: Allow microphone (voice typing)
         run: |

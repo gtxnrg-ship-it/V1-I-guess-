@@ -74,7 +74,13 @@ export async function routedStream(
   onRoute: (text: string) => void,
   onUse: (m: ModelUsed) => void,
 ): Promise<StreamResult> {
-  const c = chain(role);
+  const hasImageInput = opts.messages.some((m) => m.role === "user" && !!m.images?.length);
+  const available = chain(role);
+  // Never silently pass an image to a text-only model: it causes confident guesses about unseen content.
+  const c = hasImageInput ? available.filter((candidate) => candidate.model.vision === true) : available;
+  if (!c.length && hasImageInput) {
+    throw new LLMError(0, "IMAGE_VISION_UNAVAILABLE: I received the image, but none of your currently connected models is marked as vision-capable. Connect a vision model such as Gemini in Settings → AI & Models, then resend it. I won't pretend I saw an image I couldn't inspect.");
+  }
   if (!c.length) throw new LLMError(0, "NO_KEYS");
   let lastErr: LLMError | null = null;
   // Free keys hit per-minute limits all the time: when every model is cooling, wait and try again instead of failing.

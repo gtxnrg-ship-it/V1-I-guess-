@@ -43,6 +43,21 @@ The release page contains the newest APK published by the Android build workflow
 
 These are development APKs, not Play Store releases. Back up important project data before testing, and report reproducible issues through GitHub Issues.
 
+## 🔐 GitHub sign-in and repository chats
+
+Kuro-chan's repository import dialog includes an in-context GitHub Device Flow sign-in panel, so users do not have to navigate to Settings to connect an account. After authorization, the user can paste a repository URL and create a dedicated project chat with its own files and memory.
+
+**One-time maintainer setup is required before the sign-in button can complete authorization:**
+
+1. Create a GitHub OAuth App in GitHub Developer Settings and enable **Device Flow** for it.
+2. Set the app's homepage URL to this repository's public project page.
+3. Add the OAuth App's **Client ID** as the repository Actions variable `VITE_GITHUB_CLIENT_ID` (Settings → Secrets and variables → Actions → Variables). The client ID is public; never add a client secret to the Vite app, APK, or repository.
+4. Rebuild the web app or run the Android build workflow after setting the variable.
+
+The panel requests `repo` and `workflow` scopes because coding tasks may need to read/write private repositories and manage workflow files. Users must review and approve GitHub's authorization screen. Access tokens are stored in the app's existing local IndexedDB key store; use a dedicated device and revoke Kuro-chan's OAuth access from GitHub settings when no longer needed. The app must not claim to be connected unless it validates the returned token against GitHub.
+
+If the OAuth Client ID is not configured, the panel explains the missing setup instead of simulating a successful connection.
+
 ## 🧭 What is here today?
 
 Current foundations include:
