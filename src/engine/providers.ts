@@ -24,7 +24,7 @@ export const PROVIDERS: ProviderDef[] = [
   { id: "huggingface", name: "Hugging Face", dialect: "openai", base: "https://router.huggingface.co/v1", modelsDev: "huggingface", prefixes: ["hf_"] },
   { id: "fireworks", name: "Fireworks", dialect: "openai", base: "https://api.fireworks.ai/inference/v1", modelsDev: "fireworks-ai", prefixes: ["fw_"] },
   { id: "perplexity", name: "Perplexity", dialect: "openai", base: "https://api.perplexity.ai", modelsDev: "perplexity", prefixes: ["pplx-"] },
-  { id: "openai", name: "OpenAI", dialect: "openai", base: "https://api.openai.com/v1", modelsDev: "openai", prefixes: ["sk-proj-", "sk-svcacct-", "sk-admin-"] },
+  { id: "openai", name: "OpenAI", dialect: "openai", base: "https://api.openai.com/v1", modelsDev: "openai", prefixes: ["sk-proj-", "sk-svcacct-", "sk-admin-", "sk-"] },
   { id: "deepseek", name: "DeepSeek", dialect: "openai", base: "https://api.deepseek.com/v1", modelsDev: "deepseek" },
   { id: "mistral", name: "Mistral", dialect: "openai", base: "https://api.mistral.ai/v1", modelsDev: "mistral", signup: "https://console.mistral.ai" },
   { id: "together", name: "Together AI", dialect: "openai", base: "https://api.together.xyz/v1", modelsDev: "togetherai" },
@@ -162,22 +162,7 @@ export async function detect(rawKey: string, opts: { baseUrl?: string } = {}): P
     throw new Error(`${byPrefix.name} rejected this key: ${r.error || "rejected"}`);
   }
 
-  const errors: string[] = [];
-  const results = await Promise.allSettled(
-    PROVIDERS.map(async (p) => {
-      const r = await listModels(p, key);
-      if (r.ok && r.models.length) return { provider: p, models: r.models };
-      throw new Error(`${p.name}: ${r.error || "rejected"}`);
-    })
-  );
-
-  for (const res of results) {
-    if (res.status === "fulfilled") {
-      const { provider, models } = res.value;
-      return { kind: "ai", provider: provider.id, name: provider.name, base: provider.base, models: await enrich(provider, models) };
-    }
-    errors.push(res.reason?.message || String(res.reason));
-  }
-
-  return { kind: "secret", provider: "secret", name: "Unknown key", models: [], note: errors.join("; ") || "I couldn't match it to an AI provider, so I saved it as a named secret." };
+  // Never send an unrecognized credential to multiple services. Failed probes still leak secrets.
+  // Ask the user to choose the provider, then test only that provider.
+  return { kind: "secret", provider: "secret", name: "Unknown key", models: [], note: "I couldn't identify this key safely from its prefix. Choose its service and test it against that provider only. This key was not sent to other providers." };
 }

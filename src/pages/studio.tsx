@@ -26,7 +26,7 @@ type Tab = "preview" | "code" | "keys";
 const TABS: { id: Tab; label: string; icon: any }[] = [
   { id: "preview", label: "Preview", icon: Eye },
   { id: "code", label: "Code", icon: Code2 },
-  { id: "keys", label: "Keys", icon: KeyRound },
+  { id: "keys", label: "Settings", icon: KeyRound },
 ];
 
 export default function Studio() {
