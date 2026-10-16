@@ -133,3 +133,27 @@ export function buildProjectContextPack(input: ProjectMemoryInput): ProjectConte
     hasRepositoryBaseline: !!input.baselineSha,
   };
 }
+
+
+export type ProjectMemoryCommand =
+  | { action: "remember"; kind: "fact" | "decision"; text: string }
+  | { action: "forget-all" }
+  | { action: "forget-match"; text: string };
+
+/** Explicit user commands only; ordinary chat is never silently extracted into memory. */
+export function parseProjectMemoryCommand(input: string): ProjectMemoryCommand | null {
+  const value = input.trim();
+  const remember = value.match(/^(?:\/remember\s+|remember\s*:\s*)(?:(fact|decision)\s*:\s*)?(.+)$/i);
+  if (remember) {
+    const text = clean(remember[2] || "");
+    if (!text || containsSensitiveMemoryText(text)) return null;
+    return { action: "remember", kind: (remember[1] || "fact").toLowerCase() as "fact" | "decision", text: text.slice(0, MAX_FIELD) };
+  }
+  if (/^(?:\/forget\s+memory|forget\s+all\s+project\s+memory|clear\s+project\s+memory)$/i.test(value)) return { action: "forget-all" };
+  const forget = value.match(/^(?:\/forget\s+|forget\s*:\s*)(.+)$/i);
+  if (forget) {
+    const text = clean(forget[1]);
+    if (text) return { action: "forget-match", text: text.slice(0, MAX_FIELD) };
+  }
+  return null;
+}
