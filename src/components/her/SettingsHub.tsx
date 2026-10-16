@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import {
-  AudioLines, Bot, Check, ChevronRight, CircleHelp, Cpu, Eye, Github,
-  HardDrive, KeyRound, LockKeyhole, Mic, Palette, RotateCcw, ShieldCheck,
-  SlidersHorizontal, Sparkles, Volume2, Waves, Zap,
+  AudioLines, Bot, Check, ChevronRight, CircleHelp, Github,
+  HardDrive, LockKeyhole, Mic, Palette, RotateCcw, ShieldCheck,
+  SlidersHorizontal, Sparkles, Waves,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import * as db from "@/engine/db";
@@ -20,7 +20,7 @@ const SECTIONS: { id: Section; label: string; description: string; icon: typeof 
   { id: "about", label: "About Kuro-chan", description: "Version and project details", icon: CircleHelp },
 ];
 
-function SettingRow({ title, detail, children }: { title: string; detail: string; children: React.ReactNode }) {
+function SettingRow({ title, detail, children }: { title: string; detail: string; children: ReactNode }) {
   return <div className="flex items-center justify-between gap-4 border-b border-border/60 py-4 last:border-0">
     <div className="min-w-0"><div className="text-sm font-medium">{title}</div><p className="mt-1 max-w-xl text-xs leading-relaxed text-muted-foreground">{detail}</p></div>
     <div className="shrink-0">{children}</div>
@@ -46,6 +46,7 @@ export function SettingsHub() {
   const patch = (value: Parameters<typeof db.setSettings>[0]) => db.setSettings(value);
   const sectionMeta = SECTIONS.find((item) => item.id === section)!;
   const isDark = typeof document !== "undefined" && document.documentElement.classList.contains("dark");
+  useEffect(() => { if (typeof document !== "undefined") document.documentElement.dataset.reduceMotion = settings.reduceMotion ? "true" : "false"; }, [settings.reduceMotion]);
 
   return <div className="her-scroll h-full min-h-0 overflow-y-auto">
     <div className="mx-auto w-full max-w-5xl p-3 pb-8 sm:p-6">
@@ -67,12 +68,7 @@ export function SettingsHub() {
           {section === "appearance" && <>
             <Card title="Look and feel" subtitle="Keep the interface calm, readable, and responsive across phone and desktop.">
               <SettingRow title="Reduce motion" detail="Prefer calmer transitions and avoid non-essential movement where supported."><Toggle checked={!!settings.reduceMotion} label="Reduce motion" onChange={(v) => patch({ reduceMotion: v })} /></SettingRow>
-              <SettingRow title="Compact layout" detail="Use tighter spacing to keep more project information visible."><Toggle checked={!!settings.compactLayout} label="Compact layout" onChange={(v) => patch({ compactLayout: v })} /></SettingRow>
-              <SettingRow title="Show orb animations" detail="The Kuro-chan orb can reflect listening, thinking, and speaking states."><Toggle checked={settings.orbAnimations !== false} label="Show orb animations" onChange={(v) => patch({ orbAnimations: v })} /></SettingRow>
               <SettingRow title="Theme" detail={`The current app theme is ${isDark ? "dark" : "light"}. Use the sun/moon control in the top bar to switch it.`}><span className="rounded-lg border border-border px-3 py-1.5 text-xs">{isDark ? "Dark" : "Light"}</span></SettingRow>
-            </Card>
-            <Card title="Accessibility" subtitle="Small choices that make longer sessions more comfortable.">
-              <SettingRow title="Confirm before publishing" detail="Keep an explicit review step before code is sent to GitHub."><Toggle checked={settings.confirmPublish !== false} label="Confirm before publishing" onChange={(v) => patch({ confirmPublish: v })} /></SettingRow>
             </Card>
           </>}
           {section === "voice" && <>
@@ -88,7 +84,7 @@ export function SettingsHub() {
               </SettingRow>
               <SettingRow title="Speech speed" detail="Adjust playback speed when supported by the selected speech provider."><div className="flex items-center gap-2"><input aria-label="Speech speed" type="range" min="0.8" max="1.2" step="0.05" value={settings.voiceSpeed ?? 1.0} onChange={(e) => patch({ voiceSpeed: Number(e.target.value) })} className="w-24 accent-primary" /><span className="w-8 text-right text-xs tabular-nums">{(settings.voiceSpeed ?? 1).toFixed(2)}×</span></div></SettingRow>
               <SettingRow title="Voice input" detail="Use the microphone button in chat for speech recognition. Text entry remains available at all times."><span className="inline-flex items-center gap-1.5 rounded-full border border-border px-2.5 py-1 text-[10px] text-muted-foreground"><Mic className="h-3 w-3" /> Chat microphone</span></SettingRow>
-              <SettingRow title="Interrupt speech" detail="Starting a new reply or using stop should cancel current playback."><span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/20 bg-emerald-500/5 px-2.5 py-1 text-[10px] text-emerald-300"><Check className="h-3 w-3" /> Device speech supported</span></SettingRow>
+              <SettingRow title="Interrupt speech" detail="Device speech can be cancelled. Remote audio cancellation is being hardened in the dedicated voice integration."><span className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/20 bg-amber-500/5 px-2.5 py-1 text-[10px] text-amber-300">Partially supported</span></SettingRow>
             </Card>
             <Card title="Privacy and offline use" subtitle="Local speech models can reduce network dependence, but require storage and compatible hardware.">
               <SettingRow title="Prefer offline voice" detail="Preference saved for the upcoming local engine integration; no model is downloaded yet."><Toggle checked={!!settings.preferOfflineVoice} label="Prefer offline voice" onChange={(v) => patch({ preferOfflineVoice: v })} /></SettingRow>
@@ -125,7 +121,7 @@ export function SettingsHub() {
               <SettingRow title="Application version" detail="Version declared in package.json."><span className="text-xs tabular-nums">2.0.0</span></SettingRow>
               <SettingRow title="Project license" detail="Check the repository license and individual model/voice licenses before redistribution."><span className="text-xs">MIT app license</span></SettingRow>
               <SettingRow title="Source repository" detail="Browse the code, report issues, and follow development."><a className="inline-flex items-center gap-1 text-xs text-primary hover:underline" href="https://github.com/gtxnrg-ship-it/V1-I-guess-" target="_blank" rel="noreferrer"><Github className="h-3.5 w-3.5" /> GitHub <ChevronRight className="h-3 w-3" /></a></SettingRow>
-              <SettingRow title="Reset optional preferences" detail="Restore voice and appearance preferences to the recommended defaults."><button type="button" className="inline-flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-xs hover:bg-muted" onClick={() => { patch({ reduceMotion: false, compactLayout: false, orbAnimations: true, confirmPublish: true, voiceAutoSpeak: true, voiceProvider: "browser", voiceSpeed: 1, preferOfflineVoice: false }); toast({ title: "Preferences restored", description: "Your projects and provider keys were not changed." }); }}><RotateCcw className="h-3 w-3" /> Reset</button></SettingRow>
+              <SettingRow title="Reset optional preferences" detail="Restore voice and appearance preferences to the recommended defaults."><button type="button" className="inline-flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-xs hover:bg-muted" onClick={() => { patch({ reduceMotion: false, voiceAutoSpeak: true, voiceProvider: "browser", voiceSpeed: 1, preferOfflineVoice: false }); toast({ title: "Preferences restored", description: "Your projects and provider keys were not changed." }); }}><RotateCcw className="h-3 w-3" /> Reset</button></SettingRow>
             </Card>
           </>}
           <p className="px-1 text-[10px] leading-relaxed text-muted-foreground">Settings marked as planned describe preferences for upcoming functionality; they do not claim a model or capability is installed. Your projects and settings stay in this app’s local storage.</p>
