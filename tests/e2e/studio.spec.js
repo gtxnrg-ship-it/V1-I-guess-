@@ -8,8 +8,14 @@ test.describe("Kuro-chan studio", () => {
     await page.goto("/studio", { waitUntil: "domcontentloaded" });
     await expect(page.getByTestId("input-message")).toBeVisible();
     await expect(page.getByTestId("button-publish")).toBeVisible();
+    await expect(page.getByTestId("tab-projects")).toBeVisible();
+    await expect(page.getByTestId("tab-activity")).toBeVisible();
     await expect(page.getByTestId("tab-code")).toBeVisible();
     await expect(page.getByTestId("tab-keys")).toBeVisible();
+    await page.getByTestId("tab-projects").click();
+    await expect(page.getByRole("heading", { name: "Your projects" })).toBeVisible();
+    await page.getByTestId("tab-activity").click();
+    await expect(page.getByRole("heading", { name: "Activity" })).toBeVisible();
     await page.getByRole("button", { name: /AI & models/i }).click();
     await expect(page.getByTestId("local-models-pane")).toBeVisible();
     await expect(page.getByTestId("tab-preview")).toHaveCount(0);
@@ -22,9 +28,15 @@ test.describe("Kuro-chan studio", () => {
     await page.goto("/studio", { waitUntil: "domcontentloaded" });
 
     await expect(page.getByTestId("input-message")).toBeVisible();
+    await expect(page.getByTestId("tab-mobile-projects")).toBeVisible();
+    await expect(page.getByTestId("tab-mobile-activity")).toBeVisible();
     await expect(page.getByTestId("tab-mobile-code")).toBeVisible();
     await expect(page.getByTestId("tab-mobile-keys")).toBeVisible();
     await expect(page.getByTestId("tab-mobile-preview")).toHaveCount(0);
+    await page.getByTestId("tab-mobile-projects").click();
+    await expect(page.getByRole("heading", { name: "Your projects" })).toBeVisible();
+    await page.getByTestId("tab-mobile-activity").click();
+    await expect(page.getByRole("heading", { name: "Activity" })).toBeVisible();
     await page.getByTestId("tab-mobile-code").click();
     await expect(page.getByText("Files", { exact: true })).toBeVisible();
     await page.getByTestId("tab-mobile-chat").click();
