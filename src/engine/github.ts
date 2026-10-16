@@ -136,4 +136,20 @@ export class GH {
     const r = await this.ok("GET", `/repos/${owner}/${name}/actions/runs?per_page=6`);
     return (r.workflow_runs || []).map((w: any) => ({ name: w.name as string, status: w.status as string, conclusion: w.conclusion as string | null, url: w.html_url as string, at: w.created_at as string }));
   }
+
+  async latestRelease(owner: string, name: string) {
+    const r = await this.ok("GET", `/repos/${owner}/${name}/releases/latest`);
+    return {
+      name: r.name as string,
+      tag: r.tag_name as string,
+      url: r.html_url as string,
+      publishedAt: r.published_at as string | null,
+      assets: (r.assets || []).map((a: any) => ({ name: a.name as string, url: a.browser_download_url as string, size: a.size as number, contentType: a.content_type as string })),
+    };
+  }
+
+  async pullRequests(owner: string, name: string) {
+    const r = await this.ok("GET", `/repos/${owner}/${name}/pulls?state=open&per_page=10`);
+    return (r || []).map((p: any) => ({ number: p.number as number, title: p.title as string, url: p.html_url as string, branch: p.head?.ref as string, updatedAt: p.updated_at as string }));
+  }
 }
