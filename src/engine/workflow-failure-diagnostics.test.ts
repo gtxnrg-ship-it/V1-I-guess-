@@ -29,7 +29,7 @@ async function run() {
 
   const unavailable = await diagnoseWorkflowRun({ async req() { return { status: 403, json: { message: "Forbidden" } }; } }, "acme", "app", 42);
   assert(unavailable.status === "unavailable" && unavailable.failedJobs.length === 0, "does not invent a diagnosis when GitHub denies access");
-  const healthy = await diagnoseWorkflowRun({ async req() { return { status: 200, json: { jobs: [{ status: "completed", conclusion: "success" }] }; } }, "acme", "app", 43);
+  const healthy = await diagnoseWorkflowRun({ async req() { return { status: 200, json: { jobs: [{ status: "completed", conclusion: "success" }] } }; } }, "acme", "app", 43);
   assert(healthy.status === "no-failures", "does not flag a successful run");
   let rejected = false;
   try { await diagnoseWorkflowRun(client, "acme", "app", -1); } catch { rejected = true; }
