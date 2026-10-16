@@ -194,11 +194,11 @@ export function ChatPanel({ scope = "app", onOpenKeys, draft, setDraft, onSent }
               {scope === "self" ? "Tell me what to change. I'll plan it, build it into my own code, and ship it to GitHub." : "Describe what you want to create. I'll plan, research, build, and test it with you, right here."}
             </p>
             <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
-              <button type="button" onClick={() => { setAutoVoice(true); if (!dict.listening) dict.toggle(); }}
+              <button type="button" onClick={() => { db.setSettings({ voiceAutoSpeak: true }); if (!dict.listening) dict.toggle(); }}
                 className="inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-[12.5px] font-medium text-primary-foreground shadow-[0_0_24px_rgba(0,240,255,0.12)] transition-transform hover:-translate-y-0.5 hover:opacity-90">
                 <Mic className="h-3.5 w-3.5" /> Talk to Kuro-chan
               </button>
-              <button type="button" onClick={() => { setAutoVoice(true); setDraft("Build me a polished SaaS dashboard with auth and billing."); }}
+              <button type="button" onClick={() => { db.setSettings({ voiceAutoSpeak: true }); setDraft("Build me a polished SaaS dashboard with auth and billing."); }}
                 className="inline-flex items-center gap-2 rounded-full border border-border bg-background px-4 py-2 text-[12.5px] font-medium text-foreground transition-colors hover:bg-muted">
                 <Sparkles className="h-3.5 w-3.5" /> Try a complex prompt
               </button>
