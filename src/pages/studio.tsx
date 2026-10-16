@@ -15,7 +15,6 @@ import { CodeBrowser } from "@/components/her/CodePane";
 import { KeysPane } from "@/components/her/KeysPane";
 import { LocalModelsPane } from "@/components/her/LocalModelsPane";
 import * as db from "@/engine/db";
-import * as agents from "@/engine/agents";
 import { GH } from "@/engine/github";
 import { shipFiles, syncDependencies } from "@/engine/ship";
 import { starterFiles, type StarterVariant } from "@/engine/template";
@@ -37,8 +36,7 @@ export default function Studio() {
   const [draft, setDraft] = useState("");
   const [publishOpen, setPublishOpen] = useState(false);
   const running = st.busy;
-  const developerMode = !!st.settings.adminUnlocked;
-  const visibleTabs = TABS.filter((t) => t.id !== "code" || developerMode);
+  const visibleTabs = TABS;
 
   useEffect(() => {
     if (!visibleTabs.some((t) => t.id === tab)) setTab("keys");
