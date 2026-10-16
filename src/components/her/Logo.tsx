@@ -78,20 +78,33 @@ export function KuroMark({ size = 52, className = "", state = "idle" }: OrbProps
       const coreR = r * pulse;
       const gx = cx + Math.cos(t * 0.72) * r * 0.26;
       const gy = cy + Math.sin(t * 0.61) * r * 0.23;
+      // A softly deforming contour gives Kuro-chan a living, liquid silhouette
+      // instead of the perfectly round, mechanical ball seen in the earlier build.
+      const drawBlobPath = () => {
+        ctx.beginPath();
+        const points = 64;
+        for (let i = 0; i <= points; i++) {
+          const angle = (i / points) * Math.PI * 2;
+          const wave = reducedMotion ? 0 : Math.sin(angle * 3 + t * 0.82) * 0.045 + Math.cos(angle * 2 - t * 0.57) * 0.035 + Math.sin(angle * 5 - t * 0.38) * 0.016;
+          const radius = coreR * (1 + wave);
+          const px = cx + Math.cos(angle) * radius;
+          const py = cy + Math.sin(angle) * radius;
+          if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+        }
+        ctx.closePath();
+      };
       const core = ctx.createRadialGradient(gx - coreR * 0.25, gy - coreR * 0.3, coreR * 0.04, cx, cy, coreR * 1.35);
       core.addColorStop(0, colors.c);
       core.addColorStop(0.28, colors.a);
       core.addColorStop(0.66, colors.b);
       core.addColorStop(1, "#20254f");
-      ctx.beginPath();
-      ctx.arc(cx, cy, coreR, 0, Math.PI * 2);
+      drawBlobPath();
       ctx.fillStyle = core;
       ctx.fill();
 
       // Slow, translucent currents make the core feel fluid instead of mechanical.
       ctx.save();
-      ctx.beginPath();
-      ctx.arc(cx, cy, coreR * 0.985, 0, Math.PI * 2);
+      drawBlobPath();
       ctx.clip();
       for (let i = 0; i < 3; i++) {
         const drift = reducedMotion ? 0 : t * (0.24 + i * 0.09) * (i % 2 ? -1 : 1);
@@ -107,8 +120,7 @@ export function KuroMark({ size = 52, className = "", state = "idle" }: OrbProps
       ctx.restore();
 
       // A fine rim gives the orb definition without the harsh neon outline.
-      ctx.beginPath();
-      ctx.arc(cx, cy, coreR, 0, Math.PI * 2);
+      drawBlobPath();
       ctx.strokeStyle = "rgba(206,248,255,0.46)";
       ctx.lineWidth = Math.max(0.65, size * 0.012);
       ctx.stroke();
