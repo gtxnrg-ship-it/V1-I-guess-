@@ -44,14 +44,13 @@ export function analyzeProject(files: Record<string, string>): ProjectIntelligen
     findings.push({ severity: "medium", confidence: "evidence", title: "package.json is missing or invalid", evidence: "The root package manifest could not be parsed; dependency and build-script analysis is incomplete.", files: ["package.json"] });
   }
   const scripts = Object.entries(pkg.scripts || {}).map(([name, command]) => ({ name, command: String(command) }));
-  const allText = paths.map((path) => files[path]).join("\n");
-  const testFiles = paths.filter((path) => /(^|\\/)(__tests__|tests?)(\\/|$)|\\.(test|spec)\\.[cm]?[jt]sx?$/.test(path));
-  const workflows = paths.filter((path) => /^\\.github\\/workflows\\/[^/]+\\.ya?ml$/.test(path));
+  const testFiles = paths.filter((path) => /(^|\/)(__tests__|tests?)(\/|$)|\.(test|spec)\.[cm]?[jt]sx?$/.test(path));
+  const workflows = paths.filter((path) => /^\.github\/workflows\/[^/]+\.ya?ml$/.test(path));
   const edges: { from: string; to: string }[] = [];
   for (const from of paths) {
-    if (!/\\.[cm]?[jt]sx?$/.test(from)) continue;
+    if (!/\.[cm]?[jt]sx?$/.test(from)) continue;
     const source = files[from];
-    const pattern = /(?:\\bfrom\\s*|\\bimport\\s*\\(|\\brequire\\s*\\()\\s*["']([^"']+)["']/g;
+    const pattern = /(?:\bfrom\s*|\bimport\s*\(|\brequire\s*\()\s*["']([^"']+)["']/g;
     let match: RegExpExecArray | null;
     while ((match = pattern.exec(source)) !== null) {
       const to = resolveLocalImport(from, match[1], files);
@@ -67,7 +66,7 @@ export function analyzeProject(files: Record<string, string>): ProjectIntelligen
   if (!workflows.length) addFinding({ severity: "low", confidence: "evidence", title: "No GitHub Actions workflows detected", evidence: "No workflow YAML files were found under .github/workflows/.", files: [".github/workflows"] });
   const keyStorageFiles = paths.filter((path) => /localStorage|sessionStorage|indexedDB/i.test(files[path]) && /(token|secret|api.?key|credential)/i.test(files[path]));
   if (keyStorageFiles.length) addFinding({ severity: "medium", confidence: "signal", title: "Review client-side credential storage", evidence: "Some files combine browser storage APIs with credential-related terms. This is a review signal, not proof of an exploitable vulnerability.", files: keyStorageFiles.slice(0, 8) });
-  const apiFiles = paths.filter((path) => /fetch\\s*\\(|axios\\.|\\b(trpc|graphql|openapi)\\b/i.test(files[path]));
+  const apiFiles = paths.filter((path) => /fetch\s*\(|axios\.|\b(trpc|graphql|openapi)\b/i.test(files[path]));
   if (apiFiles.length) architecture.push("External APIs and network calls");
   const authFiles = paths.filter((path) => /oauth|auth|session|jwt|passport/i.test(path + "\n" + files[path]));
   if (authFiles.length) architecture.push("Authentication and sessions");
