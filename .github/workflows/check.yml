@@ -12,6 +12,7 @@ jobs:
           node-version: 20
           cache: npm
       - run: npm ci
+      - run: npm install --no-save @capacitor-community/text-to-speech@6.1.0 @capacitor/core@7
       - run: npm test
       - run: npx tsc --noEmit
       - run: npm run build
