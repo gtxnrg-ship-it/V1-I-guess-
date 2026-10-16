@@ -4,9 +4,10 @@ function assert(value: unknown, message: string): asserts value {
   if (!value) throw new Error(message);
 }
 async function run() {
-  const clues = extractLogClues("install complete\nError: Cannot find module 'vite'\nError: GITHUB_TOKEN=" + "ghp_" + "abcdefghijklmnopqrstuvwxyz123456"\nBuild failed with exit code 1");
+  const sampleToken = "ghp_" + "abcdefghijklmnopqrstuvwxyz123456";
+  const clues = extractLogClues("install complete\nError: Cannot find module 'vite'\nError: GITHUB_TOKEN=" + sampleToken + "\nBuild failed with exit code 1");
   assert(clues.some((line) => line.includes("Cannot find module")), "extracts relevant build error clues");
-  assert(!clues.some((line) => line.includes(""ghp_" + "abcdefghijklmnopqrstuvwxyz123456"")), "never returns raw GitHub tokens");
+  assert(!clues.some((line) => line.includes(sampleToken)), "never returns raw GitHub tokens");
   assert(clues.some((line) => line.includes("[REDACTED_ENV_SECRET]")), "redacts secret environment values");
 
   const client: WorkflowClient = {
@@ -25,7 +26,7 @@ async function run() {
   assert(report.status === "diagnosed" && report.failedJobs.length === 1, "reports only actually failed jobs");
   assert(report.failedJobs[0].failedSteps[0] === "npm run build", "identifies the failed step");
   assert(report.failedJobs[0].logClues.some((line) => line.includes("TypeScript compilation failed")), "surfaces log clues");
-  assert(!report.failedJobs[0].logClues.some((line) => line.includes("supersecret123")), "sanitizes logs before exposing clues");
+  assert(!report.failedJobs[0].logClues.some((line) => line.includes("sample-secret-value")), "sanitizes logs before exposing clues");
 
   const unavailable = await diagnoseWorkflowRun({ async req() { return { status: 403, json: { message: "Forbidden" } }; } }, "acme", "app", 42);
   assert(unavailable.status === "unavailable" && unavailable.failedJobs.length === 0, "does not invent a diagnosis when GitHub denies access");
