@@ -2,11 +2,13 @@
 
 # Kuro-chan 🌸
 
-### Your open-source, GitHub-first AI app-building companion.
+### Built with vibes, curiosity, stubbornness, and a whole lot of GitHub.
 
-Describe what you want to build. Kuro-chan helps plan it, research it, generate the code, check the result, and deliver an Android APK through GitHub.
+**An open-source, chat-first AI coding and app-building companion designed to make software creation feel possible—even when you're building from your phone and learning as you go.**
 
-[**Download the latest Android APK**](https://github.com/gtxnrg-ship-it/V1-I-guess-/releases/latest) · [Report a bug](https://github.com/gtxnrg-ship-it/V1-I-guess-/issues/new?template=bug_report.yml) · [Request a feature](https://github.com/gtxnrg-ship-it/V1-I-guess-/issues/new?template=feature_request.yml)
+Tell Kuro-chan what you want to create. Bring a model you trust. Work with your project files. Use GitHub as the place where code, reviews, checks, and releases live.
+
+[**Get the latest Android APK**](https://github.com/gtxnrg-ship-it/V1-I-guess-/releases/latest) · [**Explore the source**](https://github.com/gtxnrg-ship-it/V1-I-guess-) · [Report a bug](https://github.com/gtxnrg-ship-it/V1-I-guess-/issues/new?template=bug_report.yml) · [Request a feature](https://github.com/gtxnrg-ship-it/V1-I-guess-/issues/new?template=feature_request.yml)
 
 [![Android build](https://github.com/gtxnrg-ship-it/V1-I-guess-/actions/workflows/android.yml/badge.svg)](https://github.com/gtxnrg-ship-it/V1-I-guess-/actions/workflows/android.yml)
 [![Checks](https://github.com/gtxnrg-ship-it/V1-I-guess-/actions/workflows/check.yml/badge.svg)](https://github.com/gtxnrg-ship-it/V1-I-guess-/actions/workflows/check.yml)
@@ -16,73 +18,76 @@ Describe what you want to build. Kuro-chan helps plan it, research it, generate 
 
 ---
 
-## Why Kuro-chan?
+## ✨ The idea behind Kuro-chan
 
-AI app builders can be expensive or lock your work into one platform. Kuro-chan is being built around a different idea: **you should be able to bring your own model, keep control of your code, and use GitHub as the source of truth.**
+Kuro-chan is being built around a simple belief: **you shouldn't need to be an experienced programmer, own an expensive computer, or surrender control of your code just to start making software.**
 
-- **Chat-first building:** explain your idea in normal language and refine it before committing to a build.
-- **Five specialist agents:** Talker, Researcher, Planner, Builder, and Checker coordinate the workflow.
-- **Engineering-first workflow:** inspect source files, review automated verification results, and ask Kuro-chan to repair problems without a user-facing live-preview panel.
-- **GitHub workflow:** import repositories and publish generated projects with build workflows.
-- **Web and Android delivery:** GitHub Actions can build a website and an Android APK for generated projects.
-- **Model flexibility:** connect supported AI providers or an OpenAI-compatible endpoint, and route different jobs to different models.
-- **Local inference option:** connect an Ollama server you control. Browser access and CORS must be configured for your deployment.
-- **Free-first tools:** optional providers and built-in research sources help you start with low or no direct cost where their terms allow it.
-- **Phone-friendly studio:** work from a mobile browser with chat, source inspection, settings, GitHub publishing, and project delivery tools.
+This project grew out of vibe coding: describing an idea in ordinary language, collaborating with AI to turn it into working code, testing the result, fixing what breaks, and learning along the way. The goal isn't to pretend that coding has become magic. It's to make the process more approachable while keeping the real project files, decisions, and delivery path visible.
 
-> Kuro-chan is an actively developed project. Features and integrations can change; please report anything that does not work as described.
+Kuro-chan is a personal, community-facing open-source experiment in making that workflow practical on the web and on Android. It is actively evolving, and this README distinguishes what exists today from what still needs work.
 
-## Download and update the Android APK
+> **The philosophy:** the AI can help write the code; you should still be able to inspect it, own it, change it, and decide what gets shipped.
 
-**[Download the latest Kuro-chan APK from GitHub Releases](https://github.com/gtxnrg-ship-it/V1-I-guess-/releases/latest)**
+## 🚀 What Kuro-chan is designed to do
 
-- **Automatic updates to the release:** when changes are pushed or merged into `main`, GitHub Actions starts a fresh Android APK build and publishes the APK to a new GitHub Release.
-- **Check build progress:** [Android APK workflow runs](https://github.com/gtxnrg-ship-it/V1-I-guess-/actions/workflows/android.yml).
-- **See what's changed:** open the latest release page for its build number and release notes.
-- **Install on Android:** download `app-debug.apk`, open it on your phone, and approve the Android “install unknown apps” prompt if asked. Only install builds you trust.
+- **Chat-first building:** explain an idea naturally, refine it, and work through implementation in conversation.
+- **A specialist-agent workflow:** Talker, Researcher, Planner, Builder, and Checker divide clarification, research, planning, code changes, and verification.
+- **Project workspace:** inspect and edit project files, keep project context, and work with existing code rather than starting from a blank page every time.
+- **GitHub-first development:** inspect repositories, diagnose repository issues, and use GitHub workflows to review and deliver changes.
+- **Verification before delivery:** run deterministic tests, TypeScript checks, production builds, and browser smoke tests through the project's checks workflow.
+- **Web and Android ambitions:** GitHub Actions workflows support building Kuro-chan and Android APK artifacts; generated projects can use supported publishing/build workflows.
+- **Bring-your-own-model flexibility:** connect supported AI providers and compatible endpoints; model availability and tool capabilities depend on the provider and configuration.
+- **Local-model option:** connect an Ollama endpoint you control when your network and browser configuration allow it.
+- **Voice interaction:** browser speech input/output is available where the browser supports it; optional provider-backed voice features may require a configured key.
+- **Phone-friendly workflow:** the interface is designed to be usable on mobile, including when the main development machine is simply a phone.
 
-A commit reaching `main` does not mean the APK is ready immediately. Wait for the Android workflow to succeed, then download the latest release. Failed or cancelled runs do not guarantee a new APK was published.
+Features are under active development. A listed workflow or integration is not a promise that every provider, repository, device, or generated application will work without configuration or repair.
 
-## How the agents work
+## 🧭 How the workflow fits together
 
-| Agent | Responsibility |
-| --- | --- |
-| **Talker** | Clarifies your goal and helps prepare a brief before a larger build. |
-| **Researcher** | Looks up relevant documentation, packages, repositories, and assets using available tools. |
-| **Planner** | Turns the brief into an actionable implementation plan. |
-| **Builder** | Creates and edits project files. |
-| **Checker** | Reviews the result, checks the preview, and asks for repairs when possible. |
+```text
+Your idea
+   ↓
+Chat and project context
+   ↓
+Talker → Researcher → Planner
+   ↓
+Builder → Checker
+   ↓
+Review code + run checks
+   ↓
+GitHub branch / build workflow / release
+```
 
-The available tools and model capabilities depend on your configuration. A model that supports vision or tool calling can do things a text-only model cannot. Isolated QA screenshots and browser automation are used for engineering verification; Kuro-chan does not provide a user-facing live-preview panel.
+The specialist names describe the intended division of work in the application. The exact tools available in a session depend on configured models and integrations. AI-generated code can be wrong, incomplete, insecure, or incompatible; review important changes and test software before relying on it.
 
-## Models and integrations
+## 🧰 The technology
 
-Kuro-chan supports multiple AI providers and OpenAI-compatible endpoints. Provider availability, free quotas, rate limits, model capabilities, and terms are controlled by those providers and may change.
+Kuro-chan is currently a browser-first application built with:
 
-### Getting started with models
+- **React 18** for the interface
+- **TypeScript** for application code and type checking
+- **Vite** for development and production builds
+- **Tailwind CSS** and UI components for styling
+- **esbuild-wasm** for browser-side build/preview-related tooling
+- **IndexedDB and browser storage** for local project/settings persistence
+- **GitHub Actions** for automated checks and Android build workflows
+- **Playwright** for browser smoke tests
 
-1. Open **Settings** in the studio.
-2. Connect a supported provider using its official website and instructions.
-3. Review the detected models and available agent routing.
-4. Optionally connect an Ollama endpoint on a computer you control.
+The codebase is organized into areas for the studio UI, AI/model routing, agents and tools, project memory, GitHub operations, repository intelligence, publishing, and platform-related functionality. The implementation is evolving; check the source and workflow files for the current truth.
 
-Some providers require an account or API key. **“Free” does not mean unlimited**, and a provider can change its quota or terms. Never paste a secret into a public issue or share a screenshot containing a key.
+## 📱 Download Kuro-chan for Android
 
-## Privacy and security
+**[Open the latest GitHub Release](https://github.com/gtxnrg-ship-it/V1-I-guess-/releases/latest)**
 
-Kuro-chan is browser-first and does not rely on a Kuro-chan-operated application server for ordinary project storage. Project data and saved settings are kept in your browser's local storage.
+1. Open the latest release page.
+2. Download the APK attached to that release, if one is available.
+3. On Android, review the source and permissions, then install only if you trust the build. Android may ask you to allow installation from your browser or file manager.
+4. If a release has no APK, check the [Android workflow](https://github.com/gtxnrg-ship-it/V1-I-guess-/actions/workflows/android.yml) for the latest build status and available artifacts.
 
-Please understand these important boundaries:
+A merge to `main` does **not** mean a new APK is instantly ready. The workflow must finish successfully and publish or attach an artifact. A failed or running workflow does not guarantee a fresh release.
 
-- When you use a **cloud AI provider**, your prompts, context, and any included code or images needed for the request are sent to that provider. Its privacy policy and retention rules apply.
-- When you use **web search, image, package, database, or other integrations**, the relevant request may be sent to that service.
-- A connected GitHub token is used to perform the GitHub actions you request. Use a token with only the permissions you need, and remove it from Settings when it is no longer required.
-- Local model inference through Ollama sends inference requests to the endpoint you configure; the endpoint may be on your own computer or another machine.
-- Do not treat browser storage as a secure vault on a shared or compromised device. Clear saved keys and project data before handing your device to someone else.
-
-See [SECURITY.md](SECURITY.md) for responsible vulnerability reporting.
-
-## Run it locally
+## 🧪 Build and test locally
 
 ### Requirements
 
@@ -90,7 +95,7 @@ See [SECURITY.md](SECURITY.md) for responsible vulnerability reporting.
 - npm
 - A modern browser
 
-### Install and start
+### Start the development server
 
 ```bash
 git clone https://github.com/gtxnrg-ship-it/V1-I-guess-.git
@@ -99,9 +104,9 @@ npm ci
 npm run dev
 ```
 
-Vite prints a local development URL in your terminal. Open that URL in your browser.
+Vite prints the local development URL in the terminal.
 
-### Validate a change
+### Run the verification suite
 
 ```bash
 npm test
@@ -111,28 +116,83 @@ npx playwright install chromium
 npm run e2e
 ```
 
-The regression suite checks deterministic logic, and the Playwright smoke tests open the real studio in Chromium at desktop and phone-sized viewports. The GitHub Actions Check workflow runs the regression suite, TypeScript validation, production build, and browser smoke tests on pull requests. The project is evolving; see the workflow files under [`.github/workflows/`](.github/workflows/).
+The GitHub Actions **Check** workflow runs the regression tests, TypeScript validation, production build, and Playwright browser smoke tests on pull requests. See [workflow runs](https://github.com/gtxnrg-ship-it/V1-I-guess-/actions/workflows/check.yml) for actual results. A green check applies to the commit that was tested; new commits need their own checks.
 
-## Open source and license
+## 🔌 Models, keys, and integrations
 
-Kuro-chan's project code is licensed under the [MIT License](LICENSE). You may use, modify, and redistribute the code under that license's terms.
+Kuro-chan is designed to work with supported AI providers and OpenAI-compatible endpoints. Some integrations require an account, API key, endpoint configuration, network access, or a provider that supports the needed features.
 
-This license does **not** automatically relicense third-party dependencies, external services, model weights, datasets, generated assets, or API content. Those remain subject to their respective licenses and terms.
+- Read the provider's current pricing, privacy terms, rate limits, and model capabilities before connecting it.
+- **Free does not mean unlimited.** Free tiers, quotas, and terms can change.
+- Never commit API keys or paste them into public issues, screenshots, or chat messages that may be shared.
+- Use a GitHub token only when needed and grant the smallest permissions that support the task.
+- Local inference through Ollama sends requests to the endpoint you configure; it is not automatically private if that endpoint is remote or shared.
 
-Contributions are welcome! Read [CONTRIBUTING.md](CONTRIBUTING.md) and our [Code of Conduct](CODE_OF_CONDUCT.md) before participating.
+## 🔐 Privacy and security boundaries
 
-## Roadmap
+Kuro-chan is browser-first. Ordinary project state and saved settings are stored in browser storage rather than a Kuro-chan-operated application database. This has important trade-offs.
 
-We want Kuro-chan to be reliable, useful on low-cost devices, and transparent about what it can do. See [ROADMAP.md](ROADMAP.md) for planned improvements and priorities. Ideas are welcome through [GitHub Issues](https://github.com/gtxnrg-ship-it/V1-I-guess-/issues).
+- **Cloud AI:** prompts, code, images, and project context needed for a request are sent to the AI provider you select. That provider's policies apply.
+- **External tools:** research, package, GitHub, and other integrations may send the relevant request to those services.
+- **GitHub access:** a connected credential can perform the actions allowed by its permissions. Review permissions carefully and revoke credentials you no longer need.
+- **Browser storage:** local storage is not a secure vault. Anyone with access to your unlocked browser profile or device may be able to access saved data.
+- **AI-generated changes:** inspect changes and review security-sensitive code before merging or deploying.
 
-## Community
+Please report suspected vulnerabilities privately using the instructions in [SECURITY.md](SECURITY.md), rather than posting exploit details in a public issue.
 
-- [Bug reports](https://github.com/gtxnrg-ship-it/V1-I-guess-/issues/new?template=bug_report.yml)
-- [Feature requests](https://github.com/gtxnrg-ship-it/V1-I-guess-/issues/new?template=feature_request.yml)
-- [Contributing guide](CONTRIBUTING.md)
-- [Security policy](SECURITY.md)
-- [Code of Conduct](CODE_OF_CONDUCT.md)
+## 🌱 Vibe-coded in the open
+
+Kuro-chan is built through iterative, AI-assisted development: ideas become prompts, prompts become proposed changes, changes go through GitHub, and checks help catch regressions. The project welcomes people who are learning, experimenting, or using AI as part of their development process.
+
+You do not have to be an expert to contribute. Clear bug reports, reproducible steps, documentation fixes, thoughtful feature ideas, and small tested improvements are valuable contributions.
+
+Vibe coding is not a substitute for testing, security review, or giving credit. The aim is to make building more accessible—not to hide how the software works or claim that AI never makes mistakes.
+
+## 🗺️ Roadmap and current limits
+
+The project is actively changing. The next priorities include making core flows more dependable, improving mobile usability, strengthening repository and project-memory behavior, documenting setup clearly, and ensuring the public interface reflects the features that are actually available.
+
+Not every idea is complete. In particular:
+
+- Provider-specific behavior depends on each provider's API and capabilities.
+- Real-world GitHub actions require valid authorization and suitable repository permissions.
+- Browser and Android environments have different filesystem, network, and permission constraints.
+- Automated tests cover important paths but cannot prove that every generated app or every device configuration works.
+- The project does not promise autonomous, error-free software development.
+
+See [open issues](https://github.com/gtxnrg-ship-it/V1-I-guess-/issues) and [pull requests](https://github.com/gtxnrg-ship-it/V1-I-guess-/pulls) for current work and proposals.
+
+## 🤝 Contributing
+
+Contributions and feedback are welcome.
+
+1. Search existing issues and pull requests before opening a duplicate.
+2. For a bug, include steps to reproduce, expected behavior, actual behavior, and relevant logs without secrets.
+3. For code changes, run the checks above where possible and explain what you verified.
+4. Read [CONTRIBUTING.md](CONTRIBUTING.md), [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md), and [SECURITY.md](SECURITY.md).
+
+Useful links:
+
+- [Open an issue](https://github.com/gtxnrg-ship-it/V1-I-guess-/issues)
+- [Report a bug](https://github.com/gtxnrg-ship-it/V1-I-guess-/issues/new?template=bug_report.yml)
+- [Request a feature](https://github.com/gtxnrg-ship-it/V1-I-guess-/issues/new?template=feature_request.yml)
+- [View the source code](https://github.com/gtxnrg-ship-it/V1-I-guess-)
+- [View releases](https://github.com/gtxnrg-ship-it/V1-I-guess-/releases)
+
+## ⚖️ License and third-party rights
+
+The Kuro-chan repository code is licensed under the **MIT License**; see [LICENSE](LICENSE). In general, MIT permits use, modification, distribution, sublicensing, and sale of copies, provided the copyright and license notice are included.
+
+That does not automatically change the licenses or terms for third-party dependencies, AI model weights, external services, datasets, fonts, icons, or user-provided assets. Those remain governed by their own licenses and terms. Review the relevant notices before redistributing a bundle or build.
+
+The MIT license is a software license, not a promise of support, warranty, or fitness for a particular purpose. The software is provided as-is, as described in the license. This README is project information, not legal advice.
 
 ---
 
-Made with care for people who want to build things without losing control of their code. 🌸
+<div align="center">
+
+**Made in the spirit of learning out loud, building boldly, and keeping the code in your hands.** 🌸
+
+*Small steps. Real code. Open doors.*
+
+</div>
