@@ -121,7 +121,13 @@ export async function init(seed: () => Record<string, string>) {
       if (k.startsWith("snapshots:")) state.snapshots[k.slice(10)] = v;
     }
   }
-  if (!state.projects.length) createProject("My App", seed());
+  if (!state.projects.length) createProject("New chat", seed());
+  // Older installs started with a misleading placeholder name. Rename only an untouched default project.
+  const initial = state.projects.find((p) => p.id === state.settings.activeProject);
+  if (initial?.name === "My App" && !initial.repo && !state.messages[initial.id]?.length) {
+    state.projects = state.projects.map((p) => p.id === initial.id ? { ...p, name: "New chat" } : p);
+    persist("projects");
+  }
   if (!state.projects.some((p) => p.id === state.settings.activeProject)) state.settings.activeProject = state.projects[0].id;
   state.ready = true;
   emit();
