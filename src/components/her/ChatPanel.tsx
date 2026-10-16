@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { TextToSpeech } from "@capacitor-community/text-to-speech";
+import { Capacitor } from "@capacitor/core";
 import { ArrowUp, Square, Plus, ImagePlus, Mic, X, MousePointerClick, Volume2, VolumeX, Sparkles, Github, Cpu, GitBranch } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { AssistantMessage } from "./AssistantMessage";
@@ -22,7 +23,7 @@ const SELF_SUGGESTIONS = [
   "Add a keyboard shortcut to stop a build",
 ];
 
-const isNativeApp = () => Boolean((window as any).Capacitor?.isNativePlatform?.());
+const isNativeApp = () => Capacitor.isNativePlatform();
 
 let activeRemoteAudio: HTMLAudioElement | null = null;
 let activeAudioUrl: string | null = null;
@@ -335,7 +336,7 @@ export function ChatPanel({ scope = "app", onOpenKeys, draft, setDraft, onSent }
             className="block w-full resize-none bg-transparent px-4 pb-1 pt-3.5 text-[15px] leading-relaxed outline-none placeholder:text-muted-foreground/70"
           />
           <div className="flex items-center gap-2 px-2.5 pb-2.5 pt-1">
-            <span className="pl-1.5 text-[11.5px] text-muted-foreground/80">{running ? "Working…" : nativeVoiceAvailable ? (speaking ? "Kuro-chan is speaking…" : autoVoice ? "Device voice ready" : "Tap the speaker to enable voice") : !(speechAvailable || premiumVoiceReady) ? "Voice needs a supported browser or an API key." : autoVoice ? (voiceProvider === "openai" ? "AI voice enabled" : "Device voice enabled") : "Type or talk — either works."}</span>
+            <span className="min-w-0 flex-1 truncate pl-1.5 text-[11.5px] text-muted-foreground/80">{running ? "Working…" : nativeVoiceAvailable ? (speaking ? "Kuro-chan is speaking…" : autoVoice ? "Device voice ready" : "Tap the speaker to enable voice") : !(speechAvailable || premiumVoiceReady) ? "Voice needs a supported browser or an API key." : autoVoice ? (voiceProvider === "openai" ? "AI voice enabled" : "Device voice enabled") : "Type or talk — either works."}</span>
             <div className="ml-auto flex items-center gap-1">
               <input ref={fileRef} type="file" accept="image/*" multiple hidden data-testid="input-attach" onChange={(e) => { addFiles(e.target.files); e.target.value = ""; }} />
               <button data-testid="button-attach" aria-label="Attach image" title="Attach a screenshot or reference" onClick={() => fileRef.current?.click()}
