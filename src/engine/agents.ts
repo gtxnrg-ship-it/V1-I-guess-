@@ -71,7 +71,6 @@ async function loop(o: LoopOpts): Promise<LoopResult> {
       throw new Error("HARD_CAP_HIT: Loop exceeded framework limit. Stopping to prevent runaway usage.");
     }
 
-    let thinkStart = 0;
     const last = step === o.maxSteps - 1;
     const res = await routedStream(o.role, {
       system: o.system + (last && o.stopOn?.length ? `\n\nThis is your final turn: call ${o.stopOn.join(" or ")} now.` : ""),
