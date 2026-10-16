@@ -2,7 +2,6 @@ import { useCallback, useEffect, useState } from "react";
 import { Moon, Sun, Github, Code2, KeyRound, MessageCircle, Loader2, Rocket, ExternalLink, ChevronDown, Check, Plus, Pencil, Trash2, Download, Globe, FolderKanban, Activity, Menu, X, MoreHorizontal, PanelLeftClose } from "lucide-react";
 import { downloadZip } from "@/lib/zip";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Split } from "@/components/her/Split";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
@@ -33,7 +32,7 @@ export default function Studio() {
   const st = db.useKuro();
   const p = db.project();
   const [activeView, setActiveView] = useState<"chat" | Tab>("chat");
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(() => typeof window !== "undefined" && window.matchMedia("(min-width: 768px)").matches);
   const [draft, setDraft] = useState("");
   const [publishOpen, setPublishOpen] = useState(false);
   const running = st.busy;
@@ -45,9 +44,6 @@ export default function Studio() {
     : t === "code" ? <CodeBrowser files={p.files} /> : <SettingsHub />;
 
   const aiKeys = st.keys.filter((k) => k.kind === "ai").length;
-  const repoParts = (p.repo || "").split("/").filter(Boolean);
-  const siteUrl = p.shipped && !p.privateRepo && repoParts.length === 2 ? `https://${repoParts[0].toLowerCase()}.github.io/${repoParts[1]}/` : "";
-  const apkUrl = p.shipped && !p.privateRepo && repoParts.length === 2 ? `https://github.com/${p.repo}/releases/latest/download/app-debug.apk` : "";
   const navItems = [
     { id: "chat" as const, label: "New chat", icon: MessageCircle },
     ...TABS,
@@ -66,7 +62,7 @@ export default function Studio() {
         <button aria-label="Close sidebar" onClick={() => setSidebarOpen(false)} className="grid h-9 w-9 place-items-center rounded-lg text-muted-foreground hover:bg-muted md:hidden"><X className="h-4 w-4" /></button>
         <button aria-label="Collapse sidebar" onClick={() => setSidebarOpen(false)} className="hidden h-9 w-9 place-items-center rounded-lg text-muted-foreground hover:bg-muted md:grid"><PanelLeftClose className="h-4 w-4" /></button>
       </div>
-      <button data-testid="button-new-chat" onClick={() => { selectView("chat"); setDraft(""); }} className="flex w-full items-center gap-2 rounded-xl border border-border/80 px-3 py-2.5 text-left text-[13px] font-medium transition-colors hover:bg-muted">
+      <button data-testid="button-new-chat" onClick={() => { db.createProject("New chat", {}); selectView("chat"); setDraft(""); }} className="flex w-full items-center gap-2 rounded-xl border border-border/80 px-3 py-2.5 text-left text-[13px] font-medium transition-colors hover:bg-muted">
         <Plus className="h-4 w-4" /> New chat
       </button>
       <div className="space-y-1">
@@ -102,12 +98,12 @@ export default function Studio() {
     <div className="studio-shell relative isolate flex h-[100dvh] overflow-hidden bg-background text-foreground">
       <GalaxyBackdrop />
       {sidebarOpen && <button aria-label="Close navigation" onClick={() => setSidebarOpen(false)} className="fixed inset-0 z-30 bg-black/50 md:hidden" />}
-      <aside className={`studio-sidebar fixed inset-y-0 left-0 z-40 w-[min(84vw,292px)] border-r border-border/70 bg-background/95 backdrop-blur-xl transition-transform duration-200 md:relative md:z-10 md:flex md:w-[260px] md:shrink-0 md:translate-x-0 ${sidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}`}>
+      <aside className={`studio-sidebar fixed inset-y-0 left-0 z-40 w-[min(84vw,292px)] border-r border-border/70 bg-background/95 backdrop-blur-xl transition-transform duration-200 ${sidebarOpen ? "translate-x-0 md:relative md:z-10 md:flex md:w-[260px] md:shrink-0" : "-translate-x-full md:hidden"}`}>
         {sidebar}
       </aside>
       <div className="relative z-10 flex min-w-0 flex-1 flex-col">
         <header className="studio-header relative z-10 flex h-14 shrink-0 items-center gap-2 border-b border-border/60 px-3 pt-[env(safe-area-inset-top)] md:px-5">
-          <button data-testid="button-open-sidebar" aria-label="Open sidebar" onClick={() => setSidebarOpen(true)} className="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground"><Menu className="h-5 w-5" /></button>
+          <button data-testid="button-open-sidebar" aria-label="Open sidebar" onClick={() => setSidebarOpen((open) => !open)} className="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground"><Menu className="h-5 w-5" /></button>
           <div className="min-w-0 flex-1">
             <div className="truncate text-[14px] font-semibold">{activeView === "chat" ? p.name || "New chat" : TABS.find((t) => t.id === activeView)?.label}</div>
             <div className="hidden truncate text-[10px] text-muted-foreground sm:block">{activeView === "chat" ? p.repo || "Your AI coding companion" : "Kuro-chan workspace"}</div>
