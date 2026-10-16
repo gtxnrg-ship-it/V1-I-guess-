@@ -21,7 +21,7 @@ const SELF_SUGGESTIONS = [
   "Add a keyboard shortcut to stop a build",
 ];
 
-async function speakAssistantReply(text: string, voiceProvider: "browser" | "openai", openaiKey?: string, onSpeaking: (speaking: boolean) => void = () => {}) {
+async function speakAssistantReply(text: string, voiceProvider: "browser" | "openai", openaiKey?: string, onSpeaking: (speaking: boolean) => void = () => {}, speed = 1) {
   const safeText = text
     .replace(/```[\s\S]*?```/g, "Code block omitted.")
     .replace(/[*_#`\[\]()]/g, "")
@@ -40,6 +40,7 @@ async function speakAssistantReply(text: string, voiceProvider: "browser" | "ope
         body: JSON.stringify({
           model: "gpt-4o-mini-tts",
           voice: "alloy",
+          speed,
           input: safeText.slice(0, 4096),
         }),
       });
@@ -64,7 +65,7 @@ async function speakAssistantReply(text: string, voiceProvider: "browser" | "ope
   ut.onstart = () => onSpeaking(true);
   ut.onend = () => onSpeaking(false);
   ut.onerror = () => onSpeaking(false);
-  ut.rate = 1.05; ut.pitch = 1.1;
+  ut.rate = speed; ut.pitch = 1.05;
   const voices = window.speechSynthesis.getVoices();
   const preferredVoice = voices.find((v) => v.lang.startsWith("en") && (v.name.includes("Female") || v.name.includes("Samantha") || v.name.includes("Victoria") || v.name.includes("Zira") || v.name.includes("Google US English")));
   if (preferredVoice) ut.voice = preferredVoice;
@@ -81,7 +82,7 @@ export function ChatPanel({ scope = "app", onOpenKeys, draft, setDraft, onSent }
   const messages: Message[] = st.messages[pid] || [];
   const running = st.busy;
   const [images, setImages] = useState<Img[]>([]);
-  const [autoVoice, setAutoVoice] = useState(true);
+  const autoVoice = st.settings.voiceAutoSpeak !== false;
   const [speaking, setSpeaking] = useState(false);
   const prevRunning = useRef(running);
   const initialMessage = messages[messages.length - 1];
@@ -105,9 +106,9 @@ export function ChatPanel({ scope = "app", onOpenKeys, draft, setDraft, onSent }
     if (last && last.role === "assistant" && last.data?.done && lastSpokenId.current !== last.id) {
       lastSpokenId.current = last.id;
       const text = (last.data.blocks || []).filter((b: any) => b.type === "text").map((b: any) => b.text).join("\n\n");
-      if (text.trim()) void speakAssistantReply(text, voiceProvider, db.keyOf("openai")?.secret, setSpeaking);
+      if (text.trim()) void speakAssistantReply(text, voiceProvider, db.keyOf("openai")?.secret, setSpeaking, st.settings.voiceSpeed ?? 1);
     }
-  }, [messages, running, autoVoice, voiceProvider]);
+  }, [messages, running, autoVoice, voiceProvider, st.settings.voiceSpeed]);
   useEffect(() => () => {
     if ("speechSynthesis" in window) window.speechSynthesis.cancel();
   }, []);
@@ -182,7 +183,7 @@ export function ChatPanel({ scope = "app", onOpenKeys, draft, setDraft, onSent }
               data-testid="button-orb-talk"
               aria-label={dict.listening ? "Stop talking to Kuro-chan" : "Talk to Kuro-chan"}
               title={dict.listening ? "Tap to stop listening" : "Tap to talk to Kuro-chan"}
-              onClick={() => { setAutoVoice(true); dict.toggle(); }}
+              onClick={() => { db.setSettings({ voiceAutoSpeak: true }); dict.toggle(); }}
               className="rounded-full outline-none transition-transform hover:scale-[1.03] focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-4"
             >
               <HerOrb size={76} className="her-orb-glow" state={dict.listening ? "listening" : running ? "thinking" : "idle"} />
@@ -285,7 +286,7 @@ export function ChatPanel({ scope = "app", onOpenKeys, draft, setDraft, onSent }
                     const last = messages[messages.length - 1];
                     if (last?.role === "assistant" && last.data?.done) lastSpokenId.current = last.id;
                   }
-                  setAutoVoice((v) => !v);
+                  db.setSettings({ voiceAutoSpeak: !autoVoice });
                   if (autoVoice && speechAvailable) window.speechSynthesis.cancel();
                 }}
                 className={`grid h-8 w-8 place-items-center rounded-full transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${autoVoice ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}>
