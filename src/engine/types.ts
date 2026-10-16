@@ -67,6 +67,24 @@ export interface KeyRec {
   createdAt: number;
 }
 
+export interface ProjectIntelligenceFinding {
+  severity: "high" | "medium" | "low" | "info";
+  confidence: "evidence" | "signal";
+  title: string;
+  evidence: string;
+  files: string[];
+}
+
+export interface ProjectIntelligenceReport {
+  generatedAt: string;
+  fileCount: number;
+  summary: string;
+  architecture: string[];
+  scripts: { name: string; command: string }[];
+  importEdges: { from: string; to: string }[];
+  findings: ProjectIntelligenceFinding[];
+}
+
 export interface Project {
   id: string;
   name: string;
@@ -75,6 +93,7 @@ export interface Project {
   repoBaseSha?: string;
   shipped?: boolean;
   privateRepo?: boolean;
+  intelligence?: ProjectIntelligenceReport;
   env: Record<string, string>;
   files: Record<string, string>;
   createdAt: number;
