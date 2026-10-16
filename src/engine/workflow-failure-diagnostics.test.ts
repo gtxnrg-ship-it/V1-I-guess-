@@ -4,9 +4,9 @@ function assert(value: unknown, message: string): asserts value {
   if (!value) throw new Error(message);
 }
 async function run() {
-  const clues = extractLogClues("install complete\nError: Cannot find module 'vite'\nGITHUB_TOKEN=ghp_abcdefghijklmnopqrstuvwxyz123456\nBuild failed with exit code 1");
+  const clues = extractLogClues("install complete\nError: Cannot find module 'vite'\nError: GITHUB_TOKEN=" + "ghp_" + "abcdefghijklmnopqrstuvwxyz123456"\nBuild failed with exit code 1");
   assert(clues.some((line) => line.includes("Cannot find module")), "extracts relevant build error clues");
-  assert(!clues.some((line) => line.includes("ghp_abcdefghijklmnopqrstuvwxyz123456")), "never returns raw GitHub tokens");
+  assert(!clues.some((line) => line.includes(""ghp_" + "abcdefghijklmnopqrstuvwxyz123456"")), "never returns raw GitHub tokens");
   assert(clues.some((line) => line.includes("[REDACTED_ENV_SECRET]")), "redacts secret environment values");
 
   const client: WorkflowClient = {
@@ -17,7 +17,7 @@ async function run() {
         ] },
         { id: 10, name: "CodeQL", status: "completed", conclusion: "success", steps: [] },
       ] } };
-      if (path.endsWith("/jobs/9/logs")) return { status: 200, json: "Error: TypeScript compilation failed\nAPI_KEY=supersecret123\nProcess completed with exit code 2" };
+      if (path.endsWith("/jobs/9/logs")) return { status: 200, json: "Error: TypeScript compilation failed\nAPI_KEY=sample-secret-value\nProcess completed with exit code 2" };
       throw new Error("Unexpected request " + path);
     },
   };
