@@ -1,15 +1,15 @@
 # Persistent project memory integration
 
-Kuro-chan stores project memory alongside the existing project record in IndexedDB, so it follows the project across reloads without introducing a new backend or database. The Talker receives a bounded context pack containing the project name, linked repository, last observed repository baseline SHA, provenance-labelled facts and decisions, open questions, and the last saved build summary.
+Kuro-chan stores project memory in the existing project record, using the existing persistence mechanism. The Talker receives a bounded context pack containing project metadata, provenance-labelled facts and decisions, open questions, and the last saved build summary.
 
 ## Current behavior
-- Project memory is optional, so older project records continue to load without a migration.
-- Memory writes update the existing project record and use the existing persistence queue.
-- Facts and decisions are capped at 40 each; open questions are deduplicated and capped at 20; summaries are capped at 1,800 characters before the context pack applies its smaller prompt limit.
-- Context construction preserves provenance and optional evidence, flags repository observations whose baseline differs from the current SHA, and marks unanchored legacy observations as needing verification.
-- Credential-like text is filtered from memory facts, decisions, questions, evidence, and summaries before persistence/context use.
-- After an app build pipeline completes, the final summary is saved into project memory.
-- The Talker sees that memory on subsequent turns.
+- Memory is optional and old project records remain compatible.
+- Facts and decisions are capped at 40 each; open questions at 20; stored summaries at 1,800 characters before prompt limits.
+- Context preserves provenance and optional evidence, flags repository observations whose baseline differs from the current SHA, and marks unanchored observations for verification.
+- Credential-like text is filtered from memory facts, decisions, questions, evidence, and summaries using defensive heuristics.
+- Build summaries are saved after the app build pipeline completes.
+- Users can explicitly save with `remember: ...`, save a decision with `remember decision: ...`, remove matching items with `forget: ...`, or clear project memory with `/forget memory`. These commands are local and do not invoke the model.
+- Ordinary conversation is not automatically extracted into facts or decisions.
 
-## Deliberate limits
-This remains bounded persistent context, not automatic extraction of every user preference or repository fact. It does not yet automatically turn ordinary conversation into structured facts or decisions. Any future capture workflow must be evidence-based, preserve provenance, avoid secrets, and never convert assistant proposals into user decisions without confirmation. The app/self admin workspace remains separate from this project memory.
+## Limits
+This is bounded persistent context with explicit user-controlled capture, not automatic extraction of every preference or repository fact. The app/self admin workspace remains separate from project memory.
