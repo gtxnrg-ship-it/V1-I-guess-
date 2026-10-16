@@ -162,7 +162,8 @@ function ProjectMenu({ busy, onSwitched }: { busy: boolean; onSwitched: () => vo
         throw new Error(`GitHub reported an existing project but Kuro-chan could not read its files. No starter files were created. ${inspection.diagnosis.summary}`);
       }
       const empty = inspection.diagnosis.condition === "empty";
-      const created = db.createProject(info.name, empty ? starterFiles(info.name) : files);
+      // Importing an empty repository should not silently initialize it; let the user decide what to build in chat.
+      const created = db.createProject(info.name, files);
       db.updateProject(created.id, {
         repo: `${info.owner}/${info.name}`,
         repoBaseSha: baseSha || undefined,
@@ -180,7 +181,7 @@ function ProjectMenu({ busy, onSwitched }: { busy: boolean; onSwitched: () => vo
       }, created.id);
       toast({
         title: empty ? "Empty repo confirmed" : `Imported ${Object.keys(files).length} files`,
-        description: `${inspection.diagnosis.title}: ${inspection.diagnosis.summary} ${empty ? "I started it with a clean template. Nothing will be pushed until you choose to publish." : "The diagnosis is saved to this project's memory for our next conversation."}`,
+        description: `${inspection.diagnosis.title}: ${inspection.diagnosis.summary} ${empty ? "I left it untouched. Tell me what you'd like to build before I create starter files." : "The diagnosis is saved to this project's memory for our next conversation."}`,
       });
       setDialog(null); onSwitched();
     } catch (e) { toast({ title: "Couldn't import", description: errMsg(e), variant: "destructive" }); }
