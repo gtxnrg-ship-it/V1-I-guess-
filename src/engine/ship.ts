@@ -1,4 +1,4 @@
-import { importedPackages } from "./preview";
+import { importedPackages } from "./qa-harness";
 import { latestVersion } from "./research";
 
 /** GitHub Actions that turn any app into a live website + an Android APK, with links in the README. */
