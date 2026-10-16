@@ -14,16 +14,18 @@ import { ChatPanel } from "@/components/her/ChatPanel";
 import { CodeBrowser } from "@/components/her/CodePane";
 import { KeysPane } from "@/components/her/KeysPane";
 import { LocalModelsPane } from "@/components/her/LocalModelsPane";
+import { DeliveryPane } from "@/components/her/DeliveryPane";
 import * as db from "@/engine/db";
 import { GH } from "@/engine/github";
 import { shipFiles, syncDependencies } from "@/engine/ship";
 import { starterFiles, type StarterVariant } from "@/engine/template";
 import { errMsg } from "@/lib/kuro";
 
-type Tab = "code" | "keys";
+type Tab = "code" | "keys" | "delivery";
 const TABS: { id: Tab; label: string; icon: any }[] = [
   { id: "code", label: "Code", icon: Code2 },
   { id: "keys", label: "Settings", icon: KeyRound },
+  { id: "delivery", label: "Delivery", icon: Rocket },
 ];
 
 export default function Studio() {
@@ -48,7 +50,8 @@ export default function Studio() {
   const chat = <ChatPanel scope="app" onOpenKeys={() => openTab("keys")} draft={draft} setDraft={setDraft}
     onSent={() => isMobile && setMobileTab("chat")} />;
   const pane = (t: Tab) => t === "code" ? <CodeBrowser files={p.files} />
-    : <div className="her-scroll h-full min-h-0 overflow-y-auto"><KeysPane /><div className="mx-auto max-w-3xl p-3"><LocalModelsPane /></div></div>;
+    : t === "keys" ? <div className="her-scroll h-full min-h-0 overflow-y-auto"><KeysPane /><div className="mx-auto max-w-3xl p-3"><LocalModelsPane /></div></div>
+    : <DeliveryPane />;
 
   const aiKeys = st.keys.filter((k) => k.kind === "ai").length;
   const repoParts = (p.repo || "").split("/").filter(Boolean);
