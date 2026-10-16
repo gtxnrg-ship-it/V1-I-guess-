@@ -205,7 +205,7 @@ function ProjectMenu({ busy, onSwitched }: { busy: boolean; onSwitched: () => vo
       <DropdownMenu onOpenChange={() => setConfirmDelete(false)}>
         <DropdownMenuTrigger asChild>
           <button data-testid="button-project-menu" className="inline-flex min-w-0 max-w-[150px] items-center gap-1 rounded-md px-1.5 py-1 text-[13.5px] font-medium hover:bg-muted sm:max-w-[220px]">
-            <span className="truncate">{current?.name || "My App"}</span><ChevronDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+            <span className="truncate">{!current?.name || current.name === "My App" ? "Kuro-chan" : current.name}</span><ChevronDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
           </button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" className="w-64">
