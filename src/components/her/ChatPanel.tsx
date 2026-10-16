@@ -7,7 +7,7 @@ import { compressImage, imgSrc, haptic } from "@/lib/kuro";
 import * as agents from "@/engine/agents";
 import * as db from "@/engine/db";
 import { tryEgg } from "@/engine/admin";
-import type { Img, Message, PickedElement } from "@/engine/types";
+import type { Img, Message } from "@/engine/types";
 
 const SUGGESTIONS = [
   "A landing page for a small bakery, warm and elegant",
@@ -71,9 +71,9 @@ async function speakAssistantReply(text: string, voiceProvider: "browser" | "ope
   window.speechSynthesis.speak(ut);
 }
 
-export function ChatPanel({ scope = "app", onOpenKeys, draft, setDraft, selection, clearSelection, onSent }: {
+export function ChatPanel({ scope = "app", onOpenKeys, draft, setDraft, onSent }: {
   scope?: agents.Scope; onOpenKeys: () => void; draft: string; setDraft: (s: string) => void;
-  selection?: PickedElement | null; clearSelection?: () => void; onSent?: () => void;
+  onSent?: () => void;
 }) {
   const { toast } = useToast();
   const st = db.useKuro();
@@ -143,10 +143,9 @@ export function ChatPanel({ scope = "app", onOpenKeys, draft, setDraft, selectio
       return;
     }
     stick.current = true;
-    const sel = selection || null;
     dict.resetBase();
-    setDraft(""); setImages([]); clearSelection?.(); onSent?.();
-    agents.send(text || "Here's an image.", { images, picked: sel, scope });
+    setDraft(""); setImages([]); onSent?.();
+    agents.send(text || "Here's an image.", { images, scope });
   };
   const isEmpty = !messages.length;
   const lastId = messages[messages.length - 1]?.id;
@@ -248,16 +247,8 @@ export function ChatPanel({ scope = "app", onOpenKeys, draft, setDraft, selectio
         <div
           onDragOver={(e) => e.preventDefault()} onDrop={(e) => { e.preventDefault(); addFiles(e.dataTransfer.files); }}
           className="studio-composer mx-auto max-w-[720px] rounded-2xl border bg-card transition-colors focus-within:border-foreground/25">
-          {(selection || images.length > 0) && (
-            <div className="flex flex-wrap items-center gap-2 px-3 pt-3">
-              {selection && (
-                <span data-testid="chip-selection" className="inline-flex max-w-full items-center gap-1.5 rounded-lg border border-[hsl(var(--ember))]/40 bg-[hsl(var(--ember))]/10 py-1 pl-2 pr-1 text-[12.5px]">
-                  <MousePointerClick className="h-3.5 w-3.5 shrink-0 text-[hsl(var(--ember))]" />
-                  <span className="truncate"><span className="font-mono text-[11.5px] text-muted-foreground">&lt;{selection.tag}&gt;</span> {selection.text || selection.classes.split(" ")[0] || "element"}</span>
-                  <button aria-label="Clear selection" data-testid="button-clear-selection" onClick={clearSelection} className="grid h-5 w-5 shrink-0 place-items-center rounded hover:bg-muted"><X className="h-3 w-3" /></button>
-                </span>
-              )}
-              {images.map((im, i) => (
+          {images.length > 0 && (
+            <div className="flex flex-wrap items-center gap-2 px-3 pt-3">              {images.map((im, i) => (
                 <span key={i} className="group relative">
                   <img src={imgSrc(im)} alt="" className="h-14 w-14 rounded-lg border border-border object-cover" />
                   <button aria-label="Remove image" data-testid={`button-remove-image-${i}`} onClick={() => setImages((c) => c.filter((_, j) => j !== i))}
@@ -271,7 +262,7 @@ export function ChatPanel({ scope = "app", onOpenKeys, draft, setDraft, selectio
             onPaste={(e) => { const f = Array.from(e.clipboardData.files || []); if (f.length) { e.preventDefault(); addFiles(f); } }}
             onChange={(e) => setDraft(e.target.value)}
             onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); send(); } }}
-            placeholder={dict.listening ? "Listening…" : selection ? "What should change about this?" : scope === "self" ? "What should I change about myself?" : "Describe what you want to build…"}
+            placeholder={dict.listening ? "Listening…" : scope === "self" ? "What should I change about myself?" : "Describe what you want to build…"}
             className="block w-full resize-none bg-transparent px-4 pb-1 pt-3.5 text-[15px] leading-relaxed outline-none placeholder:text-muted-foreground/70"
           />
           <div className="flex items-center gap-2 px-2.5 pb-2.5 pt-1">
@@ -324,14 +315,7 @@ function UserBubble({ m }: { m: Message }) {
         <div className="flex max-w-[85%] flex-wrap justify-end gap-1.5">
           {m.images.map((im, i) => <img key={i} src={imgSrc(im)} alt="Attached" className="h-24 max-w-[180px] rounded-xl border border-border object-cover" />)}
         </div>
-      )}
-      {m.picked && (
-        <span className="inline-flex max-w-[85%] items-center gap-1.5 rounded-lg bg-[hsl(var(--ember))]/10 px-2 py-1 text-[12px] text-muted-foreground">
-          <MousePointerClick className="h-3 w-3 shrink-0 text-[hsl(var(--ember))]" />
-          <span className="truncate"><span className="font-mono">&lt;{m.picked.tag}&gt;</span> {m.picked.text}</span>
-        </span>
-      )}
-      <div className="max-w-[85%] whitespace-pre-wrap break-words rounded-2xl rounded-br-md bg-muted px-4 py-2.5 text-[14.5px] leading-relaxed">{m.content}</div>
+      )}      <div className="max-w-[85%] whitespace-pre-wrap break-words rounded-2xl rounded-br-md bg-muted px-4 py-2.5 text-[14.5px] leading-relaxed">{m.content}</div>
     </div>
   );
 }
