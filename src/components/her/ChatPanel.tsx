@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { ArrowUp, Square, RotateCcw, ImagePlus, Mic, X, MousePointerClick, Volume2, VolumeX, Sparkles, Github, Cpu, GitBranch } from "lucide-react";
+import { ArrowUp, Square, Plus, ImagePlus, Mic, X, MousePointerClick, Volume2, VolumeX, Sparkles, Github, Cpu, GitBranch } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { AssistantMessage } from "./AssistantMessage";
 import { HerOrb } from "./Logo";
@@ -230,8 +230,14 @@ export function ChatPanel({ scope = "app", onOpenKeys, draft, setDraft, onSent }
           <div className="mx-auto max-w-[720px] space-y-7 px-4 py-6 md:px-6">
             {messages.length > 0 && !running && (
               <div className="-mb-3 flex justify-end">
-                <button data-testid="button-clear-chat" onClick={() => db.clearMessages(pid)} className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[12px] text-muted-foreground hover:bg-muted hover:text-foreground">
-                  <RotateCcw className="h-3 w-3" /> New chat
+                <button data-testid="button-clear-chat" onClick={() => {
+                  const existing = new Set(db.getState().projects.map((p) => p.name));
+                  let name = "New chat"; let index = 2;
+                  while (existing.has(name)) name = `New chat ${index++}`;
+                  db.createProject(name, {});
+                  setDraft(""); setImages([]);
+                }} className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[12px] text-muted-foreground hover:bg-muted hover:text-foreground">
+                  <Plus className="h-3 w-3" /> New chat
                 </button>
               </div>
             )}
