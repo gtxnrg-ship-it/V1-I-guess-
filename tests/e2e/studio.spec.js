@@ -7,7 +7,7 @@ test.describe("Kuro-chan studio", () => {
 
     await page.goto("/studio", { waitUntil: "domcontentloaded" });
     await expect(page.getByTestId("input-message")).toBeVisible();
-    await expect(page.getByTestId("button-publish")).toBeVisible();
+    await expect(page.getByTestId("button-more-menu")).toBeVisible();
     await expect(page.getByTestId("sidebar-projects")).toBeVisible();
     await expect(page.getByTestId("sidebar-activity")).toBeVisible();
     await expect(page.getByTestId("sidebar-code")).toBeVisible();
