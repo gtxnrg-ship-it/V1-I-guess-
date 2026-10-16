@@ -2,7 +2,7 @@
 import { routedStream, bestFor, hasAnyModel } from "./router";
 import { LLMError, type HMsg, type Img } from "./llm";
 import { runTool, toolDefs, toolTitle, SETS, appWorkspace, type Workspace, type ToolOut } from "./tools";
-import { buildPreview } from "./preview";
+import { buildQaHarness } from "./qa-harness";
 import { runtimeCheck, look } from "./eyes";
 import * as db from "./db";
 import * as P from "./prompts";
@@ -323,13 +323,13 @@ Size: ${brief.size}`;
         throw new Error("HARD_CAP_FIX: The app still has errors after the allowed fix attempts. I'm stopping — something deeper is broken.");
       }
       fixAttempts++;
-      const b = await buildPreview(ws.all(), ws.env());
+      const b = await buildQaHarness(ws.all(), ws.env());
       const errs = b.errors.length ? b.errors : await runtimeCheck(b.html);
       db.set({ runtimeErrors: errs });
       if (!errs.length) break;
       await loop({
         live, agent: "Builder", label: "Fixing errors", role: "code", system: builderSystem, ws,
-        messages: [{ role: "user", text: `${ctx}\n\nThe app has these ${b.errors.length ? "build" : "runtime"} errors:\n${errs.join("\n")}\n\nProject files:\n${filesSummary(ws)}\n\nFind the cause, fix it, then call check_preview.` }],
+        messages: [{ role: "user", text: `${ctx}\n\nThe app has these ${b.errors.length ? "build" : "runtime"} errors:\n${errs.join("\n")}\n\nProject files:\n${filesSummary(ws)}\n\nFind the cause, fix it, then call verify_project.` }],
         tools: SETS.build, maxSteps: 10, quiet: true,
       });
     }
@@ -343,7 +343,7 @@ Size: ${brief.size}`;
       data.blocks.push({ type: "agent", name: "Checker", label: "Looking at it like a designer" });
       const shotBlk: Extract<Block, { type: "tool" }> = { type: "tool", id: `look-${Date.now()}`, name: "look", title: "Looked at the app on desktop and phone", status: "running" };
       data.blocks.push(shotBlk); live.flush(true);
-      const b = await buildPreview(ws.all(), ws.env());
+      const b = await buildQaHarness(ws.all(), ws.env());
       const l = await look(b.html, "both");
       Object.assign(shotBlk, { status: l.shots.length ? "ok" : "error", thumbs: l.shots, stat: l.errors.length ? `${l.errors.length} errors` : `${l.shots.length} screenshots`, detail: l.shotError || (l.errors.length ? l.errors.join("\n") : undefined) });
       live.flush(true);
@@ -362,7 +362,7 @@ Size: ${brief.size}`;
         if (issues.length) {
           await loop({
             live, agent: "Builder", label: "Polishing", role: "code", system: builderSystem, ws,
-            messages: [{ role: "user", text: `${ctx}\n\nThe design reviewer found these problems. Fix every one:\n${issues.map((x, i) => `${i + 1}. ${x}`).join("\n")}\n\nProject files:\n${filesSummary(ws)}\n\nRead the relevant files, fix them, then call check_preview.` }],
+            messages: [{ role: "user", text: `${ctx}\n\nThe design reviewer found these problems. Fix every one:\n${issues.map((x, i) => `${i + 1}. ${x}`).join("\n")}\n\nProject files:\n${filesSummary(ws)}\n\nRead the relevant files, fix them, then call verify_project.` }],
             tools: SETS.build, maxSteps: 14, quiet: true,
           });
           issuesFixed = issues.length;
@@ -384,7 +384,7 @@ Size: ${brief.size}`;
   // 7. Warm wrap-up
   const after = ws.all();
   const changedCount = Object.keys(after).filter((p) => JSON.parse(before)[p] !== after[p]).length;
-  const errsLeft = scope === "app" ? (await buildPreview(after, ws.env())).errors : [];
+  const errsLeft = scope === "app" ? (await buildQaHarness(after, ws.env())).errors : [];
   data.blocks.push({ type: "agent", name: "Talker", label: "Done" });
   await loop({
     live, agent: "Talker", label: "Done", role: "talk", system: P.SUMMARY, ws, tools: [],
