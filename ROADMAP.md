@@ -5,7 +5,7 @@ This is a living plan, not a promise that every item is already implemented. Pri
 ## P0 — Trust, correctness, and safety
 
 - [ ] Run the existing regression tests in CI on every pull request.
-- [ ] Add browser smoke tests for startup, chat, settings, preview, and mobile navigation.
+- [ ] Add browser smoke tests for startup, chat, settings, source inspection, and mobile navigation.
 - [ ] Add a reliable test for importing a repository and handling permission/rate-limit errors.
 - [ ] Prevent secrets from being written to generated repositories or logs.
 - [ ] Make publish actions show a clear summary and require explicit confirmation.
@@ -37,7 +37,7 @@ This is a living plan, not a promise that every item is already implemented. Pri
 ## P1 — UI and accessibility
 
 - [ ] Improve the empty state so first-time users can import a repo or start from a template.
-- [ ] Keep chat, preview, code, and settings easy to reach on small screens.
+- [ ] Keep chat, source inspection, settings, and delivery status easy to reach on small screens.
 - [ ] Add accessible labels, keyboard navigation, visible focus, and reduced-motion support.
 - [ ] Show agent progress as understandable steps with duration and current activity.
 - [ ] Improve empty, loading, offline, error, and success states across the app.
@@ -48,7 +48,7 @@ This is a living plan, not a promise that every item is already implemented. Pri
 
 - [ ] Add optional security/dependency checks and explain findings in plain language.
 - [ ] Add automated accessibility checks for generated apps.
-- [ ] Add framework-aware tests and preview diagnostics.
+- [ ] Add framework-aware tests, isolated QA diagnostics, and artifact verification.
 - [ ] Add optional MCP-compatible integrations with explicit permission boundaries.
 - [ ] Add documentation and package API lookup with source links and freshness indicators.
 - [ ] Add better image attribution and asset-license tracking.
