@@ -12,8 +12,7 @@ import { GalaxyBackdrop } from "@/components/her/GalaxyBackdrop";
 import { useTheme } from "@/components/her/theme";
 import { ChatPanel } from "@/components/her/ChatPanel";
 import { CodeBrowser } from "@/components/her/CodePane";
-import { KeysPane } from "@/components/her/KeysPane";
-import { LocalModelsPane } from "@/components/her/LocalModelsPane";
+import { SettingsHub } from "@/components/her/SettingsHub";
 import * as db from "@/engine/db";
 import { GH } from "@/engine/github";
 import { inspectGitHubRepository } from "@/engine/live-repository-intelligence";
@@ -48,8 +47,7 @@ export default function Studio() {
 
   const chat = <ChatPanel scope="app" onOpenKeys={() => openTab("keys")} draft={draft} setDraft={setDraft}
     onSent={() => isMobile && setMobileTab("chat")} />;
-  const pane = (t: Tab) => t === "code" ? <CodeBrowser files={p.files} />
-    : <div className="her-scroll h-full min-h-0 overflow-y-auto"><KeysPane /><div className="mx-auto max-w-3xl p-3"><LocalModelsPane /></div></div>;
+  const pane = (t: Tab) => t === "code" ? <CodeBrowser files={p.files} /> : <SettingsHub />;
 
   const aiKeys = st.keys.filter((k) => k.kind === "ai").length;
   const repoParts = (p.repo || "").split("/").filter(Boolean);

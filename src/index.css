@@ -278,3 +278,14 @@ body { font-feature-settings: "ss01", "cv11"; -webkit-font-smoothing: antialiase
 .prose-her h1, .prose-her h2, .prose-her h3 { font-weight: 600; margin: 0.8em 0 0.3em; font-size: 1em; }
 .prose-her table { width: 100%; font-size: 0.85em; border-collapse: collapse; margin: 0.6em 0; }
 .prose-her th, .prose-her td { border-bottom: 1px solid hsl(var(--border)); padding: 0.35em 0.5em; text-align: left; }
+
+
+/* User-controlled accessibility preference from Settings. */
+html[data-reduce-motion="true"] *,
+html[data-reduce-motion="true"] *::before,
+html[data-reduce-motion="true"] *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  scroll-behavior: auto !important;
+  transition-duration: 0.01ms !important;
+}

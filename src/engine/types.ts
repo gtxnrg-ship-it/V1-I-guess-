@@ -113,6 +113,13 @@ export interface Settings {
   voiceProvider?: "browser" | "openai";
   voiceModel?: string;
   voiceName?: string;
+  voiceAutoSpeak?: boolean;
+  voiceSpeed?: number;
+  preferOfflineVoice?: boolean;
+  reduceMotion?: boolean;
+  compactLayout?: boolean;
+  orbAnimations?: boolean;
+  confirmPublish?: boolean;
   adminEmail?: string;
   adminUnlocked?: boolean;
   eggFound?: boolean;

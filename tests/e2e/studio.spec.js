@@ -10,6 +10,7 @@ test.describe("Kuro-chan studio", () => {
     await expect(page.getByTestId("button-publish")).toBeVisible();
     await expect(page.getByTestId("tab-code")).toBeVisible();
     await expect(page.getByTestId("tab-keys")).toBeVisible();
+    await page.getByRole("button", { name: /AI & models/i }).click();
     await expect(page.getByTestId("local-models-pane")).toBeVisible();
     await expect(page.getByTestId("tab-preview")).toHaveCount(0);
     await expect(page.getByTestId("iframe-preview")).toHaveCount(0);
