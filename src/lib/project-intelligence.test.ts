@@ -1,4 +1,4 @@
-import { analyzeProject } from "../engine/project-intelligence";
+import { analyzeProject, projectFingerprint } from "../engine/project-intelligence";
 
 function assert(condition: boolean, message: string) {
   if (!condition) throw new Error("Assertion failed: " + message);
@@ -22,4 +22,6 @@ assert(report.architecture.includes("External APIs and network calls"), "network
 assert(report.importEdges.some((edge) => edge.from === "src/App.tsx" && edge.to === "src/components/Button.tsx"), "local import relationships should be resolved");
 assert(report.findings.some((finding) => finding.title === "No lint script in package.json"), "missing lint should be reported as a finding");
 assert(report.generatedAt.length > 0, "report should include a generation timestamp");
+assert(report.fingerprint === projectFingerprint(files), "report should fingerprint its source files");
+assert(report.fingerprint !== projectFingerprint({ ...files, "src/App.tsx": files["src/App.tsx"] + " // changed" }), "source changes should invalidate the saved context fingerprint");
 console.log("✓ project intelligence tests passed");
