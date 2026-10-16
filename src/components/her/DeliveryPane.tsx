@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Activity, AlertTriangle, ArrowUpRight, CheckCircle2, CircleHelp, GitBranch, GitCommitHorizontal, GitPullRequest, Globe, Loader2, PackageCheck, RefreshCw, ScanSearch, ShieldAlert, Smartphone, Terminal, Workflow } from "lucide-react";
+import { Activity, ArrowUpRight, GitBranch, GitCommitHorizontal, GitPullRequest, Loader2, PackageCheck, RefreshCw, ScanSearch, ShieldAlert, Smartphone, Terminal, Workflow } from "lucide-react";
 import * as db from "@/engine/db";
 import { GH } from "@/engine/github";
 import { analyzeProject } from "@/engine/project-intelligence";
@@ -16,7 +16,6 @@ const formatDate = (value?: string | null) => value ? new Date(value).toLocaleSt
 const shortSha = (value: string) => value.slice(0, 7);
 
 export function DeliveryPane() {
-  const state = db.useKuro();
   const project = db.project();
   const [analyzing, setAnalyzing] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
