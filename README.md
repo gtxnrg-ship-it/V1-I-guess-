@@ -24,6 +24,8 @@ AI app builders can be expensive or lock your work into one platform. Kuro-chan 
 - **Five specialist agents:** Talker, Researcher, Planner, Builder, and Checker coordinate the workflow.
 - **Engineering-first workflow:** inspect source files, review automated verification results, and ask Kuro-chan to repair problems without a user-facing live-preview panel.
 - **GitHub workflow:** import repositories and publish generated projects with build workflows.
+- **Repository intelligence:** generate a locally saved architecture map with import relationships, scripts, test/CI detection, and explicitly labeled review signals.
+- **Delivery center:** inspect GitHub Actions status, open pull requests, release assets, APK links, and changed files since a checkpoint. Status is only shown when it is returned by GitHub.
 - **Web and Android delivery:** GitHub Actions can build a website and an Android APK for generated projects.
 - **Model flexibility:** connect supported AI providers or an OpenAI-compatible endpoint, and route different jobs to different models.
 - **Local inference option:** connect an Ollama server you control. Browser access and CORS must be configured for your deployment.
@@ -53,7 +55,7 @@ A commit reaching `main` does not mean the APK is ready immediately. Wait for th
 | **Builder** | Creates and edits project files. |
 | **Checker** | Reviews the result, checks the preview, and asks for repairs when possible. |
 
-The available tools and model capabilities depend on your configuration. A model that supports vision or tool calling can do things a text-only model cannot. Isolated QA screenshots and browser automation are used for engineering verification; Kuro-chan does not provide a user-facing live-preview panel.
+The available tools and model capabilities depend on your configuration. A model that supports vision or tool calling can do things a text-only model cannot. Isolated QA screenshots and browser automation are used for engineering verification; Kuro-chan does not provide a user-facing live-preview panel. Repository maps are stored locally with the project and become visibly stale when the source fingerprint changes, so agents are told not to rely on outdated context.
 
 ## Models and integrations
 
