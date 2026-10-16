@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Moon, Sun, Github, Code2, KeyRound, MessageCircle, Loader2, Rocket, ExternalLink, ChevronDown, Check, Plus, Pencil, Trash2, Download, Globe, FolderKanban, Activity } from "lucide-react";
+import { Moon, Sun, Github, Code2, KeyRound, MessageCircle, Loader2, Rocket, ExternalLink, ChevronDown, Check, Plus, Pencil, Trash2, Download, Globe, FolderKanban, Activity, Menu, X, MoreHorizontal, PanelLeftClose } from "lucide-react";
 import { downloadZip } from "@/lib/zip";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Split } from "@/components/her/Split";
@@ -35,7 +35,8 @@ export default function Studio() {
   const st = db.useKuro();
   const p = db.project();
   const [tab, setTab] = useState<Tab>("keys");
-  const [mobileTab, setMobileTab] = useState<"chat" | Tab>("chat");
+  const [activeView, setActiveView] = useState<"chat" | Tab>("chat");
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [draft, setDraft] = useState("");
   const [publishOpen, setPublishOpen] = useState(false);
   const running = st.busy;
@@ -43,15 +44,13 @@ export default function Studio() {
 
   useEffect(() => {
     if (!visibleTabs.some((t) => t.id === tab)) setTab("keys");
-    if (!visibleTabs.some((t) => t.id === mobileTab)) setMobileTab("chat");
-  }, [mobileTab, tab, visibleTabs]);
+  }, [tab, visibleTabs]);
 
-  const openTab = useCallback((t: Tab) => { setTab(t); setMobileTab(t); }, []);
+  const openTab = useCallback((t: Tab) => { setTab(t); setActiveView(t); setSidebarOpen(false); }, []);
 
-  const chat = <ChatPanel scope="app" onOpenKeys={() => openTab("keys")} draft={draft} setDraft={setDraft}
-    onSent={() => isMobile && setMobileTab("chat")} />;
+  const chat = <ChatPanel scope="app" onOpenKeys={() => openTab("keys")} draft={draft} setDraft={setDraft} />;
   const pane = (t: Tab) => t === "projects" || t === "activity"
-    ? <ProjectsActivity view={t} onOpenChat={() => setMobileTab("chat")} />
+    ? <ProjectsActivity view={t} onOpenChat={() => { setActiveView("chat"); setSidebarOpen(false); }} />
     : t === "code" ? <CodeBrowser files={p.files} /> : <SettingsHub />;
 
   const aiKeys = st.keys.filter((k) => k.kind === "ai").length;
@@ -67,69 +66,96 @@ export default function Studio() {
     </button>
   );
 
-  return (
-    <div className="studio-shell relative isolate flex h-[100dvh] flex-col overflow-hidden bg-background text-foreground">
-      <GalaxyBackdrop />
-      <header className="studio-header relative z-10 flex h-14 shrink-0 items-center gap-2 px-3 pt-[env(safe-area-inset-top)] md:px-5">
-        <span className="studio-brand-mark"><HerOrb size={29} className="her-orb-glow" /></span>
-        <span className="hidden min-w-[112px] sm:block"><span className="block font-display text-[16px] font-semibold leading-tight">Kuro-chan</span><span className="studio-eyebrow">AI PRODUCT STUDIO</span></span>
-        <span className="mx-1 h-6 w-px bg-border/70" />
-        <ProjectMenu busy={running} onSwitched={() => {}} />
-        <div className="ml-auto flex items-center gap-1">
-          <button data-testid="button-key-status" onClick={() => openTab("keys")} className="studio-status hidden items-center gap-2 px-2.5 py-1.5 text-[12px] text-muted-foreground sm:inline-flex">
-            <span className={`h-1.5 w-1.5 rounded-full ${aiKeys ? "bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.75)]" : st.settings.freeStarter ? "bg-amber-400" : "bg-rose-400"}`} />
-            {aiKeys ? `${aiKeys} ${aiKeys === 1 ? "key" : "keys"}` : st.settings.freeStarter ? "Free starter" : "No keys"}
-          </button>
-          <button data-testid="button-theme" aria-label="Toggle theme" onClick={toggle} className="studio-icon-button grid h-8 w-8 place-items-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground">
-            {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-          </button>
-          <button data-testid="button-export-zip" title="Download project as ZIP" onClick={() => downloadZip(p.files, (p.name || "app").toLowerCase().replace(/[^a-z0-9]+/g, "-"))} className="studio-zip-button hidden items-center gap-1.5 px-2.5 py-1.5 text-[13px] font-medium text-muted-foreground hover:bg-muted hover:text-foreground min-[480px]:inline-flex">
-            <Download className="h-3.5 w-3.5" /><span>ZIP</span>
-          </button>
-          {siteUrl && (
-            <a href={siteUrl} target="_blank" rel="noopener noreferrer" className="studio-status hidden items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-[12px] text-muted-foreground hover:bg-muted hover:text-foreground sm:inline-flex">
-              <Globe className="h-3.5 w-3.5" /> Website
-            </a>
-          )}
-          {apkUrl && (
-            <a href={apkUrl} target="_blank" rel="noopener noreferrer" className="studio-status hidden items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-[12px] text-muted-foreground hover:bg-muted hover:text-foreground sm:inline-flex">
-              <Download className="h-3.5 w-3.5" /> APK
-            </a>
-          )}
-          <button data-testid="button-publish" onClick={() => setPublishOpen(true)} className="studio-publish inline-flex items-center gap-1.5 px-3.5 py-2 text-[13px] font-semibold text-primary-foreground hover:opacity-90">
-            <Github className="h-3.5 w-3.5" /><span className="hidden min-[400px]:inline">Publish</span>
-          </button>
+  const navItems = [
+    { id: "chat" as const, label: "New chat", icon: MessageCircle },
+    ...TABS,
+  ];
+  const selectView = (view: "chat" | Tab) => {
+    if (view !== "chat") setTab(view);
+    setActiveView(view);
+    setSidebarOpen(false);
+  };
+  const sidebar = (
+    <div className="flex h-full min-h-0 flex-col gap-3 p-3">
+      <div className="flex items-center justify-between gap-2 px-1">
+        <div className="flex min-w-0 items-center gap-2">
+          <span className="studio-brand-mark"><HerOrb size={30} className="her-orb-glow" /></span>
+          <span className="font-display text-[16px] font-semibold">Kuro-chan</span>
         </div>
-      </header>
-
-      {isMobile ? (
-        <>
-          <main className="min-h-0 flex-1">{mobileTab === "chat" ? chat : pane(mobileTab)}</main>
-          <nav className="studio-mobile-nav relative z-10 flex shrink-0 pb-[env(safe-area-inset-bottom)]">
-            <button data-testid="tab-mobile-chat" onClick={() => setMobileTab("chat")}
-              className={`studio-mobile-tab relative flex flex-1 flex-col items-center gap-0.5 py-2 text-[10.5px] font-medium ${mobileTab === "chat" ? "is-active text-foreground" : "text-muted-foreground"}`}>
-              <MessageCircle className="h-[18px] w-[18px]" />Chat
-              {running && mobileTab !== "chat" && <span className="absolute right-[30%] top-1.5 h-1.5 w-1.5 animate-pulse rounded-full bg-[hsl(var(--ember))]" />}
+        <button aria-label="Close sidebar" onClick={() => setSidebarOpen(false)} className="grid h-9 w-9 place-items-center rounded-lg text-muted-foreground hover:bg-muted md:hidden"><X className="h-4 w-4" /></button>
+        <button aria-label="Collapse sidebar" onClick={() => setSidebarOpen(false)} className="hidden h-9 w-9 place-items-center rounded-lg text-muted-foreground hover:bg-muted md:grid"><PanelLeftClose className="h-4 w-4" /></button>
+      </div>
+      <button data-testid="button-new-chat" onClick={() => { selectView("chat"); setDraft(""); }} className="flex w-full items-center gap-2 rounded-xl border border-border/80 px-3 py-2.5 text-left text-[13px] font-medium transition-colors hover:bg-muted">
+        <Plus className="h-4 w-4" /> New chat
+      </button>
+      <div className="space-y-1">
+        {navItems.filter((item) => item.id !== "chat").map((item) => {
+          const Icon = item.icon;
+          return <button key={item.id} data-testid={`sidebar-${item.id}`} onClick={() => selectView(item.id)} className={`flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-[13px] transition-colors ${activeView === item.id ? "bg-muted font-medium text-foreground" : "text-muted-foreground hover:bg-muted/70 hover:text-foreground"}`}><Icon className="h-4 w-4" />{item.label}</button>;
+        })}
+      </div>
+      <div className="min-h-0 flex-1 overflow-y-auto pt-2">
+        <div className="mb-2 flex items-center justify-between px-2">
+          <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Your projects</span>
+          <ProjectMenu busy={running} onSwitched={() => selectView("chat")} />
+        </div>
+        <div className="space-y-1">
+          {st.projects.map((project) => (
+            <button key={project.id} data-testid={`sidebar-project-${project.id}`} onClick={() => { db.switchProject(project.id); selectView("chat"); }} className={`flex w-full min-w-0 items-center gap-2 rounded-lg px-2.5 py-2 text-left text-[12.5px] transition-colors ${p.id === project.id ? "bg-primary/10 text-foreground" : "text-muted-foreground hover:bg-muted/70 hover:text-foreground"}`}>
+              <FolderKanban className="h-4 w-4 shrink-0" />
+              <span className="min-w-0 flex-1 truncate">{project.name}</span>
+              {project.repo && <Github className="h-3.5 w-3.5 shrink-0 opacity-60" />}
             </button>
-            {visibleTabs.map((t) => tabBtn(t, mobileTab === t.id, () => setMobileTab(t.id), true))}
-          </nav>
-        </>
-      ) : (
-        <Split left={<div className="studio-chat-stage relative z-10 h-full">{chat}</div>} right={
-          <div className="studio-workspace-stage relative z-10 flex h-full flex-col p-2 pl-0">
-            <div className="studio-workspace-frame ml-2 flex h-full min-h-0 flex-col overflow-hidden rounded-xl border bg-card">
-              <div className="studio-workspace-nav flex items-center gap-0.5 px-2 py-1.5">
-                {visibleTabs.map((t) => tabBtn(t, tab === t.id, () => setTab(t.id)))}
-                {running && <span className="ml-auto mr-2 inline-flex items-center gap-1.5 text-[12px] text-muted-foreground"><Loader2 className="h-3 w-3 animate-spin" /> Kuro-chan is working</span>}
-              </div>
-              <div className="min-h-0 flex-1">{pane(tab)}</div>
-            </div>
+          ))}
+          {!st.projects.length && <p className="px-2 py-3 text-xs text-muted-foreground">Your projects will appear here.</p>}
+        </div>
+        <p className="px-2 pt-3 text-[10.5px] leading-relaxed text-muted-foreground">Projects and repositories already opened in Kuro-chan. Connect GitHub to import more.</p>
+      </div>
+      <div className="border-t border-border/70 pt-2">
+        <button data-testid="sidebar-settings" onClick={() => selectView("keys")} className={`flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-left text-[13px] transition-colors ${activeView === "keys" ? "bg-muted font-medium" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}><KeyRound className="h-4 w-4" /> Settings <span className="ml-auto text-[10px] text-muted-foreground">{aiKeys ? "Connected" : "Setup"}</span></button>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="studio-shell relative isolate flex h-[100dvh] overflow-hidden bg-background text-foreground">
+      <GalaxyBackdrop />
+      {sidebarOpen && <button aria-label="Close navigation" onClick={() => setSidebarOpen(false)} className="fixed inset-0 z-30 bg-black/50 md:hidden" />}
+      <aside className={`studio-sidebar fixed inset-y-0 left-0 z-40 w-[min(84vw,292px)] border-r border-border/70 bg-background/95 backdrop-blur-xl transition-transform duration-200 md:relative md:z-10 md:flex md:w-[260px] md:shrink-0 md:translate-x-0 ${sidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}`}>
+        {sidebar}
+      </aside>
+      <div className="relative z-10 flex min-w-0 flex-1 flex-col">
+        <header className="studio-header relative z-10 flex h-14 shrink-0 items-center gap-2 border-b border-border/60 px-3 pt-[env(safe-area-inset-top)] md:px-5">
+          <button data-testid="button-open-sidebar" aria-label="Open sidebar" onClick={() => setSidebarOpen(true)} className="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground"><Menu className="h-5 w-5" /></button>
+          <div className="min-w-0 flex-1">
+            <div className="truncate text-[14px] font-semibold">{activeView === "chat" ? p.name || "New chat" : TABS.find((t) => t.id === activeView)?.label}</div>
+            <div className="hidden truncate text-[10px] text-muted-foreground sm:block">{activeView === "chat" ? p.repo || "Your AI coding companion" : "Kuro-chan workspace"}</div>
           </div>
-        } />
-      )}
+          {running && <span className="hidden items-center gap-1.5 text-[11px] text-muted-foreground sm:inline-flex"><Loader2 className="h-3 w-3 animate-spin" /> Working</span>}
+          <button data-testid="button-theme" aria-label="Toggle theme" onClick={toggle} className="grid h-9 w-9 place-items-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground">{theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}</button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild><button data-testid="button-more-menu" aria-label="More options" className="grid h-9 w-9 place-items-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground"><MoreHorizontal className="h-5 w-5" /></button></DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuLabel>Kuro-chan</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onSelect={() => selectView("projects")}><FolderKanban className="mr-2 h-4 w-4" /> Projects</DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => selectView("activity")}><Activity className="mr-2 h-4 w-4" /> Activity</DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => selectView("code")}><Code2 className="mr-2 h-4 w-4" /> Code</DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => selectView("keys")}><KeyRound className="mr-2 h-4 w-4" /> Settings & tools</DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onSelect={() => downloadZip(p.files, (p.name || "app").toLowerCase().replace(/[^a-z0-9]+/g, "-"))}><Download className="mr-2 h-4 w-4" /> Download project ZIP</DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => setPublishOpen(true)}><Github className="mr-2 h-4 w-4" /> Publish to GitHub</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </header>
+        <main className="relative min-h-0 flex-1">
+          {activeView === "chat" ? chat : <div className="h-full min-h-0 overflow-y-auto">{pane(activeView)}</div>}
+        </main>
+      </div>
       <PublishDialog open={publishOpen} onOpenChange={setPublishOpen} onOpenKeys={() => { setPublishOpen(false); openTab("keys"); }} />
     </div>
   );
+
 }
 
 function ProjectMenu({ busy, onSwitched }: { busy: boolean; onSwitched: () => void }) {
