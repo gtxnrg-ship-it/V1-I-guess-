@@ -141,6 +141,31 @@ export function updateProject(id: string, patch: Partial<Project>) {
   state.projects = state.projects.map((p) => (p.id === id ? { ...p, ...patch, updatedAt: Date.now() } : p));
   persist("projects");
 }
+
+/** Persist bounded project-memory entries inside the project record (no new storage database). */
+export function saveProjectMemory(
+  patch: Partial<NonNullable<Project["memory"]>>,
+  id = project().id,
+) {
+  const target = state.projects.find((p) => p.id === id);
+  if (!target) return false;
+  const previous = target.memory || { facts: [], decisions: [], openQuestions: [] };
+  const facts = patch.facts ?? previous.facts;
+  const decisions = patch.decisions ?? previous.decisions;
+  const openQuestions = patch.openQuestions ?? previous.openQuestions;
+  updateProject(id, {
+    memory: {
+      ...previous,
+      ...patch,
+      facts: facts.slice(-40),
+      decisions: decisions.slice(-40),
+      openQuestions: [...new Set(openQuestions.map((q) => q.trim()).filter(Boolean))].slice(-20),
+      recentSummary: patch.recentSummary === undefined ? previous.recentSummary : patch.recentSummary.slice(0, 1800),
+      observedAt: patch.observedAt ?? Date.now(),
+    },
+  });
+  return true;
+}
 export function deleteProject(id: string) {
   state.projects = state.projects.filter((p) => p.id !== id);
   delete state.messages[id]; delete state.snapshots[id];
