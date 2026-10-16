@@ -21,6 +21,26 @@ const SELF_SUGGESTIONS = [
   "Add a keyboard shortcut to stop a build",
 ];
 
+let activeRemoteAudio: HTMLAudioElement | null = null;
+let activeAudioUrl: string | null = null;
+
+function stopAssistantSpeech(onSpeaking: (speaking: boolean) => void = () => {}) {
+  if (typeof window !== "undefined" && "speechSynthesis" in window) window.speechSynthesis.cancel();
+  if (activeRemoteAudio) {
+    activeRemoteAudio.onended = null;
+    activeRemoteAudio.onerror = null;
+    activeRemoteAudio.pause();
+    activeRemoteAudio.removeAttribute("src");
+    activeRemoteAudio.load();
+    activeRemoteAudio = null;
+  }
+  if (activeAudioUrl) {
+    URL.revokeObjectURL(activeAudioUrl);
+    activeAudioUrl = null;
+  }
+  onSpeaking(false);
+}
+
 async function speakAssistantReply(text: string, voiceProvider: "browser" | "openai", openaiKey?: string, onSpeaking: (speaking: boolean) => void = () => {}, speed = 1) {
   const safeText = text
     .replace(/```[\s\S]*?```/g, "Code block omitted.")
@@ -28,6 +48,7 @@ async function speakAssistantReply(text: string, voiceProvider: "browser" | "ope
     .trim();
 
   if (!safeText) return;
+  stopAssistantSpeech(onSpeaking);
 
   if (voiceProvider === "openai" && openaiKey) {
     try {
@@ -48,18 +69,42 @@ async function speakAssistantReply(text: string, voiceProvider: "browser" | "ope
         const blob = await response.blob();
         const url = URL.createObjectURL(blob);
         const audio = new Audio(url);
+        activeAudioUrl = url;
+        activeRemoteAudio = audio;
         audio.onplay = () => onSpeaking(true);
-        audio.onended = () => { onSpeaking(false); URL.revokeObjectURL(url); };
-        audio.onerror = () => { onSpeaking(false); URL.revokeObjectURL(url); };
-        audio.play().catch(() => { onSpeaking(false); URL.revokeObjectURL(url); });
-        return;
+        const release = () => {
+          if (activeRemoteAudio === audio) activeRemoteAudio = null;
+          if (activeAudioUrl === url) activeAudioUrl = null;
+          URL.revokeObjectURL(url);
+          onSpeaking(false);
+        };
+        audio.onended = release;
+        audio.onerror = release;
+        try {
+          await audio.play();
+          return;
+        } catch {
+          // Playback can be blocked by mobile autoplay policy; try device speech below.
+          if (activeRemoteAudio === audio) {
+            audio.onended = null;
+            audio.onerror = null;
+            audio.pause();
+            activeRemoteAudio = null;
+          }
+          if (activeAudioUrl === url) activeAudioUrl = null;
+          URL.revokeObjectURL(url);
+        }
       }
+      // A provider error (including an expired or invalid key) falls back to device speech.
     } catch {
-      // fall back to browser speech below if the premium voice provider is unavailable
+      // Network and provider errors must not prevent the device-voice fallback.
     }
   }
 
-  if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
+  if (typeof window === "undefined" || !("speechSynthesis" in window)) {
+    onSpeaking(false);
+    return;
+  }
   window.speechSynthesis.cancel();
   const ut = new SpeechSynthesisUtterance(safeText);
   ut.onstart = () => onSpeaking(true);
@@ -110,7 +155,7 @@ export function ChatPanel({ scope = "app", onOpenKeys, draft, setDraft, onSent }
     }
   }, [messages, running, autoVoice, voiceProvider, st.settings.voiceSpeed]);
   useEffect(() => () => {
-    if ("speechSynthesis" in window) window.speechSynthesis.cancel();
+    stopAssistantSpeech(setSpeaking);
   }, []);
   const addFiles = async (files: FileList | File[] | null) => {
     const list = Array.from(files || []).filter((f) => f.type.startsWith("image/"));
@@ -287,7 +332,7 @@ export function ChatPanel({ scope = "app", onOpenKeys, draft, setDraft, onSent }
                     if (last?.role === "assistant" && last.data?.done) lastSpokenId.current = last.id;
                   }
                   db.setSettings({ voiceAutoSpeak: !autoVoice });
-                  if (autoVoice && speechAvailable) window.speechSynthesis.cancel();
+                  if (autoVoice) stopAssistantSpeech(setSpeaking);
                 }}
                 className={`grid h-8 w-8 place-items-center rounded-full transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${autoVoice ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}>
                 {autoVoice ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
