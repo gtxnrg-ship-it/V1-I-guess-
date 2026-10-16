@@ -77,6 +77,7 @@ export interface ProjectIntelligenceFinding {
 
 export interface ProjectIntelligenceReport {
   generatedAt: string;
+  fingerprint: string;
   fileCount: number;
   summary: string;
   architecture: string[];
