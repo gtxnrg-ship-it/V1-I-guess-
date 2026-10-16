@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { TextToSpeech } from "@capacitor-community/text-to-speech";
 import { ArrowUp, Square, Plus, ImagePlus, Mic, X, MousePointerClick, Volume2, VolumeX, Sparkles, Github, Cpu, GitBranch } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { AssistantMessage } from "./AssistantMessage";
@@ -21,11 +22,14 @@ const SELF_SUGGESTIONS = [
   "Add a keyboard shortcut to stop a build",
 ];
 
+const isNativeApp = () => Boolean((window as any).Capacitor?.isNativePlatform?.());
+
 let activeRemoteAudio: HTMLAudioElement | null = null;
 let activeAudioUrl: string | null = null;
 
 function stopAssistantSpeech(onSpeaking: (speaking: boolean) => void = () => {}) {
   if (typeof window !== "undefined" && "speechSynthesis" in window) window.speechSynthesis.cancel();
+  if (typeof window !== "undefined" && isNativeApp()) void TextToSpeech.stop().catch(() => {});
   if (activeRemoteAudio) {
     activeRemoteAudio.onended = null;
     activeRemoteAudio.onerror = null;
@@ -101,6 +105,18 @@ async function speakAssistantReply(text: string, voiceProvider: "browser" | "ope
     }
   }
 
+  if (typeof window !== "undefined" && isNativeApp()) {
+    try {
+      onSpeaking(true);
+      await TextToSpeech.speak({ text: safeText.slice(0, 4000), lang: navigator.language || "en-US", rate: speed, pitch: 1.05, volume: 1, category: "ambient", queueStrategy: 1 });
+      onSpeaking(false);
+      return;
+    } catch {
+      onSpeaking(false);
+      // Native voice can be unavailable when the Android device has no TTS engine installed.
+    }
+  }
+
   if (typeof window === "undefined" || !("speechSynthesis" in window)) {
     onSpeaking(false);
     return;
@@ -132,7 +148,8 @@ export function ChatPanel({ scope = "app", onOpenKeys, draft, setDraft, onSent }
   const prevRunning = useRef(running);
   const initialMessage = messages[messages.length - 1];
   const lastSpokenId = useRef(initialMessage?.role === "assistant" && initialMessage.data?.done ? initialMessage.id : "");
-  const speechAvailable = typeof window !== "undefined" && "speechSynthesis" in window;
+  const nativeVoiceAvailable = typeof window !== "undefined" && isNativeApp();
+  const speechAvailable = nativeVoiceAvailable || (typeof window !== "undefined" && "speechSynthesis" in window);
   const premiumVoiceReady = !!db.keyOf("openai");
   const voiceProvider = st.settings.voiceProvider === "openai" && premiumVoiceReady ? "openai" : "browser";
   const fileRef = useRef<HTMLInputElement>(null);
@@ -318,7 +335,7 @@ export function ChatPanel({ scope = "app", onOpenKeys, draft, setDraft, onSent }
             className="block w-full resize-none bg-transparent px-4 pb-1 pt-3.5 text-[15px] leading-relaxed outline-none placeholder:text-muted-foreground/70"
           />
           <div className="flex items-center gap-2 px-2.5 pb-2.5 pt-1">
-            <span className="pl-1.5 text-[11.5px] text-muted-foreground/80">{running ? "Working…" : !(speechAvailable || premiumVoiceReady) ? "Voice output isn’t supported in this browser." : autoVoice ? (voiceProvider === "openai" ? "Premium voice on — she speaks naturally." : "Voice on — she speaks replies back.") : "Type or talk — either works."}</span>
+            <span className="pl-1.5 text-[11.5px] text-muted-foreground/80">{running ? "Working…" : nativeVoiceAvailable ? (speaking ? "Kuro-chan is speaking…" : autoVoice ? "Device voice ready" : "Tap the speaker to enable voice") : !(speechAvailable || premiumVoiceReady) ? "Voice needs a supported browser or an API key." : autoVoice ? (voiceProvider === "openai" ? "AI voice enabled" : "Device voice enabled") : "Type or talk — either works."}</span>
             <div className="ml-auto flex items-center gap-1">
               <input ref={fileRef} type="file" accept="image/*" multiple hidden data-testid="input-attach" onChange={(e) => { addFiles(e.target.files); e.target.value = ""; }} />
               <button data-testid="button-attach" aria-label="Attach image" title="Attach a screenshot or reference" onClick={() => fileRef.current?.click()}
@@ -326,7 +343,7 @@ export function ChatPanel({ scope = "app", onOpenKeys, draft, setDraft, onSent }
               {speaking && <button data-testid="button-stop-speaking" aria-label="Stop speaking" title="Stop Kuro-chan speaking now" onClick={() => stopAssistantSpeech(setSpeaking)}
                 className="grid h-8 w-8 place-items-center rounded-full bg-primary/15 text-primary hover:bg-primary/25"><Square className="h-3 w-3 fill-current" /></button>}
               <button data-testid="button-auto-voice" aria-label={(speechAvailable || premiumVoiceReady) ? autoVoice ? "Disable voice output" : "Enable voice output" : "Voice output unavailable"}
-                title={(speechAvailable || premiumVoiceReady) ? autoVoice ? "Kuro-chan will speak replies (Active)" : "Kuro-chan speaks replies" : "This browser does not support spoken replies"}
+                title={(speechAvailable || premiumVoiceReady) ? autoVoice ? "Kuro-chan will speak replies (Active)" : "Kuro-chan speaks replies" : "Voice needs a supported browser or an API key"}
                 disabled={!(speechAvailable || premiumVoiceReady)}
                 onClick={() => {
                   if (!autoVoice && !running) {
