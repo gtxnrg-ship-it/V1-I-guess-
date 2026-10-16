@@ -3,6 +3,7 @@ import { createZipBlob } from "./zip";
 import { importedPackages } from "../engine/package-imports";
 import { starterFiles } from "../engine/template";
 import { GH, b64, unb64 } from "../engine/github";
+import { shipFiles } from "../engine/ship";
 
 function assert(condition: boolean, message: string) {
   if (!condition) {
@@ -170,6 +171,81 @@ async function testGitHubCommitRejectsMovedBranch() {
 }
 
 
+
+async function testGitHubPublishTransaction() {
+  console.log("Testing successful GitHub publish transaction with a mocked API...");
+
+  const originalFetch = globalThis.fetch;
+  const requests: { method: string; path: string; body: any }[] = [];
+  try {
+    globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = new URL(String(input));
+      const method = init?.method || "GET";
+      const path = url.pathname + url.search;
+      let body: any = null;
+      if (typeof init?.body === "string") body = JSON.parse(init.body);
+      requests.push({ method, path, body });
+
+      let status = 200;
+      let payload: any = {};
+      if (method === "GET" && path.endsWith("/git/ref/heads/main")) {
+        payload = { object: { sha: "parent-sha" } };
+      } else if (method === "GET" && path.endsWith("/git/commits/parent-sha")) {
+        payload = { tree: { sha: "base-tree" } };
+      } else if (method === "POST" && path.endsWith("/git/trees")) {
+        payload = { sha: "new-tree-sha" };
+      } else if (method === "POST" && path.endsWith("/git/commits")) {
+        payload = { sha: "new-commit-sha" };
+      } else if (method === "PATCH" && path.endsWith("/git/refs/heads/main")) {
+        payload = { ref: "refs/heads/main" };
+      } else {
+        status = 500;
+        payload = { message: "Unexpected mocked request: " + method + " " + path };
+      }
+      return new Response(JSON.stringify(payload), { status, headers: { "Content-Type": "application/json" } });
+    }) as typeof fetch;
+
+    const client = new GH("mock-token");
+    const result = await client.commitFiles(
+      "owner",
+      "repo",
+      "main",
+      [{ path: "src/App.tsx", content: "export default function App(){ return <h1>Built</h1> }" }],
+      "Build app"
+    );
+
+    assert(result.sha === "new-commit-sha", "Publish should return the newly created commit SHA");
+    assert(result.url.endsWith("/commit/new-commit-sha"), "Publish should return a direct commit URL");
+
+    const treeRequest = requests.find((r) => r.method === "POST" && r.path.endsWith("/git/trees"));
+    assert(treeRequest?.body.base_tree === "base-tree", "Incremental publish should preserve the existing repository tree");
+    assert(treeRequest?.body.tree?.[0]?.path === "src/App.tsx", "Publish should send the intended source file");
+    assert(treeRequest?.body.tree?.[0]?.content.includes("<h1>Built</h1>"), "Publish should send the complete source content");
+
+    const commitRequest = requests.find((r) => r.method === "POST" && r.path.endsWith("/git/commits"));
+    assert(commitRequest?.body.parents?.[0] === "parent-sha", "New commit should retain the original commit as its parent");
+
+    const moveRef = requests.find((r) => r.method === "PATCH" && r.path.endsWith("/git/refs/heads/main"));
+    assert(moveRef?.body.sha === "new-commit-sha", "Publish should move the branch to the new commit");
+    assert(moveRef?.body.force === false, "Publish must not force-push over repository history");
+
+    console.log("✓ successful GitHub publish transaction tests passed");
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+}
+
+function testShipArtifacts() {
+  console.log("Testing website and Android delivery artifacts...");
+  const shipped = shipFiles("Demo App", "owner/demo-app");
+  assert(shipped.files[".github/workflows/deploy-website.yml"].includes("actions/deploy-pages@v4"), "Ship output should include a GitHub Pages deployment workflow");
+  assert(shipped.files[".github/workflows/build-android.yml"].includes("assembleDebug"), "Ship output should include an Android APK build");
+  assert(shipped.files["capacitor.config.json"].includes("com.kurochan.demoapp"), "Ship output should include a stable Capacitor app ID");
+  assert(shipped.files["public/download.html"].includes(shipped.apk), "Android download page should link to the expected APK release");
+  assert(shipped.site === "https://owner.github.io/demo-app/", "Ship output should return the expected website URL");
+  console.log("✓ website and Android delivery artifact tests passed");
+}
+
 async function testGitHubRejectsNonRootRepositoryUrls() {
   console.log("Testing GitHub repository input validation...");
   const client = new GH("test-token");
@@ -192,6 +268,8 @@ async function runAll() {
     testGitHubBase64RoundTrip();
     await testGitHubApiErrors();
     await testGitHubCommitRejectsMovedBranch();
+    await testGitHubPublishTransaction();
+    testShipArtifacts();
     await testGitHubRejectsNonRootRepositoryUrls();
     console.log("\nALL TESTS PASSED SUCCESSFULLY!");
   } catch (err) {
