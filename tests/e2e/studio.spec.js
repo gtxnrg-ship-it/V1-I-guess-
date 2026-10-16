@@ -8,15 +8,15 @@ test.describe("Kuro-chan studio", () => {
     await page.goto("/studio", { waitUntil: "domcontentloaded" });
     await expect(page.getByTestId("input-message")).toBeVisible();
     await expect(page.getByTestId("button-publish")).toBeVisible();
-    await expect(page.getByTestId("tab-projects")).toBeVisible();
-    await expect(page.getByTestId("tab-activity")).toBeVisible();
-    await expect(page.getByTestId("tab-code")).toBeVisible();
-    await expect(page.getByTestId("tab-keys")).toBeVisible();
-    await page.getByTestId("tab-projects").click();
+    await expect(page.getByTestId("sidebar-projects")).toBeVisible();
+    await expect(page.getByTestId("sidebar-activity")).toBeVisible();
+    await expect(page.getByTestId("sidebar-code")).toBeVisible();
+    await expect(page.getByTestId("sidebar-settings")).toBeVisible();
+    await page.getByTestId("sidebar-projects").click();
     await expect(page.getByRole("heading", { name: "Your projects" })).toBeVisible();
-    await page.getByTestId("tab-activity").click();
+    await page.getByTestId("sidebar-activity").click();
     await expect(page.getByRole("heading", { name: "Activity" })).toBeVisible();
-    await page.getByTestId("tab-keys").click();
+    await page.getByTestId("sidebar-settings").click();
     await page.getByRole("button", { name: /AI & models/i }).click();
     await expect(page.getByTestId("local-models-pane")).toBeVisible();
     await expect(page.getByTestId("tab-preview")).toHaveCount(0);
@@ -29,25 +29,31 @@ test.describe("Kuro-chan studio", () => {
     await page.goto("/studio", { waitUntil: "domcontentloaded" });
 
     await expect(page.getByTestId("input-message")).toBeVisible();
-    await expect(page.getByTestId("tab-mobile-projects")).toBeVisible();
-    await expect(page.getByTestId("tab-mobile-activity")).toBeVisible();
-    await expect(page.getByTestId("tab-mobile-code")).toBeVisible();
-    await expect(page.getByTestId("tab-mobile-keys")).toBeVisible();
-    await expect(page.getByTestId("tab-mobile-preview")).toHaveCount(0);
-    await page.getByTestId("tab-mobile-projects").click();
+    await expect(page.getByTestId("tab-mobile-chat")).toHaveCount(0);
+    await expect(page.getByTestId("studio-mobile-nav")).toHaveCount(0);
+    await page.getByTestId("button-open-sidebar").click();
+    await expect(page.getByTestId("sidebar-projects")).toBeVisible();
+    await expect(page.getByTestId("sidebar-activity")).toBeVisible();
+    await expect(page.getByTestId("sidebar-code")).toBeVisible();
+    await expect(page.getByTestId("sidebar-settings")).toBeVisible();
+    await page.getByTestId("sidebar-projects").click();
     await expect(page.getByRole("heading", { name: "Your projects" })).toBeVisible();
-    await page.getByTestId("tab-mobile-activity").click();
+    await page.getByTestId("button-open-sidebar").click();
+    await page.getByTestId("sidebar-activity").click();
     await expect(page.getByRole("heading", { name: "Activity" })).toBeVisible();
-    await page.getByTestId("tab-mobile-code").click();
+    await page.getByTestId("button-open-sidebar").click();
+    await page.getByTestId("sidebar-code").click();
     await expect(page.getByText("Files", { exact: true })).toBeVisible();
-    await page.getByTestId("tab-mobile-chat").click();
+    await page.getByTestId("button-open-sidebar").click();
+    await page.getByTestId("button-new-chat").click();
     await expect(page.getByTestId("input-message")).toBeVisible();
   });
 
   test("exports the current project as a downloadable ZIP", async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 900 });
     await page.goto("/studio", { waitUntil: "domcontentloaded" });
-    const exportButton = page.getByTestId("button-export-zip");
+    await page.getByTestId("button-more-menu").click();
+    const exportButton = page.getByRole("menuitem", { name: /Download project ZIP/i });
     await expect(exportButton).toBeVisible();
 
     const downloadPromise = page.waitForEvent("download");
@@ -67,7 +73,8 @@ test.describe("Kuro-chan studio", () => {
 
   test("explains GitHub setup before attempting to publish without credentials", async ({ page }) => {
     await page.goto("/studio", { waitUntil: "domcontentloaded" });
-    await page.getByTestId("button-publish").click();
+    await page.getByTestId("button-more-menu").click();
+    await page.getByRole("menuitem", { name: /Publish to GitHub/i }).click();
     await expect(page.getByText("Add a GitHub token in Keys first")).toBeVisible();
     await expect(page.getByTestId("button-publish-open-keys")).toBeVisible();
   });
