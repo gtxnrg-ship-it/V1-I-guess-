@@ -163,7 +163,7 @@ export function saveProjectMemory(
       decisions: sanitizeProjectMemoryFacts(decisions).slice(-40),
       openQuestions: [...new Set(openQuestions
         .filter((q) => typeof q === "string" && !containsSensitiveMemoryText(q))
-        .map((q) => q.replace(/[\\u0000-\\u001f\\u007f]/g, " ").trim())
+        .map((q) => q.replace(/[\u0000-\u001f\u007f]/g, " ").trim())
         .filter(Boolean))].slice(-20),
       recentSummary: summary === undefined ? previous.recentSummary
         : containsSensitiveMemoryText(summary) ? "" : summary.slice(0, 1800),
