@@ -6,7 +6,6 @@ import { Split } from "@/components/her/Split";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
-import { useIsMobile } from "@/hooks/use-mobile";
 import { HerOrb } from "@/components/her/Logo";
 import { GalaxyBackdrop } from "@/components/her/GalaxyBackdrop";
 import { useTheme } from "@/components/her/theme";
@@ -31,22 +30,14 @@ const TABS: { id: Tab; label: string; icon: any }[] = [
 
 export default function Studio() {
   const { theme, toggle } = useTheme();
-  const isMobile = useIsMobile();
   const st = db.useKuro();
   const p = db.project();
-  const [tab, setTab] = useState<Tab>("keys");
   const [activeView, setActiveView] = useState<"chat" | Tab>("chat");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [draft, setDraft] = useState("");
   const [publishOpen, setPublishOpen] = useState(false);
   const running = st.busy;
-  const visibleTabs = TABS;
-
-  useEffect(() => {
-    if (!visibleTabs.some((t) => t.id === tab)) setTab("keys");
-  }, [tab, visibleTabs]);
-
-  const openTab = useCallback((t: Tab) => { setTab(t); setActiveView(t); setSidebarOpen(false); }, []);
+  const openTab = useCallback((t: Tab) => { setActiveView(t); setSidebarOpen(false); }, []);
 
   const chat = <ChatPanel scope="app" onOpenKeys={() => openTab("keys")} draft={draft} setDraft={setDraft} />;
   const pane = (t: Tab) => t === "projects" || t === "activity"
@@ -57,15 +48,6 @@ export default function Studio() {
   const repoParts = (p.repo || "").split("/").filter(Boolean);
   const siteUrl = p.shipped && !p.privateRepo && repoParts.length === 2 ? `https://${repoParts[0].toLowerCase()}.github.io/${repoParts[1]}/` : "";
   const apkUrl = p.shipped && !p.privateRepo && repoParts.length === 2 ? `https://github.com/${p.repo}/releases/latest/download/app-debug.apk` : "";
-  const tabBtn = (t: (typeof TABS)[number], active: boolean, onClick: () => void, mobile = false) => (
-    <button key={t.id} data-testid={`tab-${mobile ? "mobile-" : ""}${t.id}`} onClick={onClick}
-      className={mobile
-        ? `studio-mobile-tab relative flex flex-1 flex-col items-center gap-0.5 py-2 text-[10.5px] font-medium ${active ? "is-active text-foreground" : "text-muted-foreground"}`
-        : `studio-workspace-tab inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[13px] font-medium transition-colors ${active ? "is-active text-foreground" : "text-muted-foreground hover:text-foreground"}`}>
-      <t.icon className={mobile ? "h-[18px] w-[18px]" : "h-3.5 w-3.5"} />{t.label}
-    </button>
-  );
-
   const navItems = [
     { id: "chat" as const, label: "New chat", icon: MessageCircle },
     ...TABS,
