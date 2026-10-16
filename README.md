@@ -135,6 +135,7 @@ Kuro-chan is browser-first. Ordinary project state and saved settings are stored
 - **Cloud AI:** prompts, code, images, and project context needed for a request are sent to the AI provider you select. That provider's policies apply.
 - **External tools:** research, package, GitHub, and other integrations may send the relevant request to those services.
 - **GitHub access:** a connected credential can perform the actions allowed by its permissions. Review permissions carefully and revoke credentials you no longer need.
+- **Sign-in status:** the repository currently contains OAuth/PKCE helper primitives and tests, but not a complete GitHub authorization-code exchange or callback flow. GitHub repository features currently rely on a token you configure in Settings. Do not treat OAuth sign-in as implemented until the callback/token-exchange backend and secure credential handling are completed and tested.
 - **Browser storage:** local storage is not a secure vault. Anyone with access to your unlocked browser profile or device may be able to access saved data.
 - **AI-generated changes:** inspect changes and review security-sensitive code before merging or deploying.
 
