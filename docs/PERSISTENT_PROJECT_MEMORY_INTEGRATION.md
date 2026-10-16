@@ -13,3 +13,8 @@ Kuro-chan stores project memory in the existing project record, using the existi
 
 ## Limits
 This is bounded persistent context with explicit user-controlled capture, not automatic extraction of every preference or repository fact. The app/self admin workspace remains separate from project memory.
+
+
+## Multiple project chats
+
+Each project is also an independent conversation workspace: its messages, files, repository link, snapshots, and persistent project memory are keyed to that project. Use **New chat** in a conversation to start a fresh, empty workspace without deleting the previous conversation. Use **New chat from GitHub** to attach a repository to a separate workspace; paste either a GitHub URL or `owner/repository`. Confirmed empty repositories are kept empty until the user asks Kuro-chan to build something. Switching workspaces switches the conversation and memory together. Kuro-chan's own repository can be imported as one of these workspaces and improved through the same review and CI workflow; self-changes should not bypass normal diff review, tests, or user approval.

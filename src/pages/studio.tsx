@@ -203,7 +203,7 @@ function ProjectMenu({ busy, onSwitched }: { busy: boolean; onSwitched: () => vo
           </button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" className="w-64">
-          <DropdownMenuLabel className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Your apps</DropdownMenuLabel>
+          <DropdownMenuLabel className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Chats &amp; projects</DropdownMenuLabel>
           {st.projects.map((p) => (
             <DropdownMenuItem key={p.id} data-testid={`menu-project-${p.id}`} disabled={busy && p.id !== current.id}
               onSelect={() => { if (p.id !== current.id) { db.switchProject(p.id); onSwitched(); } }} className="gap-2">
@@ -213,8 +213,8 @@ function ProjectMenu({ busy, onSwitched }: { busy: boolean; onSwitched: () => vo
             </DropdownMenuItem>
           ))}
           <DropdownMenuSeparator />
-          <DropdownMenuItem data-testid="menu-project-new" disabled={busy} onSelect={() => { setName(""); setPreset("starter"); setDialog("new"); }} className="gap-2"><Plus className="h-3.5 w-3.5" /> New app</DropdownMenuItem>
-          <DropdownMenuItem data-testid="menu-project-import" disabled={busy} onSelect={() => { setName(""); setDialog("import"); }} className="gap-2"><Github className="h-3.5 w-3.5" /> Import from GitHub</DropdownMenuItem>
+          <DropdownMenuItem data-testid="menu-project-new" disabled={busy} onSelect={() => { setName(""); setPreset("starter"); setDialog("new"); }} className="gap-2"><Plus className="h-3.5 w-3.5" /> New project</DropdownMenuItem>
+          <DropdownMenuItem data-testid="menu-project-import" disabled={busy} onSelect={() => { setName(""); setDialog("import"); }} className="gap-2"><Github className="h-3.5 w-3.5" /> New chat from GitHub</DropdownMenuItem>
           <DropdownMenuItem data-testid="menu-project-rename" onSelect={() => { setName(current?.name || ""); setDialog("rename"); }} className="gap-2"><Pencil className="h-3.5 w-3.5" /> Rename</DropdownMenuItem>
           {st.projects.length > 1 && (
             <DropdownMenuItem data-testid="menu-project-delete" disabled={busy}
@@ -226,8 +226,8 @@ function ProjectMenu({ busy, onSwitched }: { busy: boolean; onSwitched: () => vo
       <Dialog open={!!dialog} onOpenChange={(o) => { if (!o) { setDialog(null); setPreset("starter"); } }}>
         <DialogContent className="sm:max-w-[380px]">
           <DialogHeader>
-            <DialogTitle className="text-[17px]">{dialog === "new" ? "New app" : dialog === "import" ? "Import from GitHub" : "Rename app"}</DialogTitle>
-            <DialogDescription className="text-[13.5px]">{dialog === "new" ? "A fresh project with its own chat, files and GitHub repo." : dialog === "import" ? "Paste a repo link or owner/name. Empty repos work too." : "This only changes the name you see."}</DialogDescription>
+            <DialogTitle className="text-[17px]">{dialog === "new" ? "New project" : dialog === "import" ? "New chat from GitHub" : "Rename project"}</DialogTitle>
+            <DialogDescription className="text-[13.5px]">{dialog === "new" ? "A fresh project with its own chat, files and memory." : dialog === "import" ? "Paste a repo link or owner/name. Empty repos work too; this creates a separate chat and memory for it." : "This only changes the name you see."}</DialogDescription>
           </DialogHeader>
           <input data-testid="input-project-name" autoFocus value={name} onChange={(e) => setName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && save()} placeholder={dialog === "import" ? "github.com/you/your-repo" : "e.g. Habit Tracker"}
             className="h-10 w-full rounded-lg border border-border bg-background px-3 text-[14px] outline-none focus:border-foreground/30" />
@@ -242,7 +242,7 @@ function ProjectMenu({ busy, onSwitched }: { busy: boolean; onSwitched: () => vo
             </div>
           )}
           <button data-testid="button-project-save" disabled={!name.trim() || importing} onClick={save} className="w-full rounded-lg bg-primary py-2.5 text-[14px] font-medium text-primary-foreground disabled:opacity-50">
-            {importing ? "Importing…" : dialog === "new" ? "Create app" : dialog === "import" ? "Import" : "Save"}
+            {importing ? "Importing…" : dialog === "new" ? "Create project" : dialog === "import" ? "Create linked chat" : "Save"}
           </button>
         </DialogContent>
       </Dialog>
