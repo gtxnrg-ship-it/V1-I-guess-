@@ -1,4 +1,4 @@
-import { validateSelfUpgrade } from "./self";
+import { validateSelfUpgrade } from "./self-upgrade-guard";
 
 function assert(condition: boolean, message: string) {
   if (!condition) throw new Error(`Assertion failed: ${message}`);
