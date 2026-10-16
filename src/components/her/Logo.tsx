@@ -43,7 +43,7 @@ export function KuroMark({ size = 52, className = "", state = "idle" }: OrbProps
       speed: 0.08 + Math.random() * 0.12,
       size: Math.max(0.7, size * (0.012 + Math.random() * 0.012)),
       alpha: 0.28 + Math.random() * 0.42,
-      hue: Math.random() > 0.55 ? 188 : 258,
+      hue: Math.random() > 0.55 ? 300 : 270,
     }));
 
     let previous = 0;
@@ -51,12 +51,12 @@ export function KuroMark({ size = 52, className = "", state = "idle" }: OrbProps
     let disposed = false;
     const motionScale = state === "thinking" ? 1.65 : state === "speaking" ? 1.25 : state === "listening" ? 0.72 : 1;
     const colors = state === "listening"
-      ? { a: "#75f3ff", b: "#52b9ff", c: "#a6fff4" }
+      ? { a: "#ff79dc", b: "#b34cff", c: "#ffe0f6" }
       : state === "speaking"
-        ? { a: "#9beaff", b: "#9c8cff", c: "#e4f7ff" }
+        ? { a: "#ff9be8", b: "#b77aff", c: "#fff0fc" }
         : state === "thinking"
-          ? { a: "#7deaff", b: "#9b83ff", c: "#c7c2ff" }
-          : { a: "#83eff5", b: "#827cff", c: "#d6fbff" };
+          ? { a: "#dc75ff", b: "#8d42ff", c: "#f2c8ff" }
+          : { a: "#d26bff", b: "#7435e8", c: "#ffe0fb" };
 
     const draw = (timestamp: number) => {
       if (disposed) return;
@@ -69,8 +69,8 @@ export function KuroMark({ size = 52, className = "", state = "idle" }: OrbProps
       // A soft ambient halo — no face, eyes, mouth, or sharp silhouette.
       const pulse = reducedMotion ? 1 : 1 + Math.sin(t * (state === "listening" ? 2.8 : 1.35)) * 0.045;
       const halo = ctx.createRadialGradient(cx, cy, r * 0.25, cx, cy, r * 2.15 * pulse);
-      halo.addColorStop(0, state === "listening" ? "rgba(79,226,255,0.24)" : "rgba(111,133,255,0.19)");
-      halo.addColorStop(0.52, "rgba(92,105,255,0.08)");
+      halo.addColorStop(0, state === "listening" ? "rgba(255,91,205,0.26)" : "rgba(183,74,255,0.22)");
+      halo.addColorStop(0.52, "rgba(172,65,255,0.10)");
       halo.addColorStop(1, "rgba(4,8,22,0)");
       ctx.fillStyle = halo;
       ctx.fillRect(0, 0, size, size);
@@ -99,7 +99,7 @@ export function KuroMark({ size = 52, className = "", state = "idle" }: OrbProps
         const by = cy + Math.sin(drift * 0.85 + i * 1.7) * coreR * 0.34;
         const blobR = coreR * (0.52 + i * 0.06);
         const fluid = ctx.createRadialGradient(bx, by, 0, bx, by, blobR);
-        fluid.addColorStop(0, i === 1 ? "rgba(255,255,255,0.26)" : "rgba(91,246,255,0.17)");
+        fluid.addColorStop(0, i === 1 ? "rgba(255,255,255,0.26)" : "rgba(255,111,221,0.18)");
         fluid.addColorStop(1, "rgba(120,110,255,0)");
         ctx.fillStyle = fluid;
         ctx.fillRect(cx - coreR, cy - coreR, coreR * 2, coreR * 2);
@@ -109,7 +109,7 @@ export function KuroMark({ size = 52, className = "", state = "idle" }: OrbProps
       // A fine rim gives the orb definition without the harsh neon outline.
       ctx.beginPath();
       ctx.arc(cx, cy, coreR, 0, Math.PI * 2);
-      ctx.strokeStyle = "rgba(206,248,255,0.46)";
+      ctx.strokeStyle = "rgba(255,218,250,0.52)";
       ctx.lineWidth = Math.max(0.65, size * 0.012);
       ctx.stroke();
 
@@ -122,7 +122,7 @@ export function KuroMark({ size = 52, className = "", state = "idle" }: OrbProps
         const alpha = p.alpha * (reducedMotion ? 1 : 0.75 + Math.sin(t * 1.7 + i) * 0.25);
         ctx.beginPath();
         ctx.arc(px, py, p.size, 0, Math.PI * 2);
-        ctx.fillStyle = p.hue < 200 ? `rgba(116,235,255,${alpha})` : `rgba(174,151,255,${alpha})`;
+        ctx.fillStyle = p.hue < 200 ? `rgba(255,111,221,${alpha})` : `rgba(174,116,255,${alpha})`;
         ctx.fill();
       });
 
