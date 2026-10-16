@@ -44,6 +44,16 @@ async function run() {
   assert(unknown.diagnosis.condition === "unknown", "does not misclassify failed tree requests as empty");
   assert(!unknown.diagnosis.safeToInitialize, "failed inspection is never safe to initialize");
 
+  const emptyRepository = clientWith({
+    "REPOSITORY": { status: 200, json: { default_branch: null } },
+    "COMMITS": { status: 409, json: { message: "Git Repository is empty." } },
+    "TREE": { status: 404, json: { message: "Not Found" } },
+    "RUNS": { status: 404, json: { message: "Not Found" } },
+  });
+  const empty = await inspectGitHubRepository(emptyRepository, "acme/app");
+  assert(empty.diagnosis.condition === "empty", "recognizes GitHub's confirmed empty-repository response pattern");
+  assert(empty.diagnosis.safeToInitialize, "only confirmed empty repositories may be proposed for initialization");
+
   let rejected = false;
   try { await inspectGitHubRepository(healthy, "https://github.com/acme/app/issues/2"); } catch { rejected = true; }
   assert(rejected, "rejects nested issue/file URLs instead of guessing a repository");
