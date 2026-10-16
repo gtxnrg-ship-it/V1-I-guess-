@@ -50,10 +50,13 @@ export async function inspectGitHubRepository(
     client.req("GET", `${repoPath}/actions/runs?per_page=10`),
   ]);
   const commitsKnown = commitsResult.status === 200 && Array.isArray(commitsResult.json);
-  const emptyCommitHistory = commitsKnown && commitsResult.json.length === 0;
+  // GitHub returns 409 for an empty repository's commit list and 404 for its missing tree.
+  // Treat that combination as empty only when repository metadata also has no default branch.
+  const confirmedEmptyRepository = commitsResult.status === 409 && !metadata.default_branch && treeResult.status === 404;
+  const emptyCommitHistory = (commitsKnown && commitsResult.json.length === 0) || confirmedEmptyRepository;
   const latestCommitSha = commitsKnown ? commitsResult.json[0]?.sha ?? null : null;
   const treeKnown = treeResult.status === 200 && Array.isArray(treeResult.json?.tree);
-  const treeComplete = treeKnown && treeResult.json.truncated === false;
+  const treeComplete = (treeKnown && treeResult.json.truncated === false) || confirmedEmptyRepository;
   const files = treeKnown ? treeResult.json.tree.filter((item: any) => item?.type === "blob" && typeof item.path === "string").map((item: any) => item.path) : [];
   const readableKeyFiles = KEY_FILES.filter((path) => files.includes(path));
   const actionsKnown = runsResult.status === 200 && Array.isArray(runsResult.json?.workflow_runs);
@@ -72,7 +75,7 @@ export async function inspectGitHubRepository(
     files, readableFileCount: readableKeyFiles.length, treeComplete,
     actionsFailures: failures, actionsRunsKnown: actionsKnown,
   });
-  if (!treeKnown) {
+  if (!treeKnown && !confirmedEmptyRepository) {
     diagnosis.condition = "unknown";
     diagnosis.title = "Repository tree could not be inspected";
     diagnosis.summary = "GitHub did not return a readable repository tree. Kuro-chan will not initialize or change files until access is restored.";

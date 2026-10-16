@@ -16,6 +16,7 @@ import { KeysPane } from "@/components/her/KeysPane";
 import { LocalModelsPane } from "@/components/her/LocalModelsPane";
 import * as db from "@/engine/db";
 import { GH } from "@/engine/github";
+import { inspectGitHubRepository } from "@/engine/live-repository-intelligence";
 import { shipFiles, syncDependencies } from "@/engine/ship";
 import { starterFiles, type StarterVariant } from "@/engine/template";
 import { errMsg } from "@/lib/kuro";
@@ -151,17 +152,37 @@ function ProjectMenu({ busy, onSwitched }: { busy: boolean; onSwitched: () => vo
     try {
       const gh = new GH(tok.secret);
       const info = await gh.ensureRepo(spec);
-      const baseSha = await gh.headSha(info.owner, info.name, info.defaultBranch);
-      const files = await gh.readTree(info.owner, info.name, info.defaultBranch, (p) => !/^(node_modules|dist|build|android|ios|\.git)\//.test(p) && !/(^|\/)(package-lock\.json|yarn\.lock|pnpm-lock\.yaml)$/.test(p));
-      const empty = !Object.keys(files).filter((p) => p !== ".kuro").length;
-      const created = db.createProject(info.name, empty ? starterFiles(info.name) : files);
+      const inspection = await inspectGitHubRepository(gh, `${info.owner}/${info.name}`);
+      if (inspection.diagnosis.condition === "unknown" || (!inspection.treeComplete && inspection.diagnosis.condition !== "empty")) {
+        throw new Error(`I couldn't safely classify ${info.owner}/${info.name}. ${inspection.diagnosis.summary} I stopped before importing or initializing it so I don't mistake an incomplete inspection for an empty repository.`);
+      }
+      const baseSha = inspection.baselineSha || await gh.headSha(info.owner, info.name, info.defaultBranch);
+      const files = inspection.diagnosis.condition === "empty" ? {} : await gh.readTree(info.owner, info.name, info.defaultBranch, (p) => !/^(node_modules|dist|build|android|ios|\.git)\//.test(p) && !/(^|\/)(package-lock\.json|yarn\.lock|pnpm-lock\.yaml)$/.test(p));
+      if (inspection.diagnosis.condition !== "empty" && !Object.keys(files).length) {
+        throw new Error(`GitHub reported an existing project but Kuro-chan could not read its files. No starter files were created. ${inspection.diagnosis.summary}`);
+      }
+      const empty = inspection.diagnosis.condition === "empty";
+      // Importing an empty repository should not silently initialize it; let the user decide what to build in chat.
+      const created = db.createProject(info.name, files);
       db.updateProject(created.id, {
         repo: `${info.owner}/${info.name}`,
         repoBaseSha: baseSha || undefined,
         privateRepo: info.private,
         shipped: Boolean(files[".github/workflows/deploy-website.yml"] && files[".github/workflows/build-android.yml"]),
       });
-      toast({ title: empty ? "Empty repo connected" : `Imported ${Object.keys(files).length} files`, description: empty ? "I started it with a clean template. Publish pushes it to that repo." : "Tell me what to change. Publish pushes it back." });
+      db.saveProjectMemory({
+        facts: [
+          ...(created.memory?.facts || []),
+          { text: `Repository diagnosis: ${inspection.diagnosis.title}. ${inspection.diagnosis.summary}`, source: "repository-observed", confidence: inspection.diagnosis.confidence, updatedAt: Date.now() },
+          { text: `Inspected default branch ${inspection.defaultBranch}; ${inspection.fileCount} paths reported; tree complete: ${inspection.treeComplete}.`, source: "repository-observed", confidence: inspection.treeComplete ? "high" : "low", updatedAt: Date.now() },
+        ],
+        recentSummary: inspection.diagnosis.summary,
+        observedAt: Date.now(),
+      }, created.id);
+      toast({
+        title: empty ? "Empty repo confirmed" : `Imported ${Object.keys(files).length} files`,
+        description: `${inspection.diagnosis.title}: ${inspection.diagnosis.summary} ${empty ? "I left it untouched. Tell me what you'd like to build before I create starter files." : "The diagnosis is saved to this project's memory for our next conversation."}`,
+      });
       setDialog(null); onSwitched();
     } catch (e) { toast({ title: "Couldn't import", description: errMsg(e), variant: "destructive" }); }
     setImporting(false);
