@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { Activity, ArrowUpRight, GitBranch, GitCommitHorizontal, GitPullRequest, Loader2, PackageCheck, RefreshCw, ScanSearch, ShieldAlert, Smartphone, Terminal, Workflow } from "lucide-react";
 import * as db from "@/engine/db";
 import { GH } from "@/engine/github";
-import { analyzeProject } from "@/engine/project-intelligence";
+import { analyzeProject, projectFingerprint } from "@/engine/project-intelligence";
 import type { ProjectIntelligenceReport } from "@/engine/types";
 
 type Run = { name: string; status: string; conclusion: string | null; url: string; at: string };
@@ -26,6 +26,7 @@ export function DeliveryPane() {
   const [refreshedAt, setRefreshedAt] = useState("");
 
   const report = project.intelligence;
+  const contextIsStale = !!report && report.fingerprint !== projectFingerprint(project.files);
   const token = db.keyOf("github");
   const repo = project.repo || "";
   const repoParts = repo.split("/");
@@ -109,7 +110,7 @@ export function DeliveryPane() {
           </div>
           {report ? <>
             <p className="mt-3 text-[12px] text-foreground/90">{report.summary}</p>
-            <p className="mt-1 text-[10.5px] text-muted-foreground">Saved locally · analyzed {formatDate(report.generatedAt)} · {report.fileCount} files</p>
+            <p className="mt-1 text-[10.5px] text-muted-foreground">Saved locally · analyzed {formatDate(report.generatedAt)} · {report.fileCount} files</p>{contextIsStale && <p role="status" className="mt-2 rounded-lg border border-amber-500/30 bg-amber-500/10 p-2 text-[11px] text-amber-800 dark:text-amber-200">The files changed since this report was generated. Re-analyze before relying on this context for engineering decisions.</p>}
             <div className="mt-3 flex flex-wrap gap-1.5">{report.architecture.map((area) => <span key={area} className="rounded-md border border-border px-2 py-1 text-[10.5px]">{area}</span>)}</div>
             {report.scripts.length > 0 && <div className="mt-3"><p className="mb-1.5 flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground"><Terminal className="h-3.5 w-3.5" /> Available scripts</p><div className="space-y-1.5">{report.scripts.slice(0, 8).map((script) => <div key={script.name} className="flex gap-2 rounded-lg bg-muted/50 px-2.5 py-2 text-[11.5px]"><span className="w-16 shrink-0 font-medium">{script.name}</span><code className="min-w-0 break-all text-muted-foreground">{script.command}</code></div>)}</div></div>}
             {report.findings.length > 0 && <div className="mt-3 space-y-2"><p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Review findings</p>{report.findings.map((finding, i) => <article key={finding.title + i} className={`rounded-xl border p-2.5 ${severityClass(finding.severity)}`}><div className="flex items-center gap-2"><span className="text-[10px] font-semibold uppercase">{finding.severity} · {finding.confidence}</span><span className="text-[12px] font-medium">{finding.title}</span></div><p className="mt-1 text-[11.5px] text-muted-foreground">{finding.evidence}</p>{finding.files.length > 0 && <p className="mt-1 break-all font-mono text-[10.5px] text-muted-foreground">{finding.files.join(", ")}</p>}</article>)}</div>}
