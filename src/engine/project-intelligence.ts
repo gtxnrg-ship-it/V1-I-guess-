@@ -13,7 +13,7 @@ export function projectFingerprint(files: Record<string, string>): string {
 }
 const normalize = (value: string) => {
   const parts: string[] = [];
-  for (const part of value.replace(/\/g, "/").split("/")) {
+  for (const part of value.replace(/\\/g, "/").split("/")) {
     if (!part || part === ".") continue;
     if (part === "..") parts.pop();
     else parts.push(part);
