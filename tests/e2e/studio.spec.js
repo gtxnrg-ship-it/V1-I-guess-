@@ -37,7 +37,7 @@ test.describe("Kuro-chan studio", () => {
     await page.getByTestId("tab-delivery").click();
     await expect(page.getByTestId("delivery-pane")).toBeVisible();
     await page.getByTestId("button-analyze-project").click();
-    await expect(page.getByText(/Analyzed \\d+ files/)).toBeVisible();
+    await expect(page.getByText(/Analyzed \d+ files/)).toBeVisible();
     await expect(page.getByText("Available scripts")).toBeVisible();
     await expect(page.getByTestId("button-refresh-delivery")).toBeVisible();
   });
