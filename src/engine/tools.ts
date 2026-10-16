@@ -1,7 +1,7 @@
 import * as esbuild from "esbuild-wasm";
 import type { ToolDef, Img } from "./llm";
 import type { Brief, PlanStep, Question } from "./types";
-import { buildPreview } from "./preview";
+import { buildQaHarness } from "./qa-harness";
 import { runtimeCheck, look } from "./eyes";
 import * as R from "./research";
 import { getState, project, writeFile, deleteFile, set } from "./db";
@@ -62,7 +62,7 @@ export const TOOLS: Record<string, Def> = {
   write_file: { name: "write_file", description: "Create or fully overwrite a file. Always write the complete content.", parameters: obj({ path: str("File path"), content: str("Full file content") }, ["path", "content"]), title: (a) => `Wrote ${a.path}` },
   edit_file: { name: "edit_file", description: "Replace an exact snippet in a file (find must match exactly once). Best for small changes.", parameters: obj({ path: str("File path"), find: str("Exact existing text"), replace: str("Replacement text") }, ["path", "find", "replace"]), title: (a) => `Edited ${a.path}` },
   delete_file: { name: "delete_file", description: "Delete a file.", parameters: obj({ path: str("File path") }, ["path"]), title: (a) => `Deleted ${a.path}` },
-  check_preview: { name: "check_preview", description: "Build the app and run it; returns build errors and runtime errors. Call after edits and fix everything it reports.", parameters: obj({}), title: () => "Checked the preview" },
+  verify_project: { name: "verify_project", description: "Run isolated QA checks on the generated project and return compile/build errors plus runtime exceptions. Call after edits and repair every reported issue.", parameters: obj({}), title: () => "Verified project build and runtime" },
   web_search: { name: "web_search", description: "Search the web. Returns titles, URLs, snippets (and sometimes a summarised answer).", parameters: obj({ query: str("Search query") }, ["query"]), title: (a) => `Searched “${String(a.query).slice(0, 60)}”` },
   read_url: { name: "read_url", description: "Read a web page or docs page as clean text.", parameters: obj({ url: str("URL") }, ["url"]), title: (a) => `Read ${String(a.url).replace(/^https?:\/\//, "").slice(0, 50)}` },
   search_npm: { name: "search_npm", description: "Search npm for packages. Returns name@version, weekly downloads, description.", parameters: obj({ query: str("What the package should do") }, ["query"]), title: (a) => `Searched npm for “${String(a.query).slice(0, 40)}”` },
@@ -82,7 +82,7 @@ export const SETS = {
   talk: ["list_files", "read_file", "web_search", "ask_user", "propose_brief"],
   research: ["web_search", "read_url", "search_npm", "search_github", "get_docs", "find_photos", "list_files", "read_file", "save_research"],
   plan: ["list_files", "read_file", "search_code", "submit_plan"],
-  build: ["list_files", "read_file", "search_code", "write_file", "edit_file", "delete_file", "check_preview", "get_docs", "web_search", "find_photos", "generate_image", "share_sql"],
+  build: ["list_files", "read_file", "search_code", "write_file", "edit_file", "delete_file", "verify_project", "get_docs", "web_search", "find_photos", "generate_image", "share_sql"],
   check: ["report_issues"],
 } as const;
 export const toolDefs = (names: readonly string[]): ToolDef[] => names.map((n) => { const { title, ...d } = TOOLS[n]; return d; });
@@ -158,12 +158,12 @@ export async function runTool(ws: Workspace, name: string, a: any): Promise<Tool
       ws.remove(p);
       return { result: `Deleted ${p}.` };
     }
-    case "check_preview": {
+    case "verify_project": {
       if (ws.kind === "self") {
         const errs = await syntaxCheck(files, (ws as any).changed || []);
         return { result: errs.length ? `Syntax errors:\n${errs.join("\n")}` : "All changed files parse cleanly. (The full type-check and build run on GitHub Actions.)", stat: errs.length ? `${errs.length} errors` : "clean" };
       }
-      const b = await buildPreview(files, ws.env());
+      const b = await buildQaHarness(files, ws.env());
       if (b.errors.length) return { result: `BUILD ERRORS:\n${b.errors.join("\n")}`, stat: `${b.errors.length} errors` };
       const rt = await runtimeCheck(b.html);
       set({ runtimeErrors: rt });
