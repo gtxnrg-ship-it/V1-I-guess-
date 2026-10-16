@@ -3,7 +3,7 @@ import type { ProjectIntelligenceFinding, ProjectIntelligenceReport } from "./ty
 const unique = (values: string[]) => [...new Set(values)];
 const normalize = (value: string) => {
   const parts: string[] = [];
-  for (const part of value.replace(/\\\\/g, "/").split("/")) {
+  for (const part of value.replace(/\\/g, "/").split("/")) {
     if (!part || part === ".") continue;
     if (part === "..") parts.pop();
     else parts.push(part);
@@ -44,7 +44,7 @@ export function analyzeProject(files: Record<string, string>): ProjectIntelligen
     findings.push({ severity: "medium", confidence: "evidence", title: "package.json is missing or invalid", evidence: "The root package manifest could not be parsed; dependency and build-script analysis is incomplete.", files: ["package.json"] });
   }
   const scripts = Object.entries(pkg.scripts || {}).map(([name, command]) => ({ name, command: String(command) }));
-  const allText = paths.map((path) => files[path]).join("\\n");
+  const allText = paths.map((path) => files[path]).join("\n");
   const testFiles = paths.filter((path) => /(^|\\/)(__tests__|tests?)(\\/|$)|\\.(test|spec)\\.[cm]?[jt]sx?$/.test(path));
   const workflows = paths.filter((path) => /^\\.github\\/workflows\\/[^/]+\\.ya?ml$/.test(path));
   const edges: { from: string; to: string }[] = [];
@@ -69,12 +69,12 @@ export function analyzeProject(files: Record<string, string>): ProjectIntelligen
   if (keyStorageFiles.length) addFinding({ severity: "medium", confidence: "signal", title: "Review client-side credential storage", evidence: "Some files combine browser storage APIs with credential-related terms. This is a review signal, not proof of an exploitable vulnerability.", files: keyStorageFiles.slice(0, 8) });
   const apiFiles = paths.filter((path) => /fetch\\s*\\(|axios\\.|\\b(trpc|graphql|openapi)\\b/i.test(files[path]));
   if (apiFiles.length) architecture.push("External APIs and network calls");
-  const authFiles = paths.filter((path) => /oauth|auth|session|jwt|passport/i.test(path + "\\n" + files[path]));
+  const authFiles = paths.filter((path) => /oauth|auth|session|jwt|passport/i.test(path + "\n" + files[path]));
   if (authFiles.length) architecture.push("Authentication and sessions");
-  const dbFiles = paths.filter((path) => /prisma|drizzle|sequelize|mongoose|sqlite|postgres|mysql|supabase|indexedDB/i.test(path + "\\n" + files[path]));
+  const dbFiles = paths.filter((path) => /prisma|drizzle|sequelize|mongoose|sqlite|postgres|mysql|supabase|indexedDB/i.test(path + "\n" + files[path]));
   if (dbFiles.length) architecture.push("Data stores and persistence");
-  const name = pkg.name ? `“${pkg.name}”` : "this repository";
-  const summary = `Analyzed ${paths.length} files in ${name}. Found ${architecture.length} architecture areas, ${edges.length} local import relationships, ${testFiles.length} likely test files, and ${workflows.length} GitHub Actions workflows. Findings are static signals to guide review; they are not a substitute for running the project's own checks.`;
+  const name = pkg.name ? '"' + pkg.name + '"' : "this repository";
+  const summary = "Analyzed " + paths.length + " files in " + name + ". Found " + architecture.length + " architecture areas, " + edges.length + " local import relationships, " + testFiles.length + " likely test files, and " + workflows.length + " GitHub Actions workflows. Findings are static signals to guide review; they are not a substitute for running the project's own checks.";
   return {
     generatedAt: new Date().toISOString(),
     fileCount: paths.length,
