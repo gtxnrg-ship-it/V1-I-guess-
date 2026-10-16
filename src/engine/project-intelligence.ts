@@ -3,7 +3,7 @@ import type { ProjectIntelligenceFinding, ProjectIntelligenceReport } from "./ty
 const unique = (values: string[]) => [...new Set(values)];
 const normalize = (value: string) => {
   const parts: string[] = [];
-  for (const part of value.replace(/\\/g, "/").split("/")) {
+  for (const part of value.replace(/\/g, "/").split("/")) {
     if (!part || part === ".") continue;
     if (part === "..") parts.pop();
     else parts.push(part);
@@ -24,14 +24,14 @@ function resolveLocalImport(from: string, specifier: string, files: Record<strin
 }
 
 function categoryFor(path: string): string | null {
-  if (/^(tests?|__tests__)\\//i.test(path) || /\\.(test|spec)\\.[cm]?[jt]sx?$/.test(path)) return "Tests";
-  if (/^\\.github\\/workflows\\//.test(path)) return "CI and delivery";
-  if (/^(src\\/)?(server|api|routes)\\//i.test(path) || /(^|\\/)(route|controller|handler)\\.[cm]?[jt]sx?$/.test(path)) return "Backend and API";
-  if (/^(src\\/)?(db|database|migrations|prisma|supabase)\\//i.test(path) || /(schema|migration|database)\\.[cm]?[jt]sx?$/i.test(path)) return "Data and persistence";
-  if (/^src\\/(engine|lib)\\//.test(path)) return "Core logic and integrations";
-  if (/^src\\/(components|pages|app|routes)\\//.test(path)) return "UI and application flow";
-  if (/^(vite|webpack|rollup|tsconfig|eslint|prettier|postcss|tailwind|playwright|vitest|jest)/i.test(path) || /^(package(-lock)?\\.json|pnpm-lock\\.yaml|yarn\\.lock)$/.test(path)) return "Build and dependencies";
-  if (/^(README|CONTRIBUTING|SECURITY|ROADMAP)\\.md$/i.test(path)) return "Documentation and project policy";
+  if (/^(tests?|__tests__)\//i.test(path) || /\.(test|spec)\.[cm]?[jt]sx?$/.test(path)) return "Tests";
+  if (/^\.github\/workflows\//.test(path)) return "CI and delivery";
+  if (/^(src\/)?(server|api|routes)\//i.test(path) || /(^|\/)(route|controller|handler)\.[cm]?[jt]sx?$/.test(path)) return "Backend and API";
+  if (/^(src\/)?(db|database|migrations|prisma|supabase)\//i.test(path) || /(schema|migration|database)\.[cm]?[jt]sx?$/i.test(path)) return "Data and persistence";
+  if (/^src\/(engine|lib)\//.test(path)) return "Core logic and integrations";
+  if (/^src\/(components|pages|app|routes)\//.test(path)) return "UI and application flow";
+  if (/^(vite|webpack|rollup|tsconfig|eslint|prettier|postcss|tailwind|playwright|vitest|jest)/i.test(path) || /^(package(-lock)?\.json|pnpm-lock\.yaml|yarn\.lock)$/.test(path)) return "Build and dependencies";
+  if (/^(README|CONTRIBUTING|SECURITY|ROADMAP)\.md$/i.test(path)) return "Documentation and project policy";
   return null;
 }
 
