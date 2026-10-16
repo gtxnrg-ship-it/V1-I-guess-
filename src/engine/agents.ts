@@ -7,6 +7,7 @@ import { runtimeCheck, look } from "./eyes";
 import * as db from "./db";
 import * as P from "./prompts";
 import { SELF_STACK, selfWorkspace } from "./self";
+import { buildProjectContextPack } from "./project-memory";
 import type { AgentName, AssistantData, Block, Brief, Message, PlanStep, Role } from "./types";
 
 export type Scope = "app" | "self";
@@ -166,8 +167,20 @@ function filesSummary(ws: Workspace) {
 }
 
 function talkerSystem(scope: Scope) {
-  const env = Object.keys(db.project().env);
-  return `${P.TALKER}\n\n${scope === "self" ? `${SELF_STACK}\nYou are in the ADMIN panel talking to your creator about upgrading YOURSELF. Briefs here describe changes to your own code.` : `Current app: "${db.project().name}". ${db.project().repo ? `GitHub: ${db.project().repo}.` : "Not on GitHub yet (the Publish button ships it as a website + Android APK)."} ${env.length ? `App settings set: ${env.join(", ")}.` : "No app settings (Supabase keys) yet."}`}`;
+  const current = db.project();
+  const env = Object.keys(current.env);
+  const projectMemory = scope === "app" ? buildProjectContextPack({
+    projectName: current.name,
+    repository: current.repo,
+    baselineSha: current.repoBaseSha,
+    facts: current.memory?.facts || [],
+    decisions: current.memory?.decisions || [],
+    openQuestions: current.memory?.openQuestions || [],
+    recentSummary: current.memory?.recentSummary,
+    observedAt: current.memory?.observedAt,
+  }).text : "";
+  const appContext = `Current app: "${current.name}". ${current.repo ? `GitHub: ${current.repo}.` : "Not on GitHub yet (the Publish button ships it as a website + Android APK)."} ${env.length ? `App settings set: ${env.join(", ")}.` : "No app settings (Supabase keys) yet."}\n\n${projectMemory}`;
+  return `${P.TALKER}\n\n${scope === "self" ? `${SELF_STACK}\nYou are in the ADMIN panel talking to your creator about upgrading YOURSELF. Briefs here describe changes to your own code.` : appContext}`;
 }
 
 // ───────────── public: talk ─────────────
@@ -402,6 +415,7 @@ Size: ${brief.size}`;
     const pid = pidFor(scope);
     const summaryText = textOf(data) || brief.summary || "Built something new.";
     localStorage.setItem(`kuro_last_summary_${pid}`, summaryText);
+    if (scope === "app") db.saveProjectMemory({ recentSummary: summaryText });
     localStorage.setItem(`kuro_last_active_${pid}`, String(Date.now()));
   } catch {}
 }
