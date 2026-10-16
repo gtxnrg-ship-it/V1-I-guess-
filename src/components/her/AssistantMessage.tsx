@@ -17,7 +17,7 @@ import * as db from "@/engine/db";
 
 const ICONS: Record<string, any> = {
   list_files: FolderTree, read_file: FileText, write_file: FilePen, edit_file: FilePen, delete_file: Trash2, search_code: Search,
-  check_preview: Eye, look: Camera, web_search: Globe, read_url: BookOpen, search_npm: Package, search_github: Github, get_docs: BookOpen,
+  verify_project: Eye, look: Camera, web_search: Globe, read_url: BookOpen, search_npm: Package, search_github: Github, get_docs: BookOpen,
   save_research: Telescope, report_issues: ScanEye,
 };
 const AGENT_ICON: Record<string, any> = { Talker: MessageCircle, Researcher: Telescope, Planner: MapIcon, Builder: Hammer, Checker: ScanEye };
@@ -48,7 +48,7 @@ function StatChip({ stat }: { stat?: string }) {
 }
 
 function ToolRow({ b }: { b: ToolB }) {
-  const [open, setOpen] = useState(b.name === "look" || b.name === "report_issues");
+  const [open, setOpen] = useState(b.name === "look" || b.name === "report_issues" || b.name === "verify_project");
   const Icon = ICONS[b.name] || Cpu;
   const hasMore = !!(b.detail || b.sources?.length || b.thumbs?.length);
   return (
