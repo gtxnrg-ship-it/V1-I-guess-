@@ -7,7 +7,7 @@ import { runtimeCheck, look } from "./eyes";
 import * as db from "./db";
 import * as P from "./prompts";
 import { SELF_STACK, selfWorkspace } from "./self";
-import { buildProjectContextPack } from "./project-memory";
+import { buildProjectContextPack, parseProjectMemoryCommand, sanitizeProjectMemoryFact } from "./project-memory";
 import type { AgentName, AssistantData, Block, Brief, Message, PlanStep, Role } from "./types";
 
 export type Scope = "app" | "self";
@@ -188,6 +188,43 @@ export async function send(text: string, opts: { images?: Img[]; scope?: Scope }
   if (db.getState().busy) return;
   const scope = opts.scope || "app";
   const pid = pidFor(scope);
+
+  // Explicit memory controls are handled locally; the model cannot silently save guesses.
+  if (scope === "app" && !opts.images?.length) {
+    const command = parseProjectMemoryCommand(text);
+    if (command) {
+      const current = db.getState().projects.find((p) => p.id === pid);
+      const memory = current?.memory || { facts: [], decisions: [], openQuestions: [] };
+      let reply = "";
+      if (command.action === "remember") {
+        const entry = sanitizeProjectMemoryFact({
+          text: command.text, source: "user-confirmed", confidence: "high",
+          evidence: "Explicit user memory command", updatedAt: Date.now(),
+        });
+        if (!entry) reply = "I didn't save that because it resembles a credential or sensitive key. Remove secrets and try again.";
+        else {
+          const field = command.kind === "decision" ? "decisions" : "facts";
+          const existing = memory[field].filter((item) => item.text.toLocaleLowerCase() !== entry.text.toLocaleLowerCase());
+          db.saveProjectMemory({ [field]: [...existing, entry] }, pid);
+          reply = `Saved as a user-confirmed project ${command.kind}: “${entry.text}”.`;
+        }
+      } else if (command.action === "forget-all") {
+        db.saveProjectMemory({ facts: [], decisions: [], openQuestions: [], recentSummary: "" }, pid);
+        reply = "Cleared this project's saved facts, decisions, open questions, and summary.";
+      } else {
+        const needle = command.text.toLocaleLowerCase();
+        const facts = memory.facts.filter((item) => !item.text.toLocaleLowerCase().includes(needle));
+        const decisions = memory.decisions.filter((item) => !item.text.toLocaleLowerCase().includes(needle));
+        const openQuestions = memory.openQuestions.filter((item) => !item.toLocaleLowerCase().includes(needle));
+        const removed = memory.facts.length - facts.length + memory.decisions.length - decisions.length + memory.openQuestions.length - openQuestions.length;
+        db.saveProjectMemory({ facts, decisions, openQuestions }, pid);
+        reply = removed ? `Removed ${removed} saved memory item${removed === 1 ? "" : "s"} matching “${command.text}”.` : `No saved memory item matched “${command.text}”; nothing changed.`;
+      }
+      db.addMessage({ role: "user", content: text }, pid);
+      db.addMessage({ role: "assistant", content: reply, data: { blocks: [{ type: "text", text: reply }], models: [], done: true } }, pid);
+      return;
+    }
+  }
 
   // Session catch-up: if returning to an existing project after 30+ min, brief them
   const CATCHUP_KEY = `kuro_last_active_${pid}`;
