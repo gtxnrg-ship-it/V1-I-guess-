@@ -16,6 +16,7 @@ test.describe("Kuro-chan studio", () => {
     await expect(page.getByRole("heading", { name: "Your projects" })).toBeVisible();
     await page.getByTestId("tab-activity").click();
     await expect(page.getByRole("heading", { name: "Activity" })).toBeVisible();
+    await page.getByTestId("tab-keys").click();
     await page.getByRole("button", { name: /AI & models/i }).click();
     await expect(page.getByTestId("local-models-pane")).toBeVisible();
     await expect(page.getByTestId("tab-preview")).toHaveCount(0);
