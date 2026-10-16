@@ -16,8 +16,11 @@ test.describe("Kuro-chan studio", () => {
     await expect(page.getByTestId("sidebar-settings")).toBeVisible();
     await page.getByTestId("sidebar-projects").click();
     await expect(page.getByRole("heading", { name: "Your projects" })).toBeVisible();
+    // On phone, choosing a destination closes the drawer. Reopen it before the next navigation.
+    await page.getByTestId("button-open-sidebar").click();
     await page.getByTestId("sidebar-activity").click();
     await expect(page.getByRole("heading", { name: "Activity" })).toBeVisible();
+    await page.getByTestId("button-open-sidebar").click();
     await page.getByTestId("sidebar-settings").click();
     await page.getByRole("button", { name: /AI & models/i }).click();
     await expect(page.getByTestId("local-models-pane")).toBeVisible();
