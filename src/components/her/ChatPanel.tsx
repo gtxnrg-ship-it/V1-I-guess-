@@ -323,6 +323,8 @@ export function ChatPanel({ scope = "app", onOpenKeys, draft, setDraft, onSent }
               <input ref={fileRef} type="file" accept="image/*" multiple hidden data-testid="input-attach" onChange={(e) => { addFiles(e.target.files); e.target.value = ""; }} />
               <button data-testid="button-attach" aria-label="Attach image" title="Attach a screenshot or reference" onClick={() => fileRef.current?.click()}
                 className="grid h-8 w-8 place-items-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"><ImagePlus className="h-4 w-4" /></button>
+              {speaking && <button data-testid="button-stop-speaking" aria-label="Stop speaking" title="Stop Kuro-chan speaking now" onClick={() => stopAssistantSpeech(setSpeaking)}
+                className="grid h-8 w-8 place-items-center rounded-full bg-primary/15 text-primary hover:bg-primary/25"><Square className="h-3 w-3 fill-current" /></button>}
               <button data-testid="button-auto-voice" aria-label={(speechAvailable || premiumVoiceReady) ? autoVoice ? "Disable voice output" : "Enable voice output" : "Voice output unavailable"}
                 title={(speechAvailable || premiumVoiceReady) ? autoVoice ? "Kuro-chan will speak replies (Active)" : "Kuro-chan speaks replies" : "This browser does not support spoken replies"}
                 disabled={!(speechAvailable || premiumVoiceReady)}
