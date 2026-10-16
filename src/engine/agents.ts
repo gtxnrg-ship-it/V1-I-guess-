@@ -3,6 +3,7 @@ import { routedStream, bestFor, hasAnyModel } from "./router";
 import { LLMError, type HMsg, type Img } from "./llm";
 import { runTool, toolDefs, toolTitle, SETS, appWorkspace, type Workspace, type ToolOut } from "./tools";
 import { buildQaHarness } from "./qa-harness";
+import { projectFingerprint } from "./project-intelligence";
 import { runtimeCheck, look } from "./eyes";
 import * as db from "./db";
 import * as P from "./prompts";
@@ -165,9 +166,23 @@ function filesSummary(ws: Workspace) {
   return Object.keys(f).sort().map((p) => `${p} (${f[p].length}b)`).join("\n");
 }
 
+function savedProjectContext() {
+  const p = db.project();
+  const report = p.intelligence;
+  if (!report) return "No saved repository map is available yet. Use Delivery → Analyze to build one.";
+  if (report.fingerprint !== projectFingerprint(p.files)) return "The saved repository map is stale because source files changed. Do not rely on it; ask for a fresh analysis from the Delivery center.";
+  return [
+    report.summary,
+    "Architecture areas: " + report.architecture.join(", "),
+    "Available scripts: " + report.scripts.map((x) => x.name + "=" + x.command).slice(0, 20).join("; "),
+    "Key local relationships: " + report.importEdges.slice(0, 40).map((x) => x.from + " -> " + x.to).join("; "),
+    "Review signals: " + report.findings.slice(0, 10).map((x) => "[" + x.severity + "/" + x.confidence + "] " + x.title + " (" + x.files.join(", ") + ")").join("; "),
+  ].join("\n");
+}
+
 function talkerSystem(scope: Scope) {
   const env = Object.keys(db.project().env);
-  return `${P.TALKER}\n\n${scope === "self" ? `${SELF_STACK}\nYou are in the ADMIN panel talking to your creator about upgrading YOURSELF. Briefs here describe changes to your own code.` : `Current app: "${db.project().name}". ${db.project().repo ? `GitHub: ${db.project().repo}.` : "Not on GitHub yet (the Publish button ships it as a website + Android APK)."} ${env.length ? `App settings set: ${env.join(", ")}.` : "No app settings (Supabase keys) yet."}`}`;
+  return `${P.TALKER}\n\n${scope === "self" ? `${SELF_STACK}\nYou are in the ADMIN panel talking to your creator about upgrading YOURSELF. Briefs here describe changes to your own code.` : `Current app: "${db.project().name}". ${db.project().repo ? `GitHub: ${db.project().repo}.` : "Not on GitHub yet (use Publish to connect a repository)."} ${env.length ? `App settings set: ${env.join(", ")}.` : "No app settings (Supabase keys) yet."}\n\n${savedProjectContext()}`}`;
 }
 
 // ───────────── public: talk ─────────────
@@ -258,7 +273,7 @@ Features:
 ${brief.features.map((f) => `- ${f}`).join("\n")}
 Design direction: ${brief.design}
 Backend: ${brief.backend || "none"}
-Size: ${brief.size}`;
+Size: ${brief.size}\n\nPERSISTENT REPOSITORY CONTEXT\n${scope === "app" ? savedProjectContext() : "This is Kuro-chan source code, not the imported application."}`;
   const stack = scope === "self" ? SELF_STACK : `${P.STACK}`;
   const builderSystem = scope === "self" ? P.BUILDER.replace(P.STACK, SELF_STACK) : P.BUILDER;
 

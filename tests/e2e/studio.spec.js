@@ -10,6 +10,7 @@ test.describe("Kuro-chan studio", () => {
     await expect(page.getByTestId("button-publish")).toBeVisible();
     await expect(page.getByTestId("tab-code")).toBeVisible();
     await expect(page.getByTestId("tab-keys")).toBeVisible();
+    await expect(page.getByTestId("tab-delivery")).toBeVisible();
     await expect(page.getByTestId("local-models-pane")).toBeVisible();
     await expect(page.getByTestId("tab-preview")).toHaveCount(0);
     await expect(page.getByTestId("iframe-preview")).toHaveCount(0);
@@ -23,11 +24,22 @@ test.describe("Kuro-chan studio", () => {
     await expect(page.getByTestId("input-message")).toBeVisible();
     await expect(page.getByTestId("tab-mobile-code")).toBeVisible();
     await expect(page.getByTestId("tab-mobile-keys")).toBeVisible();
+    await expect(page.getByTestId("tab-mobile-delivery")).toBeVisible();
     await expect(page.getByTestId("tab-mobile-preview")).toHaveCount(0);
     await page.getByTestId("tab-mobile-code").click();
     await expect(page.getByText("Files", { exact: true })).toBeVisible();
     await page.getByTestId("tab-mobile-chat").click();
     await expect(page.getByTestId("input-message")).toBeVisible();
+  });
+
+  test("builds a persistent repository intelligence report in the delivery center", async ({ page }) => {
+    await page.goto("/studio", { waitUntil: "domcontentloaded" });
+    await page.getByTestId("tab-delivery").click();
+    await expect(page.getByTestId("delivery-pane")).toBeVisible();
+    await page.getByTestId("button-analyze-project").click();
+    await expect(page.getByText(/Analyzed \d+ files/)).toBeVisible();
+    await expect(page.getByText("Available scripts")).toBeVisible();
+    await expect(page.getByTestId("button-refresh-delivery")).toBeVisible();
   });
 
   test("exports the current project as a downloadable ZIP", async ({ page }) => {
