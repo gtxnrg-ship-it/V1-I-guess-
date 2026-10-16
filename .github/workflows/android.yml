@@ -2,17 +2,14 @@ name: Build Kuro-chan APK
 on:
   push:
     branches: [main]
-  pull_request:
-    types: [closed]
-    branches: [main]
   workflow_dispatch:
 
 permissions:
   contents: write
 
 concurrency:
-  group: apk
-  cancel-in-progress: true
+  group: apk-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   apk:
