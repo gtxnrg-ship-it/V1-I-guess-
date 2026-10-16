@@ -124,7 +124,7 @@ export async function init(seed: () => Record<string, string>) {
   if (!state.projects.length) createProject("New chat", seed());
   // Older installs started with a misleading placeholder name. Rename only an untouched default project.
   const initial = state.projects.find((p) => p.id === state.settings.activeProject);
-  if (initial?.name === "My App" && !initial.repo && !state.messages[initial.id]?.length) {
+  if (initial?.name === "My App" && !initial.repo && Object.keys(initial.files || {}).length === 0) {
     state.projects = state.projects.map((p) => p.id === initial.id ? { ...p, name: "New chat" } : p);
     persist("projects");
   }
