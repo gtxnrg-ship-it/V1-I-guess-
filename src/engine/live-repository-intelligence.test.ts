@@ -3,9 +3,15 @@ import { inspectGitHubRepository, type GitHubInspectionClient } from "./live-rep
 function clientWith(responses: Record<string, { status: number; json: any }>): GitHubInspectionClient {
   return {
     async req(_method, path) {
-      const match = Object.entries(responses).find(([key]) => path.includes(key));
-      if (!match) throw new Error(`Unexpected request: ${path}`);
-      return match[1];
+      const url = new URL(path, "https://api.github.com");
+      const key = url.pathname.endsWith("/repos/acme/app") ? "REPOSITORY"
+        : url.pathname.endsWith("/commits") ? "COMMITS"
+        : url.pathname.includes("/git/trees/") ? "TREE"
+        : url.pathname.endsWith("/actions/runs") ? "RUNS"
+        : "";
+      const match = responses[key];
+      if (!match) throw new Error(`Unexpected request: ${path} (mapped to ${key || "no fixture"})`);
+      return match;
     },
   };
 }
@@ -14,12 +20,12 @@ function assert(value: unknown, message: string): asserts value {
 }
 async function run() {
   const healthy = clientWith({
-    "/repos/acme/app": { status: 200, json: { default_branch: "trunk" } },
-    "/commits?": { status: 200, json: [{ sha: "abc123" }] },
-    "/git/trees/trunk": { status: 200, json: { truncated: false, tree: [
+    "REPOSITORY": { status: 200, json: { default_branch: "trunk" } },
+    "COMMITS": { status: 200, json: [{ sha: "abc123" }] },
+    "TREE": { status: 200, json: { truncated: false, tree: [
       { type: "blob", path: "package.json" }, { type: "blob", path: "src/main.tsx" }, { type: "blob", path: "README.md" },
     ] } },
-    "/actions/runs": { status: 200, json: { workflow_runs: [{ name: "CI", status: "completed", conclusion: "failure", html_url: "https://github.com/acme/app/actions/runs/1" }] } },
+    "RUNS": { status: 200, json: { workflow_runs: [{ name: "CI", status: "completed", conclusion: "failure", html_url: "https://github.com/acme/app/actions/runs/1" }] } },
   });
   const report = await inspectGitHubRepository(healthy, "https://github.com/acme/app.git");
   assert(report.repository === "acme/app", "normalizes repository URLs");
@@ -29,10 +35,10 @@ async function run() {
   assert(!report.diagnosis.safeToInitialize, "never initializes a non-empty repo");
 
   const unavailableTree = clientWith({
-    "/repos/acme/app": { status: 200, json: { default_branch: "main" } },
-    "/commits?": { status: 200, json: [{ sha: "abc123" }] },
-    "/git/trees/main": { status: 403, json: { message: "Forbidden" } },
-    "/actions/runs": { status: 403, json: { message: "Forbidden" } },
+    "REPOSITORY": { status: 200, json: { default_branch: "main" } },
+    "COMMITS": { status: 200, json: [{ sha: "abc123" }] },
+    "TREE": { status: 403, json: { message: "Forbidden" } },
+    "RUNS": { status: 403, json: { message: "Forbidden" } },
   });
   const unknown = await inspectGitHubRepository(unavailableTree, "acme/app");
   assert(unknown.diagnosis.condition === "unknown", "does not misclassify failed tree requests as empty");
