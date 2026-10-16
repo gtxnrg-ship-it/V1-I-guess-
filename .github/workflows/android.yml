@@ -2,21 +2,17 @@ name: Build Kuro-chan APK
 on:
   push:
     branches: [main]
-  pull_request:
-    types: [closed]
-    branches: [main]
   workflow_dispatch:
 
 permissions:
   contents: write
 
 concurrency:
-  group: apk
-  cancel-in-progress: true
+  group: apk-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   apk:
-    if: github.event_name != 'pull_request' || github.event.pull_request.merged == true
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -49,7 +45,7 @@ jobs:
       - uses: softprops/action-gh-release@v2
         if: steps.check_apk.outputs.apk_exists == 'true'
         with:
-          tag_name: ${{ github.event_name == 'pull_request' && format('build-pr-{0}-{1}', github.event.pull_request.number, github.sha) || format('build-{0}', github.run_number) }}
+          tag_name: build-${{ github.run_number }}
           name: Kuro-chan Android build ${{ github.run_number }}
           body: Install app-debug.apk on your Android phone (allow "install from unknown sources" when asked).
           files: android/app/build/outputs/apk/debug/app-debug.apk

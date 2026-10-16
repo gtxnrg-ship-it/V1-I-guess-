@@ -4,11 +4,10 @@
 
 ### Your open-source, GitHub-first AI app-building companion.
 
-Describe what you want to build. Kuro-chan helps plan it, research it, generate the code, check the result, and ship a website or Android APK through your GitHub repository.
+Describe what you want to build. Kuro-chan helps plan it, research it, generate the code, check the result, and deliver an Android APK through GitHub.
 
-[**Open the app**](https://gtxnrg-ship-it.github.io/V1-I-guess-/) · [Report a bug](https://github.com/gtxnrg-ship-it/V1-I-guess-/issues/new?template=bug_report.yml) · [Request a feature](https://github.com/gtxnrg-ship-it/V1-I-guess-/issues/new?template=feature_request.yml)
+[**Download the latest Android APK**](https://github.com/gtxnrg-ship-it/V1-I-guess-/releases/latest) · [Report a bug](https://github.com/gtxnrg-ship-it/V1-I-guess-/issues/new?template=bug_report.yml) · [Request a feature](https://github.com/gtxnrg-ship-it/V1-I-guess-/issues/new?template=feature_request.yml)
 
-[![Website deployment](https://github.com/gtxnrg-ship-it/V1-I-guess-/actions/workflows/pages.yml/badge.svg)](https://github.com/gtxnrg-ship-it/V1-I-guess-/actions/workflows/pages.yml)
 [![Android build](https://github.com/gtxnrg-ship-it/V1-I-guess-/actions/workflows/android.yml/badge.svg)](https://github.com/gtxnrg-ship-it/V1-I-guess-/actions/workflows/android.yml)
 [![Checks](https://github.com/gtxnrg-ship-it/V1-I-guess-/actions/workflows/check.yml/badge.svg)](https://github.com/gtxnrg-ship-it/V1-I-guess-/actions/workflows/check.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
@@ -33,19 +32,16 @@ AI app builders can be expensive or lock your work into one platform. Kuro-chan 
 
 > Kuro-chan is an actively developed project. Features and integrations can change; please report anything that does not work as described.
 
-## Try the latest Kuro-chan build
+## Download and update the Android APK
 
-Choose whichever is easiest on your phone:
+**[Download the latest Kuro-chan APK from GitHub Releases](https://github.com/gtxnrg-ship-it/V1-I-guess-/releases/latest)**
 
-| Option | Open / download | Best for |
-| --- | --- | --- |
-| **Website** | [Open Kuro-chan in your browser](https://gtxnrg-ship-it.github.io/V1-I-guess-/) | Try it immediately—no installation needed |
-| **Android APK** | [Download the APK](https://gtxnrg-ship-it.github.io/V1-I-guess-/download.html) | Install Kuro-chan as an Android app |
-| **APK release files** | [Get the latest APK from GitHub Releases](https://github.com/gtxnrg-ship-it/V1-I-guess-/releases/latest) | See the latest published build and its release notes |
+- **Automatic updates to the release:** when changes are pushed or merged into `main`, GitHub Actions starts a fresh Android APK build and publishes the APK to a new GitHub Release.
+- **Check build progress:** [Android APK workflow runs](https://github.com/gtxnrg-ship-it/V1-I-guess-/actions/workflows/android.yml).
+- **See what's changed:** open the latest release page for its build number and release notes.
+- **Install on Android:** download `app-debug.apk`, open it on your phone, and approve the Android “install unknown apps” prompt if asked. Only install builds you trust.
 
-**Want the newest changes?** The APK is built by GitHub Actions after changes reach `main`. If a change was just merged, give the [Android build workflow](https://github.com/gtxnrg-ship-it/V1-I-guess-/actions/workflows/android.yml) time to finish, then use the links above. The website deploys separately; its [deployment workflow](https://github.com/gtxnrg-ship-it/V1-I-guess-/actions/workflows/pages.yml) shows whether it has finished.
-
-**Installing the APK:** Android may ask you to allow your browser to install unknown apps. Only install APKs you trust. If you don't want to install anything, use the website option instead.
+A commit reaching `main` does not mean the APK is ready immediately. Wait for the Android workflow to succeed, then download the latest release. Failed or cancelled runs do not guarantee a new APK was published.
 
 ## How the agents work
 
@@ -65,7 +61,7 @@ Kuro-chan supports multiple AI providers and OpenAI-compatible endpoints. Provid
 
 ### Getting started with models
 
-1. Open **Settings / Keys** in the studio.
+1. Open **Settings** in the studio.
 2. Connect a supported provider using its official website and instructions.
 3. Review the detected models and available agent routing.
 4. Optionally connect an Ollama endpoint on a computer you control.
