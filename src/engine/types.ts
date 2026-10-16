@@ -1,3 +1,5 @@
+import type { ProjectMemoryFact } from "./project-memory";
+
 export interface ModelInfo {
   id: string;
   name?: string;
@@ -73,6 +75,14 @@ export interface Project {
   repo: string | null;
   /** Last remote commit observed when importing or successfully publishing this project. */
   repoBaseSha?: string;
+  /** Project-scoped long-term notes; saved with the project in IndexedDB. */
+  memory?: {
+    facts: ProjectMemoryFact[];
+    decisions: ProjectMemoryFact[];
+    openQuestions: string[];
+    recentSummary?: string;
+    observedAt?: number;
+  };
   shipped?: boolean;
   privateRepo?: boolean;
   env: Record<string, string>;
