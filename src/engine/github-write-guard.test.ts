@@ -32,6 +32,7 @@ async function runScenario(scenario: FetchScenario, options: { branch: string; f
       return new Response(JSON.stringify({ tree: { sha: "tree-sha" } }), { status: 200 });
     }
     if (path.endsWith("/git/trees")) return new Response(JSON.stringify({ sha: "new-tree" }), { status: 201 });
+    if (path.includes("/git/refs/heads/") && method === "PATCH") return new Response(JSON.stringify({ ref: path, object: { sha: "new-commit" } }), { status: 200 });
     if (path.endsWith("/git/commits") && method === "POST") return new Response(JSON.stringify({ sha: "new-commit" }), { status: 201 });
     return new Response(JSON.stringify({ message: `Unexpected request ${method} ${path}` }), { status: 500 });
   }) as typeof fetch;
