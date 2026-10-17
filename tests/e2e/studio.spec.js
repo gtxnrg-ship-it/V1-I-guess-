@@ -360,4 +360,90 @@ test.describe("Kuro-chan studio", () => {
     await expect(page.getByTestId("local-model-qwen3-4b")).toBeVisible();
     await expect(page.getByTestId("local-model-qwen3-0.6b")).toHaveCount(0);
   });
+
+  test("detects a seeded syntax failure, repairs it, and verifies the repaired app", async ({ page }) => {
+    let requestCount = 0;
+    const eventStream = (event) => "data: " + JSON.stringify(event) + "\n\ndata: [DONE]\n\n";
+    const toolEvent = (id, name, args) => ({
+      choices: [{ delta: { tool_calls: [{
+        index: 0, id, type: "function",
+        function: { name, arguments: JSON.stringify(args) },
+      }] } }],
+    });
+    const brief = toolEvent("call_repair_brief", "propose_brief", {
+      title: "Failure recovery smoke test",
+      summary: "Create a tiny app, catch an intentional syntax error, and repair it.",
+      features: ["One small screen"],
+      design: "Minimal and clear",
+      backend: "none",
+      size: "full",
+    });
+    const research = toolEvent("call_repair_research", "save_research", {
+      notes: "This is a controlled recovery test. No dependencies or backend are needed.",
+    });
+    const plan = toolEvent("call_repair_plan", "submit_plan", {
+      title: "Build and verify one screen",
+      steps: [{
+        title: "Create the screen",
+        detail: "Write src/App.tsx, then verify and repair any syntax error.",
+        files: ["src/App.tsx"],
+      }],
+    });
+    const broken = toolEvent("call_seed_broken_file", "write_file", {
+      path: "src/App.tsx",
+      content: "export default function App() { return <main>; }",
+    });
+    const verify = toolEvent("call_verify_seeded_failure", "verify_project", {});
+    const repaired = toolEvent("call_repair_file", "write_file", {
+      path: "src/App.tsx",
+      content: "export default function App() { return <main>Repair succeeded</main>; }",
+    });
+    const verifyClean = toolEvent("call_verify_repaired_app", "verify_project", {});
+    const finalReply = {
+      choices: [{ delta: { content: "I caught the seeded syntax error, repaired the screen, and verified the result." } }],
+    };
+
+    await page.route("https://text.pollinations.ai/openai/chat/completions", async (route) => {
+      if (route.request().method() === "OPTIONS") {
+        await route.fulfill({
+          status: 204,
+          headers: {
+            "access-control-allow-origin": "*",
+            "access-control-allow-methods": "POST, OPTIONS",
+            "access-control-allow-headers": "authorization, content-type",
+          },
+        });
+        return;
+      }
+
+      requestCount += 1;
+      const events = [brief, research, plan, broken, verify, repaired, verifyClean, finalReply];
+      const event = events[requestCount - 1] || finalReply;
+      await route.fulfill({
+        status: 200,
+        headers: {
+          "access-control-allow-origin": "*",
+          "content-type": "text/event-stream; charset=utf-8",
+          "cache-control": "no-cache",
+        },
+        body: eventStream(event),
+      });
+    });
+
+    await page.goto("/studio", { waitUntil: "domcontentloaded" });
+    await page.getByTestId("input-message").fill("Build a tiny screen. If the first version has an error, fix it and verify the final result.");
+    await page.getByTestId("button-send").click();
+    await expect(page.getByTestId("button-build-it")).toBeVisible({ timeout: 10_000 });
+    await page.getByTestId("button-build-it").click();
+
+    await expect(page.getByText(/BUILD ERRORS:/)).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByText("Builds and runs cleanly.")).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByText(/I caught the seeded syntax error, repaired the screen/)).toBeVisible({ timeout: 30_000 });
+    expect(requestCount).toBe(8);
+
+    await page.getByTestId("sidebar-preview").click();
+    const preview = page.frameLocator('[data-testid="project-preview-frame"]');
+    await expect(preview.getByText("Repair succeeded")).toBeVisible({ timeout: 10_000 });
+  });
+
 });
