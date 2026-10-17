@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Moon, Sun, Github, Code2, KeyRound, MessageCircle, Loader2, Rocket, ExternalLink, ChevronDown, Check, Plus, Pencil, Trash2, Download, Globe, FolderKanban, Activity, Menu, X, MoreHorizontal, PanelLeftClose, Archive, Palette, RefreshCw, Eye, Brain } from "lucide-react";
 import { downloadZip } from "@/lib/zip";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -18,6 +18,7 @@ import { VisualIntentStudio } from "@/components/her/VisualIntentStudio";
 import { PreviewPane } from "@/components/her/PreviewPane";
 import * as db from "@/engine/db";
 import { GH } from "@/engine/github";
+import { runGitHubDeviceFlow } from "@/engine/github-device-flow";
 import { inspectGitHubRepository } from "@/engine/live-repository-intelligence";
 import { shipFiles, syncDependencies } from "@/engine/ship";
 import { starterFiles, type StarterVariant } from "@/engine/template";
@@ -152,6 +153,7 @@ function ProjectMenu({ busy, onSwitched }: { busy: boolean; onSwitched: () => vo
   const [name, setName] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [oauthBusy, setOauthBusy] = useState(false);
+  const oauthAbortRef = useRef<AbortController | null>(null);
   const [oauthCode, setOauthCode] = useState("");
   const [oauthUrl, setOauthUrl] = useState("https://github.com/login/device");
   const [oauthMessage, setOauthMessage] = useState("");
@@ -202,70 +204,54 @@ function ProjectMenu({ busy, onSwitched }: { busy: boolean; onSwitched: () => vo
     return !needle || repo.full_name.toLowerCase().includes(needle) || (repo.description || "").toLowerCase().includes(needle);
   }).slice(0, 50);
 
+  useEffect(() => {
+    if (dialog !== "import" && oauthAbortRef.current) {
+      oauthAbortRef.current.abort();
+      oauthAbortRef.current = null;
+      setOauthBusy(false);
+    }
+  }, [dialog]);
+
   const connectGitHub = async () => {
     const clientId = import.meta.env.VITE_GITHUB_APP_CLIENT_ID?.trim();
     if (!clientId) {
       setOauthMessage("GitHub sign-in needs the public GitHub App client ID. Register a GitHub App with Device Flow enabled, then add VITE_GITHUB_APP_CLIENT_ID to the app build environment. GitHub tokens stay in memory for this session; reconnect after restarting Kuro-chan. No client secret belongs in this app.");
       return;
     }
+    oauthAbortRef.current?.abort();
+    const controller = new AbortController();
+    oauthAbortRef.current = controller;
     setOauthBusy(true);
     setOauthMessage("Starting secure GitHub authorization…");
     setOauthCode("");
     try {
-      const deviceResponse = await fetch("https://github.com/login/device/code", {
-        method: "POST",
-        headers: { Accept: "application/json", "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({ client_id: clientId }),
+      const token = await runGitHubDeviceFlow({
+        clientId,
+        signal: controller.signal,
+        onCode: (code, url) => { setOauthCode(code); setOauthUrl(url); },
+        onStatus: setOauthMessage,
       });
-      if (!deviceResponse.ok) throw new Error(`GitHub authorization setup failed (${deviceResponse.status}). Check the GitHub App's Device Flow setting and try again.`);
-      const device = await deviceResponse.json();
-      if (!device.device_code || !device.user_code || !device.verification_uri) {
-        throw new Error(device.error_description || device.error || "GitHub did not return a device authorization code.");
-      }
-      setOauthCode(device.user_code);
-      setOauthUrl(device.verification_uri);
-      setOauthMessage("Open GitHub, enter the code shown below, and approve access. Keep this window open while Kuro-chan waits.");
-      let interval = Math.max(5, Number(device.interval) || 5);
-      const expiresAt = Date.now() + Math.max(60, Number(device.expires_in) || 900) * 1000;
-      while (Date.now() < expiresAt) {
-        await new Promise((resolve) => window.setTimeout(resolve, interval * 1000));
-        const poll = await fetch("https://github.com/login/oauth/access_token", {
-          method: "POST",
-          headers: { Accept: "application/json", "Content-Type": "application/x-www-form-urlencoded" },
-          body: new URLSearchParams({
-            client_id: clientId,
-            device_code: device.device_code,
-            grant_type: "urn:ietf:params:oauth:grant-type:device_code",
-          }),
-        });
-        const result = await poll.json();
-        if (result.access_token) {
-          const token = String(result.access_token);
-          const login = await new GH(token).me();
-          db.getState().keys.filter((key) => key.provider === "github").forEach((key) => db.removeKey(key.id));
-          db.addKey({
-            id: db.uid(), label: `GitHub (@${login})`, kind: "github", provider: "github",
-            secret: token, hint: `••••${token.slice(-4)}`, models: [], status: "active",
-            requests: 0, errors: 0, login, createdAt: Date.now(),
-          });
-          setOauthMessage(`Connected for this session as @${login}. Choose a repository below to start a dedicated chat.`);
-          setOauthCode("");
-          toast({ title: "GitHub connected", description: `Signed in as @${login}. You can now import a repository during this session.` });
-          return;
-        }
-        if (result.error === "authorization_pending") continue;
-        if (result.error === "slow_down") { interval += 5; continue; }
-        if (result.error === "expired_token") throw new Error("That authorization code expired. Start again to get a fresh code.");
-        if (result.error === "access_denied") throw new Error("GitHub authorization was cancelled.");
-        throw new Error(result.error_description || result.error || "GitHub authorization failed.");
-      }
-      throw new Error("That authorization code expired. Start again to get a fresh code.");
+      if (controller.signal.aborted) return;
+      // Validate the token with GitHub before adding it to the session.
+      const login = await new GH(token).me();
+      if (controller.signal.aborted) return;
+      db.getState().keys.filter((key) => key.provider === "github").forEach((key) => db.removeKey(key.id));
+      db.addKey({
+        id: db.uid(), label: `GitHub (@${login})`, kind: "github", provider: "github",
+        secret: token, hint: `••••${token.slice(-4)}`, models: [], status: "active",
+        requests: 0, errors: 0, login, createdAt: Date.now(),
+      });
+      setOauthMessage(`Connected for this session as @${login}. Choose a repository below to start a dedicated chat.`);
+      setOauthCode("");
+      toast({ title: "GitHub connected", description: `Signed in as @${login}. You can now import a repository during this session.` });
     } catch (error) {
+      if (controller.signal.aborted) return;
       const message = errMsg(error);
       setOauthMessage(message.includes("Failed to fetch") || message.includes("NetworkError")
-        ? "Kuro-chan couldn't reach GitHub's device authorization endpoint from this app. The GitHub App must be configured and this platform must reach GitHub's Device Flow endpoints; no token was saved."
+        ? "Kuro-chan couldn't reach GitHub's device authorization endpoint from this app. Check the network and GitHub App Device Flow configuration; no token was saved."
         : message);
     } finally {
+      if (oauthAbortRef.current === controller) oauthAbortRef.current = null;
       setOauthBusy(false);
     }
   };
@@ -369,6 +355,7 @@ function ProjectMenu({ busy, onSwitched }: { busy: boolean; onSwitched: () => vo
                 {oauthBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Github className="h-4 w-4" />}
                 {oauthBusy ? "Waiting for GitHub approval…" : oauthCode ? "Restart GitHub sign-in" : "Connect GitHub"}
               </button>
+              {oauthBusy && <button type="button" onClick={() => { oauthAbortRef.current?.abort(); setOauthMessage("Cancelling GitHub sign-in…"); }} className="mt-2 w-full rounded-lg px-3 py-2 text-xs text-muted-foreground hover:bg-muted">Cancel sign-in</button>}
               {oauthMessage && <p role="status" className="mt-2 text-xs leading-relaxed text-muted-foreground">{oauthMessage}</p>}
             </div>
           )}
