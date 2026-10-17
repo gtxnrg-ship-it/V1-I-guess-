@@ -9,6 +9,7 @@ import { HerOrb } from "./Logo";
 import { compressImage, imgSrc, haptic } from "@/lib/kuro";
 import * as agents from "@/engine/agents";
 import * as db from "@/engine/db";
+import { generateKokoroWav } from "@/engine/local-voice";
 import { tryEgg } from "@/engine/admin";
 import type { Img, Message } from "@/engine/types";
 
@@ -32,7 +33,7 @@ let activeAudioUrl: string | null = null;
 // a slow TTS network response can begin speaking again after the user presses Stop.
 let speechGeneration = 0;
 
-function stopAssistantSpeech(onSpeaking: (speaking: boolean) => void = () => {}) {
+function stopAssistantSpeech(onSpeaking: (speaking: boolean) => void = () => {}, onLoading: (loading: boolean) => void = () => {}) {
   speechGeneration += 1;
   if (typeof window !== "undefined" && "speechSynthesis" in window) window.speechSynthesis.cancel();
   if (typeof window !== "undefined" && isNativeApp()) void TextToSpeech.stop().catch(() => {});
@@ -48,19 +49,72 @@ function stopAssistantSpeech(onSpeaking: (speaking: boolean) => void = () => {})
     URL.revokeObjectURL(activeAudioUrl);
     activeAudioUrl = null;
   }
+  onLoading(false);
   onSpeaking(false);
 }
 
-async function speakAssistantReply(text: string, voiceProvider: "browser" | "openai", openaiKey?: string, onSpeaking: (speaking: boolean) => void = () => {}, speed = 1) {
+async function speakAssistantReply(text: string, voiceProvider: "browser" | "openai" | "kokoro", openaiKey?: string, onSpeaking: (speaking: boolean) => void = () => {}, speed = 1, voiceName = "af_heart", onLoading: (loading: boolean) => void = () => {}, onFallback: (message: string) => void = () => {}) {
   const safeText = text
     .replace(/```[\s\S]*?```/g, "Code block omitted.")
     .replace(/[*_#`\[\]()]/g, "")
     .trim();
 
   if (!safeText) return;
-  stopAssistantSpeech(onSpeaking);
+  stopAssistantSpeech(onSpeaking, onLoading);
   const generation = speechGeneration;
   const isCurrentSpeech = () => generation === speechGeneration;
+
+  if (voiceProvider === "kokoro") {
+    onLoading(true);
+    try {
+      const blob = await generateKokoroWav(safeText.slice(0, 4096), voiceName, speed);
+      onLoading(false);
+      if (!isCurrentSpeech()) return;
+      const url = URL.createObjectURL(blob);
+      const audio = new Audio(url);
+      activeAudioUrl = url;
+      activeRemoteAudio = audio;
+      audio.onplay = () => { if (isCurrentSpeech()) onSpeaking(true); };
+      const release = () => {
+        if (activeRemoteAudio === audio) activeRemoteAudio = null;
+        if (activeAudioUrl === url) activeAudioUrl = null;
+        URL.revokeObjectURL(url);
+        if (isCurrentSpeech()) onSpeaking(false);
+      };
+      audio.onended = release;
+      audio.onerror = release;
+      try {
+        await audio.play();
+        if (!isCurrentSpeech()) {
+          if (activeRemoteAudio === audio) {
+            audio.onended = null;
+            audio.onerror = null;
+            audio.pause();
+            activeRemoteAudio = null;
+          }
+          if (activeAudioUrl === url) activeAudioUrl = null;
+          URL.revokeObjectURL(url);
+          return;
+        }
+        return;
+      } catch (error) {
+        if (!isCurrentSpeech()) return;
+        if (activeRemoteAudio === audio) {
+          audio.onended = null;
+          audio.onerror = null;
+          audio.pause();
+          activeRemoteAudio = null;
+        }
+        if (activeAudioUrl === url) activeAudioUrl = null;
+        URL.revokeObjectURL(url);
+        onFallback(error instanceof Error ? error.message : "Local audio playback was blocked.");
+      }
+    } catch (error) {
+      onLoading(false);
+      if (!isCurrentSpeech()) return;
+      onFallback(error instanceof Error ? error.message : String(error));
+    }
+  }
 
   if (voiceProvider === "openai" && openaiKey) {
     try {
@@ -171,13 +225,16 @@ export function ChatPanel({ scope = "app", onOpenKeys, draft, setDraft, onSent }
   const [images, setImages] = useState<Img[]>([]);
   const autoVoice = st.settings.voiceAutoSpeak !== false;
   const [speaking, setSpeaking] = useState(false);
+  const [voiceLoading, setVoiceLoading] = useState(false);
+  const localVoiceFallbackShown = useRef(false);
   const prevRunning = useRef(running);
   const initialMessage = messages[messages.length - 1];
   const lastSpokenId = useRef(initialMessage?.role === "assistant" && initialMessage.data?.done ? initialMessage.id : "");
   const nativeVoiceAvailable = typeof window !== "undefined" && isNativeApp();
   const speechAvailable = nativeVoiceAvailable || (typeof window !== "undefined" && "speechSynthesis" in window);
   const premiumVoiceReady = !!db.keyOf("openai");
-  const voiceProvider = st.settings.voiceProvider === "openai" && premiumVoiceReady ? "openai" : "browser";
+  const voiceProvider = st.settings.voiceProvider === "kokoro" ? "kokoro" : st.settings.voiceProvider === "openai" && premiumVoiceReady ? "openai" : "browser";
+  const voiceOutputAvailable = speechAvailable || premiumVoiceReady || voiceProvider === "kokoro";
   const fileRef = useRef<HTMLInputElement>(null);
   const dict = useDictation(draft, setDraft, (m) => { haptic("error"); toast({ title: "Voice input", description: m }); });
 
@@ -194,11 +251,25 @@ export function ChatPanel({ scope = "app", onOpenKeys, draft, setDraft, onSent }
     if (last && last.role === "assistant" && last.data?.done && lastSpokenId.current !== last.id) {
       lastSpokenId.current = last.id;
       const text = (last.data.blocks || []).filter((b: any) => b.type === "text").map((b: any) => b.text).join("\n\n");
-      if (text.trim()) void speakAssistantReply(text, voiceProvider, db.keyOf("openai")?.secret, setSpeaking, st.settings.voiceSpeed ?? 1);
+      if (text.trim()) void speakAssistantReply(
+        text,
+        voiceProvider,
+        db.keyOf("openai")?.secret,
+        setSpeaking,
+        st.settings.voiceSpeed ?? 1,
+        st.settings.voiceName || "af_heart",
+        setVoiceLoading,
+        (message) => {
+          if (voiceProvider === "kokoro" && !localVoiceFallbackShown.current) {
+            localVoiceFallbackShown.current = true;
+            toast({ title: "Using device voice instead", description: "Local Kokoro voice could not start. " + message.slice(0, 160) });
+          }
+        },
+      );
     }
-  }, [messages, running, autoVoice, voiceProvider, st.settings.voiceSpeed]);
+  }, [messages, running, autoVoice, voiceProvider, st.settings.voiceSpeed, st.settings.voiceName, toast]);
   useEffect(() => () => {
-    stopAssistantSpeech(setSpeaking);
+    stopAssistantSpeech(setSpeaking, setVoiceLoading);
   }, []);
   const addFiles = async (files: FileList | File[] | null) => {
     const list = Array.from(files || []).filter((f) => f.type.startsWith("image/"));
@@ -361,23 +432,23 @@ export function ChatPanel({ scope = "app", onOpenKeys, draft, setDraft, onSent }
             className="block w-full resize-none bg-transparent px-4 pb-1 pt-3.5 text-[15px] leading-relaxed outline-none placeholder:text-muted-foreground/70"
           />
           <div className="flex items-center gap-2 px-2.5 pb-2.5 pt-1">
-            <span className="min-w-0 flex-1 truncate pl-1.5 text-[11.5px] text-muted-foreground/80">{running ? "Working…" : nativeVoiceAvailable ? (speaking ? "Kuro-chan is speaking…" : autoVoice ? "Device voice ready" : "Tap the speaker to enable voice") : !(speechAvailable || premiumVoiceReady) ? "Voice needs a supported browser or an API key." : autoVoice ? (voiceProvider === "openai" ? "AI voice enabled" : "Device voice enabled") : "Type or talk — either works."}</span>
+            <span className="min-w-0 flex-1 truncate pl-1.5 text-[11.5px] text-muted-foreground/80">{running ? "Working…" : voiceLoading ? "Preparing Kuro-chan’s local voice…" : speaking ? "Kuro-chan is speaking…" : nativeVoiceAvailable ? (autoVoice ? voiceProvider === "kokoro" ? "Kokoro local voice ready" : "Device voice ready" : "Tap the speaker to enable voice") : !voiceOutputAvailable ? "Voice needs a supported browser or an API key." : autoVoice ? (voiceProvider === "openai" ? "AI voice enabled" : voiceProvider === "kokoro" ? "Kokoro local voice enabled" : "Device voice enabled") : "Type or talk — either works."}</span>
             <div className="ml-auto flex items-center gap-1">
               <input ref={fileRef} type="file" accept="image/*" multiple hidden data-testid="input-attach" onChange={(e) => { addFiles(e.target.files); e.target.value = ""; }} />
               <button data-testid="button-attach" aria-label="Attach image" title="Attach a screenshot or reference" onClick={() => fileRef.current?.click()}
                 className="grid h-8 w-8 place-items-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"><ImagePlus className="h-4 w-4" /></button>
-              {speaking && <button data-testid="button-stop-speaking" aria-label="Stop speaking" title="Stop Kuro-chan speaking now" onClick={() => stopAssistantSpeech(setSpeaking)}
+              {(speaking || voiceLoading) && <button data-testid="button-stop-speaking" aria-label="Stop voice output" title="Stop Kuro-chan's voice output" onClick={() => stopAssistantSpeech(setSpeaking, setVoiceLoading)}
                 className="grid h-8 w-8 place-items-center rounded-full bg-primary/15 text-primary hover:bg-primary/25"><Square className="h-3 w-3 fill-current" /></button>}
-              <button data-testid="button-auto-voice" aria-label={(speechAvailable || premiumVoiceReady) ? autoVoice ? "Disable voice output" : "Enable voice output" : "Voice output unavailable"}
-                title={(speechAvailable || premiumVoiceReady) ? autoVoice ? "Kuro-chan will speak replies (Active)" : "Kuro-chan speaks replies" : "Voice needs a supported browser or an API key"}
-                disabled={!(speechAvailable || premiumVoiceReady)}
+              <button data-testid="button-auto-voice" aria-label={voiceOutputAvailable ? autoVoice ? "Disable voice output" : "Enable voice output" : "Voice output unavailable"}
+                title={voiceOutputAvailable ? autoVoice ? "Kuro-chan will speak replies (Active)" : "Kuro-chan speaks replies" : "Voice needs a supported browser or an API key"}
+                disabled={!voiceOutputAvailable}
                 onClick={() => {
                   if (!autoVoice && !running) {
                     const last = messages[messages.length - 1];
                     if (last?.role === "assistant" && last.data?.done) lastSpokenId.current = last.id;
                   }
                   db.setSettings({ voiceAutoSpeak: !autoVoice });
-                  if (autoVoice) stopAssistantSpeech(setSpeaking);
+                  if (autoVoice) stopAssistantSpeech(setSpeaking, setVoiceLoading);
                 }}
                 className={`grid h-8 w-8 place-items-center rounded-full transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${autoVoice ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}>
                 {autoVoice ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}

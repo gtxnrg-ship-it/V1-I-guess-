@@ -9,7 +9,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "check": "tsc --noEmit",
-    "test": "npx --yes tsx@4.20.6 src/lib/kuro.test.ts && npx --yes tsx@4.20.6 src/lib/local-models.test.ts && npx --yes tsx@4.20.6 src/engine/github-auth.test.ts && npx --yes tsx@4.20.6 src/engine/github-repositories.test.ts && npx --yes tsx@4.20.6 src/engine/github-session.test.ts && npx --yes tsx@4.20.6 src/engine/repository-diagnosis.test.ts && npx --yes tsx@4.20.6 src/engine/project-memory.test.ts && npx --yes tsx@4.20.6 src/engine/live-repository-intelligence.test.ts && npx --yes tsx@4.20.6 src/engine/platform.test.ts && npx --yes tsx@4.20.6 src/engine/db.test.ts && npx --yes tsx@4.20.6 src/engine/language-toolchains.test.ts && npx --yes tsx@4.20.6 src/engine/workflow-failure-diagnostics.test.ts",
+    "test": "npx --yes tsx@4.20.6 src/lib/kuro.test.ts && npx --yes tsx@4.20.6 src/lib/local-models.test.ts && npx --yes tsx@4.20.6 src/engine/github-auth.test.ts && npx --yes tsx@4.20.6 src/engine/github-repositories.test.ts && npx --yes tsx@4.20.6 src/engine/github-session.test.ts && npx --yes tsx@4.20.6 src/engine/repository-diagnosis.test.ts && npx --yes tsx@4.20.6 src/engine/project-memory.test.ts && npx --yes tsx@4.20.6 src/engine/live-repository-intelligence.test.ts && npx --yes tsx@4.20.6 src/engine/platform.test.ts && npx --yes tsx@4.20.6 src/engine/db.test.ts && npx --yes tsx@4.20.6 src/engine/language-toolchains.test.ts && npx --yes tsx@4.20.6 src/engine/workflow-failure-diagnostics.test.ts && npx --yes tsx@4.20.6 src/engine/local-voice.test.ts",
     "e2e": "playwright test"
   },
   "dependencies": {
