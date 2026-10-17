@@ -53,6 +53,6 @@ export async function searchRepositoryCode(client: RepositoryFileClient, input: 
   }
   if (response.status >= 300) throw new Error(`GitHub code search failed (HTTP ${response.status}): ${response.json?.message || "request failed"}`);
   const items = Array.isArray(response.json?.items) ? response.json.items : [];
-  const lines = items.map((item: any, index: number) => `${index + 1}. ${item.path || "(unknown path)"}}\n   ${item.html_url || ""}${item.text_matches?.[0]?.fragment ? `\n   ${String(item.text_matches[0].fragment).slice(0, 240)}` : ""}`).join("\n");
+  const lines = items.map((item: any, index: number) => `${index + 1}. ${item.path || "(unknown path)"}\n   ${item.html_url || ""}${item.text_matches?.[0]?.fragment ? `\n   ${String(item.text_matches[0].fragment).slice(0, 240)}` : ""}`).join("\n");
   return { result: lines || `No code matches for "${query}" were returned by GitHub for ${repo.fullName}. Try a distinctive symbol or phrase.`, stat: `${items.length} matches`, sources: items.slice(0, 10).filter((item: any) => item.html_url).map((item: any) => ({ title: item.path || item.name || "Repository match", url: item.html_url })) };
 }
