@@ -80,7 +80,7 @@ Current foundations include:
 
 ### Important limitations
 
-The current sidebar can show projects already opened in Kuro-chan, but that should not be confused with a finished GitHub OAuth repository browser. A complete OAuth sign-in flow, repository discovery, permission-aware import, branch-aware synchronization, and safe conflict handling remain planned work unless explicitly confirmed in the code and tested.
+The current sidebar can show projects already opened in Kuro-chan, but that should not be confused with the finished installation-based GitHub App experience. In-app installation, repository discovery, scoped installation tokens, branch-aware synchronization, and safe conflict handling remain incomplete until implemented and tested.
 
 Likewise, the long-term vision includes more advanced autonomous engineering, richer voice conversations, model routing, deeper QA, and broader device support. Project memory is currently bounded and user-controlled; automatic extraction of every preference or repository fact is not implemented. Listing an item on the roadmap does not mean it is already implemented.
 
