@@ -1,5 +1,6 @@
 import { describeCredentialFindings, findCredentialLeaks } from "./secrets";
 import { GH } from "./github";
+import { memoryWorkspace, runTool } from "./tools";
 
 function assert(condition: boolean, message: string) {
   if (!condition) throw new Error(`Assertion failed: ${message}`);
@@ -31,6 +32,25 @@ function testAllowsClearlyFakePlaceholdersAndIgnoresDeletes() {
   assert(findings.length === 0, "placeholders, deleted files, and environment-variable guidance should be allowed");
 }
 
+async function testGeneratedFileWritesAreBlockedBeforeMutation() {
+  const ws = memoryWorkspace("test project", { "src/config.ts": "export const setting = true;" });
+  const leaked = "sk-proj-" + "e".repeat(32);
+  const write = await runTool(ws, "write_file", {
+    path: "src/config.ts",
+    content: `export const apiKey = "${leaked}";`,
+  });
+  assert(write.result.includes("blocked this write"), "write_file should reject a hard-coded credential");
+  assert(ws.all()["src/config.ts"] === "export const setting = true;", "blocked write must leave the original file unchanged");
+
+  const edit = await runTool(ws, "edit_file", {
+    path: "src/config.ts",
+    find: "export const setting = true;",
+    replace: `export const apiKey = "${leaked}";`,
+  });
+  assert(edit.result.includes("blocked this edit"), "edit_file should reject a hard-coded credential");
+  assert(ws.all()["src/config.ts"] === "export const setting = true;", "blocked edit must leave the original file unchanged");
+}
+
 async function testPublishGuardRunsBeforeNetwork() {
   const originalFetch = globalThis.fetch;
   let calls = 0;
@@ -56,5 +76,6 @@ async function testPublishGuardRunsBeforeNetwork() {
 
 testDetectsKnownCredentialsWithoutReturningValues();
 testAllowsClearlyFakePlaceholdersAndIgnoresDeletes();
+await testGeneratedFileWritesAreBlockedBeforeMutation();
 await testPublishGuardRunsBeforeNetwork();
 console.log("Credential leak prevention tests passed");
