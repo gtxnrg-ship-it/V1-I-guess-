@@ -8,6 +8,7 @@ import { getState, project, writeFile, deleteFile, set, keyOf } from "./db";
 import { GH } from "./github";
 import { readRepositoryFile, searchRepositoryCode } from "./repository-files";
 import { credentialGuardMessage } from "./secrets";
+import { runGitHubChecks } from "./github-check-runner";
 
 /** Files an agent can work on: the user's app, or (admin only) Kuro-chan's own source. */
 export interface Workspace {
@@ -75,6 +76,7 @@ export const TOOLS: Record<string, Def> = {
   list_files: { name: "list_files", description: "List every file in the project with sizes.", parameters: obj({}), title: () => "Listed files" },
   read_file: { name: "read_file", description: "Read a file.", parameters: obj({ path: str("File path, e.g. src/App.tsx") }, ["path"]), title: (a) => `Read ${a.path}` },
   search_code: { name: "search_code", description: "Find which files contain some text (case-insensitive). Returns file:line matches.", parameters: obj({ text: str("Text to look for") }, ["text"]), title: (a) => `Searched the code for “${String(a.text).slice(0, 40)}”` },
+  run_github_checks: { name: "run_github_checks", description: "Dispatch and wait for the repository’s existing GitHub Actions check.yml workflow on the currently published branch. This checks remote contents only; it does not upload or verify unsaved local workspace changes. Use only when asked to verify a published commit or after changes have been published.", parameters: obj({ branch: str("Optional branch to check; defaults to the repository default branch or the project selected branch") }), title: () => "Ran GitHub checks" },
   read_repository_file: { name: "read_repository_file", description: "Read actual contents of a path from the linked GitHub repository. Uses this project’s selected source ref when configured; otherwise defaults to the repository default branch. Pass branch to override with an exact branch, tag, or commit. Read-only.", parameters: obj({ path: str("Repository-relative file path, e.g. src/engine/router.ts"), branch: str("Optional exact branch, tag, or commit ref; omit for the default branch") }, ["path"]), title: (a) => "Read GitHub file " + String(a.path).slice(0, 45) + (a.branch ? " @ " + String(a.branch).slice(0, 30) : "") },
   search_repository_code: { name: "search_repository_code", description: "Search the linked GitHub repository for a distinctive symbol or phrase. Uses the project-selected source ref when configured and reports bounded scan coverage; then read relevant files with read_repository_file.", parameters: obj({ query: str("Distinctive code symbol or phrase to search for") }, ["query"]), title: (a) => "Searched GitHub code for “" + String(a.query).slice(0, 40) + "”" },
   write_file: { name: "write_file", description: "Create or fully overwrite a file. Always write the complete content.", parameters: obj({ path: str("File path"), content: str("Full file content") }, ["path", "content"]), title: (a) => `Wrote ${a.path}` },
@@ -97,7 +99,7 @@ export const TOOLS: Record<string, Def> = {
 };
 
 export const SETS = {
-  talk: ["list_files", "read_file", "read_repository_file", "search_repository_code", "web_search", "ask_user", "propose_brief"],
+  talk: ["list_files", "read_file", "read_repository_file", "search_repository_code", "run_github_checks", "web_search", "ask_user", "propose_brief"],
   research: ["web_search", "read_url", "search_npm", "search_github", "get_docs", "find_photos", "list_files", "read_file", "read_repository_file", "search_repository_code", "save_research"],
   plan: ["list_files", "read_file", "search_code", "read_repository_file", "search_repository_code", "submit_plan"],
   build: ["list_files", "read_file", "search_code", "read_repository_file", "search_repository_code", "write_file", "edit_file", "delete_file", "verify_project", "get_docs", "web_search", "find_photos", "generate_image", "share_sql"],
@@ -143,6 +145,13 @@ export async function runTool(ws: Workspace, name: string, a: any): Promise<Tool
       const hits: string[] = [];
       for (const [p, c] of Object.entries(files)) c.split("\n").forEach((l, i) => { if (hits.length < 60 && l.toLowerCase().includes(t)) hits.push(`${p}:${i + 1}: ${l.trim().slice(0, 160)}`); });
       return { result: hits.join("\n") || "No matches.", stat: `${hits.length} matches` };
+    }
+    case "run_github_checks": {
+      const remote = ws.remoteRepository?.();
+      if (!remote) return { result: "No linked GitHub repository or GitHub connection is available. Connect GitHub and select a repository first." };
+      const result = await runGitHubChecks(new GH(remote.token), remote.repository, a.branch || remote.branch);
+      const summary = result.message + (result.run ? "\nWorkflow: " + result.run.name + "\nStatus: " + result.run.status + (result.run.conclusion ? " / " + result.run.conclusion : "") + "\nCommit: " + result.run.headSha + "\nRun: " + result.run.url : "");
+      return { result: summary, stat: result.state.toUpperCase(), detail: summary, sources: result.run ? [{ title: "GitHub Actions run", url: result.run.url }] : undefined };
     }
     case "read_repository_file": {
       const remote = ws.remoteRepository?.();

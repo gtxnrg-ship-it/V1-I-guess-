@@ -114,3 +114,13 @@ This document answers two practical questions at the start of every work session
 ## Current next action
 
 PR #139 is merged, and PRs #141–#143 are now merged as well: destination-head write guards, snapshot reuse, and the first GitHub App migration boundary are in place. The generic provider-key path rejects common personal GitHub token formats; Settings explains the intended App installation and distinguishes it from interim Device Flow. The server-side broker is still not implemented/deployed, so do not remove the only usable interim connection prematurely. The agent pipeline now performs one explicit final repair/retest if visual-polish changes introduce QA errors. Next, continue with the real build–test–repair–retest acceptance slice and remaining snapshot edge cases. Use this audit, the roadmap ledger, and the latest PR checks as the durable cross-session handoff.
+
+### New engineering slice — run the published repository real CI
+
+- [x] Add a fixed-workflow dispatcher for the repository existing `check.yml`.
+- [x] Capture the branch observed SHA before dispatch and refuse to call a run successful if its SHA differs.
+- [x] Poll the new workflow run and return the run link plus an honest pending/failure/pass status.
+- [x] Add tests for success, failure, pending, moved branch, and missing Actions write permission; PR #145 CI passed.
+- [ ] Validate a live end-to-end dispatch with an authorized GitHub App installation after the server-side broker is implemented.
+
+The tool checks the currently published branch only. It does not upload local edits or replace the in-browser QA harness.
