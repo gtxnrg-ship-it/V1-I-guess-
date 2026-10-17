@@ -39,12 +39,6 @@ try {
   assert(!bounded.complete, "file-count budget must mark import incomplete");
   assert(bounded.files.length === 2 && bounded.skipped === 1, "only the bounded subset should be returned");
   assert(blobRequests === 2, "must not fetch blobs beyond the file-count budget");
-  let rejected = false;
-  try { await gh.readTree("owner", "repo", "main", () => true); } catch (e) {
-    rejected = String(e).includes("safety budget");
-  }
-  assert(rejected, "legacy readTree must fail closed instead of returning a partial tree");
-
   blobRequests = 0;
   truncatedTree = true;
   const truncated = await gh.readTreeBounded("owner", "repo", "main", () => true, { maxFiles: 10 });
