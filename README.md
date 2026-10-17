@@ -67,6 +67,8 @@ Current foundations include:
 - **Animated Kuro-chan orb:** a visual identity that can reflect interaction states.
 - **Projects and Activity views:** dedicated places to inspect project-related information and recent activity.
 - **Code inspection:** browse files associated with the active project.
+- **Project memory workspace:** inspect, add, edit, and delete project-scoped facts and decisions, manage open questions, and edit the hand-off summary. Credential-like text is rejected before saving.
+- **Checkpoints and recovery:** save named file restore points and restore them with a safety checkpoint created first.
 - **Settings hub:** organize configuration for appearance, voice and speech, AI/models, repositories, privacy and security, device performance, and app information.
 - **Voice playback controls:** playback can be stopped; voice behavior still needs ongoing device-by-device testing.
 - **Project export and delivery tools:** ZIP export and GitHub publishing entry points are available in the studio; exact capabilities depend on configuration and permissions.
@@ -78,7 +80,7 @@ Current foundations include:
 
 The current sidebar can show projects already opened in Kuro-chan, but that should not be confused with a finished GitHub OAuth repository browser. A complete OAuth sign-in flow, repository discovery, permission-aware import, branch-aware synchronization, and safe conflict handling remain planned work unless explicitly confirmed in the code and tested.
 
-Likewise, the long-term vision includes more advanced autonomous engineering, richer voice conversations, model routing, persistent per-project memory, deeper QA, and broader device support. Listing an item on the roadmap does not mean it is already implemented.
+Likewise, the long-term vision includes more advanced autonomous engineering, richer voice conversations, model routing, deeper QA, and broader device support. Project memory is currently bounded and user-controlled; automatic extraction of every preference or repository fact is not implemented. Listing an item on the roadmap does not mean it is already implemented.
 
 ## 🧠 How the agent workflow is intended to work
 
