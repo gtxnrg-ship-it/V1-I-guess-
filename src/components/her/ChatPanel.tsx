@@ -323,9 +323,11 @@ export function ChatPanel({ scope = "app", onOpenKeys, draft, setDraft, onSent }
 
   return (
     <div className="studio-chat-panel relative flex h-full min-h-0 flex-col">
-      {!isEmpty && (running || speaking || dict.listening) && (
-        <div role="status" aria-live="polite" className="absolute right-4 top-4 z-50 pointer-events-none" aria-label={running ? "Kuro-chan is thinking" : dict.listening ? "Listening" : "Kuro-chan is speaking"}>
-          <HerOrb size={32} state={running ? "thinking" : dict.listening ? "listening" : "speaking"} className="her-orb-glow" />
+      {!isEmpty && (running || voiceLoading || speaking || dict.listening) && (
+        <div role="status" aria-live="polite" className="pointer-events-none absolute right-4 top-4 z-50 flex items-center gap-2 rounded-full border border-border/60 bg-background/75 py-1 pl-2 pr-3 shadow-lg backdrop-blur-md"
+          aria-label={running ? "Kuro-chan is thinking" : dict.listening ? "Kuro-chan is listening" : voiceLoading ? "Kuro-chan is preparing voice playback" : "Kuro-chan is speaking"}>
+          <HerOrb size={32} state={running || voiceLoading ? "thinking" : dict.listening ? "listening" : "speaking"} className="her-orb-glow" />
+          <span className="text-[11px] text-muted-foreground">{running ? "Thinking" : dict.listening ? "Listening" : voiceLoading ? "Preparing voice" : "Speaking"}</span>
         </div>
       )}
       <div ref={scroller} onScroll={(e) => { const el = e.currentTarget; stick.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80; }}
@@ -417,7 +419,7 @@ export function ChatPanel({ scope = "app", onOpenKeys, draft, setDraft, onSent }
         )}
       </div>
 
-      <div className="px-3 pb-3 md:px-4 md:pb-4">
+      <div className="px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] md:px-4 md:pb-4">
         <div
           onDragOver={(e) => e.preventDefault()} onDrop={(e) => { e.preventDefault(); addFiles(e.dataTransfer.files); }}
           className="studio-composer mx-auto max-w-[720px] rounded-2xl border bg-card transition-colors focus-within:border-foreground/25">
@@ -485,13 +487,42 @@ export function ChatPanel({ scope = "app", onOpenKeys, draft, setDraft, onSent }
 }
 
 function UserBubble({ m }: { m: Message }) {
+  const [preview, setPreview] = useState<Img | null>(null);
+  useEffect(() => {
+    if (!preview) return;
+    const closeOnEscape = (event: KeyboardEvent) => { if (event.key === "Escape") setPreview(null); };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [preview]);
   return (
     <div className="her-rise flex flex-col items-end gap-1.5">
       {!!m.images?.length && (
-        <div className="flex max-w-[85%] flex-wrap justify-end gap-1.5">
-          {m.images.map((im, i) => <img key={i} src={imgSrc(im)} alt="Attached" className="h-24 max-w-[180px] rounded-xl border border-border object-cover" />)}
+        <div className="flex max-w-[92%] flex-wrap justify-end gap-2">
+          {m.images.map((im, i) => (
+            <button key={i} type="button" aria-label={`View attached reference image ${i + 1}`}
+              onClick={() => setPreview(im)}
+              className="group relative overflow-hidden rounded-xl border border-border/80 bg-card shadow-sm outline-none transition-transform hover:-translate-y-0.5 focus-visible:ring-2 focus-visible:ring-primary">
+              <img src={imgSrc(im)} alt={`Attached reference ${i + 1}`} loading="lazy"
+                className="max-h-40 max-w-[min(42vw,220px)] rounded-xl object-contain" />
+              <span className="absolute inset-x-0 bottom-0 bg-black/55 px-2 py-1 text-left text-[10px] text-white opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">View reference</span>
+            </button>
+          ))}
         </div>
-      )}      <div className="max-w-[85%] whitespace-pre-wrap break-words rounded-2xl rounded-br-md bg-muted px-4 py-2.5 text-[14.5px] leading-relaxed">{m.content}</div>
+      )}
+      {!!m.content.trim() && <div className="max-w-[88%] whitespace-pre-wrap break-words rounded-2xl rounded-br-md bg-muted px-4 py-2.5 text-[14.5px] leading-relaxed">{m.content}</div>}
+      {preview && (
+        <div role="dialog" aria-modal="true" aria-label="Reference image preview"
+          onClick={() => setPreview(null)}
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/85 p-3 backdrop-blur-sm">
+          <button type="button" aria-label="Close image preview" onClick={() => setPreview(null)}
+            className="absolute right-4 top-[max(1rem,env(safe-area-inset-top))] grid h-10 w-10 place-items-center rounded-full border border-white/20 bg-black/50 text-white">
+            <X className="h-5 w-5" />
+          </button>
+          <img src={imgSrc(preview)} alt="Full-size reference image" onClick={(event) => event.stopPropagation()}
+            className="max-h-[88dvh] max-w-full rounded-lg object-contain shadow-2xl" />
+          <span className="pointer-events-none absolute bottom-[max(1rem,env(safe-area-inset-bottom))] rounded-full border border-white/15 bg-black/55 px-3 py-1.5 text-xs text-white/80">Tap outside to close</span>
+        </div>
+      )}
     </div>
   );
 }
@@ -549,7 +580,7 @@ function useDictation(
     if (listeningRef.current || rec.current) return;
     stoppedByUser.current = false;
     lastFinalized.current = "";
-    base.current = draftRef.current ? draftRef.current.replace(/\\s*$/, " ") : "";
+    base.current = draftRef.current ? draftRef.current.replace(/\s*$/, " ") : "";
     // Android WebViews do not consistently implement browser SpeechRecognition.
     // Use the maintained Capacitor native bridge first; web keeps the browser API.
     if (isNativeApp()) {
@@ -568,7 +599,7 @@ function useDictation(
         nativeListeners.current.push(await SpeechRecognition.addListener("partialResults", (event) => {
           if (rec.current !== sentinel || stoppedByUser.current) return;
           const transcript = (event.matches || []).join(" ").trim();
-          if (transcript) updateDraft((base.current + transcript).replace(/\\s+/g, " ").trimStart());
+          if (transcript) updateDraft((base.current + transcript).replace(/\s+/g, " ").trimStart());
         }));
         nativeListeners.current.push(await SpeechRecognition.addListener("listeningState", (event) => {
           if (rec.current !== sentinel) return;
@@ -621,7 +652,7 @@ function useDictation(
     r.onresult = (e: any) => {
       if (rec.current !== r) return;
       const transcript = Array.from(e.results as ArrayLike<any>).map((result: any) => result?.[0]?.transcript || "").join(" ");
-      updateDraft((base.current + transcript).replace(/\\s+/g, " ").trimStart());
+      updateDraft((base.current + transcript).replace(/\s+/g, " ").trimStart());
     };
     r.onerror = (e: any) => {
       if (rec.current !== r) return;
