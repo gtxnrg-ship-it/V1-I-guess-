@@ -42,6 +42,18 @@ assert(game.some((x) => x.id === "unreal"), "Unreal project markers should be de
 assert(game.some((x) => x.id === "phaser"), "Phaser config markers should be detected");
 assert(game.every((x) => x.notes.length > 0), "Game-engine results should explain important execution boundaries");
 
+const manifestDetected = detectGameEngineCapabilities(
+  ["Cargo.toml", "package.json"],
+  {
+    "Cargo.toml": '[dependencies]\\nbevy = "0.15"',
+    "package.json": JSON.stringify({ dependencies: { three: "^0.170.0", phaser: "^3.80.0", "@babylonjs/core": "^7.0.0" } }),
+  },
+);
+assert(manifestDetected.some((x) => x.id === "bevy" && x.evidence.includes("Cargo.toml dependency")), "Bevy should be detected from its Cargo manifest dependency");
+assert(manifestDetected.some((x) => x.id === "threejs" && x.evidence.includes("package.json dependency")), "Three.js should be detected from package.json dependencies");
+assert(manifestDetected.some((x) => x.id === "phaser"), "Phaser should be detected from package.json dependencies");
+assert(manifestDetected.some((x) => x.id === "babylonjs"), "Babylon.js should be detected from package.json dependencies");
+
 const ambiguous = detectGameEngineCapabilities(["Cargo.toml", "src/main.rs", "README.md"]);
 assert(ambiguous.length === 0, "Ordinary Rust projects must not be mislabeled as Bevy games");
 
