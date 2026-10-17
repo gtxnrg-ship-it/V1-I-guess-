@@ -84,7 +84,6 @@ export interface Project {
   repo: string | null;
   /** Last remote commit observed when importing or successfully publishing this project. */
   repoBaseSha?: string;
-  /** Project-scoped long-term notes; saved with the project in IndexedDB. */
   /** Project-scoped visual research and design decisions. */
   designStudio?: DesignStudioState;
   memory?: {
