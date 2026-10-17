@@ -318,7 +318,7 @@ export function ChatPanel({ scope = "app", onOpenKeys, draft, setDraft, onSent }
   const isEmpty = !messages.length;
   const lastId = messages[messages.length - 1]?.id;
   const project = db.project();
-  const githubConnected = st.keys.some((k) => k.provider === "github");
+  const githubConnected = !!db.keyOf("github");
   const modelCount = st.keys.filter((k) => k.kind === "ai").reduce((total, k) => total + k.models.length, 0);
 
   return (

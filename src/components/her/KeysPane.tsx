@@ -10,6 +10,8 @@ import { addKey, refreshKey, addPluginKey, PLUGINS, type PluginId } from "@/engi
 import { chain } from "@/engine/router";
 import { PROVIDERS } from "@/engine/providers";
 import { tryAdminEmail, lockAdmin } from "@/engine/admin";
+import { beginGitHubDeviceFlow, completeGitHubDeviceFlow, type GitHubDeviceFlow } from "@/engine/github-device-flow";
+import { clearGitHubSession, getGitHubSession } from "@/engine/github-session";
 import type { KeyRec, Role, UsageDay } from "@/engine/types";
 
 const PIcon: Record<string, any> = { google: SiGooglegemini, anthropic: SiAnthropic, github: SiGithub, mistral: SiMistralai, huggingface: SiHuggingface, nvidia: SiNvidia, perplexity: SiPerplexity, openrouter: SiOpenrouter, xai: SiX };
@@ -58,6 +60,49 @@ export function KeysPane() {
   const [show, setShow] = useState(false);
   const [adv, setAdv] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [githubSession, setGithubSession] = useState(() => getGitHubSession());
+  const [githubFlow, setGithubFlow] = useState<GitHubDeviceFlow | null>(null);
+  const [githubBusy, setGithubBusy] = useState(false);
+  const [githubNote, setGithubNote] = useState("");
+  const githubAbort = useRef<AbortController | null>(null);
+  const githubClientId = String((import.meta as any).env?.VITE_GITHUB_APP_CLIENT_ID || "");
+
+  useEffect(() => () => githubAbort.current?.abort(), []);
+
+  const connectGithub = async () => {
+    if (githubBusy) return;
+    const controller = new AbortController();
+    githubAbort.current = controller;
+    setGithubBusy(true);
+    setGithubNote("Starting secure GitHub device sign-in…");
+    try {
+      const flow = await beginGitHubDeviceFlow(githubClientId);
+      setGithubFlow(flow);
+      setGithubNote("Enter the one-time code on GitHub. Kuro-chan is waiting for approval.");
+      const session = await completeGitHubDeviceFlow(flow, githubClientId, {
+        signal: controller.signal,
+        onPending: () => setGithubNote("Waiting for GitHub approval…"),
+      });
+      setGithubSession(session);
+      setGithubFlow(null);
+      setGithubNote("Connected as @" + session.login + ". This session stays in memory and will need reconnecting after a reload.");
+      toast({ title: "GitHub connected", description: "Signed in as @" + session.login + ". Your token is not saved in ordinary browser storage." });
+    } catch (error) {
+      if (!(error instanceof Error && error.name === "AbortError")) setGithubNote(errMsg(error));
+      setGithubFlow(null);
+    } finally {
+      setGithubBusy(false);
+      githubAbort.current = null;
+    }
+  };
+  const disconnectGithub = () => {
+    githubAbort.current?.abort();
+    clearGitHubSession();
+    setGithubSession(null);
+    setGithubFlow(null);
+    setGithubBusy(false);
+    setGithubNote("GitHub sign-in disconnected. Any separately saved personal access token remains unchanged.");
+  };
 
   const add = async () => {
     if (!key.trim() && !base.trim()) return;
@@ -115,6 +160,35 @@ export function KeysPane() {
                 {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />} {base.trim() && !key.trim() ? "Connect endpoint" : "Add key"}
               </button>
             </div>
+          </div>
+          <div className="mt-3 rounded-2xl border border-border bg-card p-3.5" data-testid="github-device-signin">
+            <div className="flex items-start gap-3">
+              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-muted"><SiGithub className="h-4 w-4" /></span>
+              <div className="min-w-0 flex-1">
+                <div className="text-[13.5px] font-semibold">Connect GitHub account</div>
+                <p className="mt-1 text-[12px] text-muted-foreground">Use GitHub's device authorization instead of pasting a personal access token. Access is verified against your GitHub account and the token stays in runtime memory only.</p>
+                {githubSession && <p className="mt-2 text-[12px] font-medium text-emerald-700 dark:text-emerald-300">Connected as @{githubSession.login}</p>}
+                {githubNote && <p className="mt-2 whitespace-pre-wrap text-[12px] text-muted-foreground">{githubNote}</p>}
+                {githubFlow && (
+                  <div className="mt-3 rounded-xl border border-border bg-muted/50 p-3">
+                    <div className="text-[11px] uppercase tracking-wide text-muted-foreground">One-time device code</div>
+                    <div className="mt-1 font-mono text-xl font-semibold tracking-[0.18em]">{githubFlow.userCode}</div>
+                    <a href={githubFlow.verificationUri} target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex items-center gap-1.5 text-[12.5px] font-medium underline underline-offset-2">Open GitHub verification <ExternalLink className="h-3 w-3" /></a>
+                    <p className="mt-1 text-[11px] text-muted-foreground">The code expires at {new Date(githubFlow.expiresAt).toLocaleTimeString()}.</p>
+                  </div>
+                )}
+              </div>
+              {githubSession ? (
+                <button onClick={disconnectGithub} className="shrink-0 rounded-lg border border-border px-3 py-2 text-[12px] hover:bg-muted">Disconnect</button>
+              ) : githubBusy ? (
+                <button type="button" onClick={() => { githubAbort.current?.abort(); setGithubFlow(null); setGithubNote("Sign-in cancelled."); }} className="shrink-0 rounded-lg border border-border px-3 py-2 text-[12px] hover:bg-muted">Cancel</button>
+              ) : (
+                <button data-testid="button-github-device-signin" onClick={connectGithub} className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-[12px] font-medium text-primary-foreground">
+                  <SiGithub className="h-3.5 w-3.5" /> Sign in
+                </button>
+              )}
+            </div>
+            {!githubClientId && !githubSession && <p className="mt-3 text-[11.5px] text-amber-700 dark:text-amber-300">This build is missing VITE_GITHUB_APP_CLIENT_ID. Configure the public GitHub App client ID and enable Device Flow; no client secret belongs in this app.</p>}
           </div>
           <div className="mt-3 flex items-start gap-3 rounded-xl border border-border bg-card p-3">
             <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-muted"><Code2 className="h-4 w-4" /></span>

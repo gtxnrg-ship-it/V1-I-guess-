@@ -18,7 +18,11 @@ Replace manually pasted GitHub personal access tokens with a user-facing GitHub 
 
 ## Current implementation boundary
 
-`src/engine/github-auth.ts` provides PKCE/state primitives for a future callback flow. The current supported client-side path is GitHub App Device Flow using `VITE_GITHUB_APP_CLIENT_ID`; it validates the returned token against `/user` before marking the session connected. GitHub credentials are kept in runtime memory and filtered out of IndexedDB persistence, including cleanup of legacy stored GitHub tokens. This avoids pretending ordinary browser storage is secure, but it also means the user must reconnect after a reload. A registered GitHub App and configured client ID are still required.
+- `src/engine/github-device-flow.ts` starts the Device Flow, polls for approval, exchanges the device code, and validates the resulting token against GitHub's `/user` endpoint.
+- `src/components/her/KeysPane.tsx` exposes the one-time code and verification link. `src/engine/github-session.ts` keeps the verified token in runtime memory; `db.keyOf("github")` exposes a session-only adapter to existing GitHub clients without adding the token to AI keys or IndexedDB.
+- The Android workflow passes the public `VITE_GITHUB_APP_CLIENT_ID` repository variable to the web build. Web deployments must configure the same public variable. If it is missing, the UI explains the configuration requirement.
+- Device Flow does not use the authorization-code callback or PKCE state checks. Those primitives remain for a possible future hosted callback flow.
+- Automated tests cover request/response handling and runtime-session boundaries. Real GitHub App approval and Android-device end-to-end tests still need to be run against the registered app. The user must reconnect after reload or token expiry until secure storage/refresh is implemented.
 
 ## Registration/configuration still required
 
@@ -26,16 +30,14 @@ A GitHub App must be registered and its public client ID configured as `VITE_GIT
 
 ## Acceptance checklist
 
-- [ ] User can start GitHub sign-in from Settings.
-- [ ] Authorization uses state and PKCE S256.
-- [ ] Callback state is verified before processing a code.
-- [ ] Device Flow works against the registered GitHub App in a deployed web build and Android build.
+- [x] User can start GitHub Device Flow from Settings → AI & models.
+- [ ] Authorization-code callback state and PKCE S256 are verified (future callback flow only; not part of Device Flow).
+- [x] Device Flow start, pending approval, token exchange, and `/user` identity verification are implemented and unit-tested.
+- [ ] Device Flow works against the registered GitHub App in a deployed web build and a physical Android device.
 - [ ] If a hosted authorization-code callback is added later, code exchange works without exposing a client secret.
-- [ ] GitHub tokens are never written to ordinary IndexedDB or local storage (implemented; session-only until native secure storage is added).
-- [ ] Persistent credential storage uses platform secure storage before long-lived sessions are offered.
-- [ ] User can select/inspect repositories and disconnect.
-- [ ] Private repositories and permission-denied cases behave correctly.
-- [ ] Expired/revoked credentials recover cleanly.
-- [ ] GitHub client consumes the authenticated session without storing credentials as AI keys.
+- [x] GitHub tokens are excluded from ordinary IndexedDB and AI-provider key persistence.
+- [ ] Persistent credential storage/refresh uses platform secure storage before long-lived sessions are offered.
+- [x] Existing GitHub clients can consume the verified runtime session; repository clients still enforce the actual token permissions.
+- [ ] Private repositories, insufficient permissions, token expiry/revocation, cancellation, and reconnect behave correctly in real app tests.
 - [ ] Android sign-in, cancel, reconnect, expiry, and repository-permission flows pass end-to-end tests.
-- [ ] Existing AI-provider key management remains unaffected.
+- [x] Existing AI-provider key management remains separate from GitHub sign-in.
