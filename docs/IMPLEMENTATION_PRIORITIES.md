@@ -6,6 +6,14 @@ Sources of truth: [Original vision](ORIGINAL_VISION.md), [roadmap](../ROADMAP.md
 
 This document answers two practical questions at the start of every work session: **what matters most next, and what already exists that we should extend rather than rewrite?** It is an execution order, not a claim that the work is done.
 
+## Current handoff — capability-first delivery (2026-10-17)
+
+Read [the current handoff](CURRENT_HANDOFF.md) before starting work. The next immediate action is to verify PR #150 on its **latest head SHA** and fix any red/pending-required CI before treating language/game-engine detection as complete. PR #149 merged with failing Check/APK workflows, so PR #150 is a repair, not optional polish.
+
+After PR #150 is fully green, the highest-value implementation is the **permissioned isolated execution runner**—not more language labels and not front-end polish. It must enforce command allowlists, resource/time/output limits, cancellation, controlled filesystem/network access, and preserve exact command, exit code, logs, and observed project SHA. Then validate one scientific/statistical fixture and one game-engine vertical slice, each with a seeded failure and a clean successful retest.
+
+The 15/150 roadmap checkbox count is a literal checklist metric, not a total capability score. The detector recognizes 26 language families and 10 engine families but does not install or run those toolchains.
+
 ## Priority order
 
 ### P0 — Make repository-aware engineering evidence consistent and safe
