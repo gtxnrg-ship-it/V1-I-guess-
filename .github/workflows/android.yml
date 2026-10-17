@@ -38,13 +38,18 @@ jobs:
           sed -i 's#<uses-permission android:name="android.permission.INTERNET" />#<uses-permission android:name="android.permission.INTERNET" />\n    <uses-permission android:name="android.permission.RECORD_AUDIO" />\n    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />#' android/app/src/main/AndroidManifest.xml
       - run: npx cap sync android
       - run: cd android && chmod +x gradlew && ./gradlew assembleDebug
-      - name: Check APK build artifact
+      - name: Name the distributable APK
         id: check_apk
         run: |
-          if [ -f android/app/build/outputs/apk/debug/app-debug.apk ]; then
-            echo "apk_exists=true" >> $GITHUB_OUTPUT
+          source_apk="android/app/build/outputs/apk/debug/app-debug.apk"
+          distributable_apk="Kurochan.apk"
+          if [ -f "$source_apk" ]; then
+            cp "$source_apk" "$distributable_apk"
+            test -s "$distributable_apk"
+            echo "apk_exists=true" >> "$GITHUB_OUTPUT"
+            echo "apk_name=$distributable_apk" >> "$GITHUB_OUTPUT"
           else
-            echo "APK file not found!"
+            echo "APK file not found: $source_apk"
             exit 1
           fi
       - uses: softprops/action-gh-release@v2
@@ -52,6 +57,9 @@ jobs:
         with:
           tag_name: build-${{ github.run_number }}
           name: Kuro-chan Android build ${{ github.run_number }}
-          body: Install app-debug.apk on your Android phone (allow "install from unknown sources" when asked).
-          files: android/app/build/outputs/apk/debug/app-debug.apk
+          body: |
+            Install **Kurochan.apk** on your Android phone. Android may ask you to allow installs from this source.
+
+            This is a CI-built debug APK, not a Play Store-signed production release.
+          files: Kurochan.apk
           make_latest: true

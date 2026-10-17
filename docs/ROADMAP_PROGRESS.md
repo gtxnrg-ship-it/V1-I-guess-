@@ -84,3 +84,14 @@ The repository has a useful engineering-agent foundation, but the intended produ
 - **Strict roadmap count remains 13/142 = 9.2%.** Do not inflate it from merged changes that have not met and been checked against roadmap acceptance gates.
 
 - **PR #145 — guarded GitHub Actions verification runner: CI passed, merge pending conflict resolution.** The tool dispatches the fixed `check.yml`, compares the run SHA with the pre-dispatch branch SHA, and returns a direct run URL plus passed/failed/running/blocked status. Automated tests cover common outcomes. A live dispatch is still pending App broker/permission setup; the tool checks published remote contents, not unsaved workspace files.
+
+
+## APK distribution correction (PR in review)
+
+- The Android workflow now copies the successful build output to the stable asset name `Kurochan.apk` and publishes that name in the latest GitHub Release.
+- README top-level and Android download links target `releases/latest/download/Kurochan.apk`, which starts the asset download directly instead of opening the release page.
+- The direct link becomes available once the first post-merge `main` workflow successfully publishes the renamed asset. The previous release remains available during the build.
+
+## Checklist percentage correction
+
+The earlier **13/142 = 9.2%** was mechanically correct only for the boxes checked at that moment; it was not a measurement of code shipped or actual product capability. Multiple merged PRs added code and tests without reconciling the corresponding roadmap acceptance gates. We will update individual boxes only where the complete stated acceptance criteria are met and will report the literal checkbox count separately from the capability audit. No unsupported overall percentage should be inferred from 9.2%.
