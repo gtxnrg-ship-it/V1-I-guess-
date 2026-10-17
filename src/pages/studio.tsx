@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Moon, Sun, Github, Code2, KeyRound, MessageCircle, Loader2, Rocket, ExternalLink, ChevronDown, Check, Plus, Pencil, Trash2, Download, Globe, FolderKanban, Activity, Menu, X, MoreHorizontal, PanelLeftClose, Archive } from "lucide-react";
+import { Moon, Sun, Github, Code2, KeyRound, MessageCircle, Loader2, Rocket, ExternalLink, ChevronDown, Check, Plus, Pencil, Trash2, Download, Globe, FolderKanban, Activity, Menu, X, MoreHorizontal, PanelLeftClose, Archive, Palette } from "lucide-react";
 import { downloadZip } from "@/lib/zip";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -13,6 +13,7 @@ import { CodeBrowser } from "@/components/her/CodePane";
 import { SettingsHub } from "@/components/her/SettingsHub";
 import { ProjectsActivity } from "@/components/her/ProjectsActivity";
 import { CheckpointsPane } from "@/components/her/CheckpointsPane";
+import { VisualIntentStudio } from "@/components/her/VisualIntentStudio";
 import * as db from "@/engine/db";
 import { GH } from "@/engine/github";
 import { inspectGitHubRepository } from "@/engine/live-repository-intelligence";
@@ -20,12 +21,13 @@ import { shipFiles, syncDependencies } from "@/engine/ship";
 import { starterFiles, type StarterVariant } from "@/engine/template";
 import { errMsg } from "@/lib/kuro";
 
-type Tab = "projects" | "activity" | "code" | "checkpoints" | "keys";
+type Tab = "projects" | "activity" | "code" | "checkpoints" | "design" | "keys";
 const TABS: { id: Tab; label: string; icon: any }[] = [
   { id: "projects", label: "Projects", icon: FolderKanban },
   { id: "activity", label: "Activity", icon: Activity },
   { id: "code", label: "Code", icon: Code2 },
   { id: "checkpoints", label: "Checkpoints", icon: Archive },
+  { id: "design", label: "Visual design", icon: Palette },
   { id: "keys", label: "Settings", icon: KeyRound },
 ];
 
@@ -43,7 +45,7 @@ export default function Studio() {
   const chat = <ChatPanel scope="app" onOpenKeys={() => openTab("keys")} draft={draft} setDraft={setDraft} />;
   const pane = (t: Tab) => t === "projects" || t === "activity"
     ? <ProjectsActivity view={t} onOpenChat={() => { setActiveView("chat"); setSidebarOpen(false); }} />
-    : t === "code" ? <CodeBrowser files={p.files} /> : t === "checkpoints" ? <CheckpointsPane /> : <SettingsHub />;
+    : t === "code" ? <CodeBrowser files={p.files} /> : t === "checkpoints" ? <CheckpointsPane /> : t === "design" ? <VisualIntentStudio /> : <SettingsHub />;
 
   const aiKeys = st.keys.filter((k) => k.kind === "ai").length;
   const navItems = [
