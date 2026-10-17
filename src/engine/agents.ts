@@ -12,6 +12,7 @@ import { GH } from "./github";
 import { inspectGitHubRepository } from "./live-repository-intelligence";
 import type { AgentName, AssistantData, Block, Brief, Message, PlanStep, Role } from "./types";
 import { executionOutcome } from "./execution-status";
+import { buildDesignIntentContext } from "./design-intent";
 
 export type Scope = "app" | "self";
 export const SELF_PID = "__self";
@@ -216,7 +217,8 @@ async function talkerSystem(scope: Scope) {
       }
     }
   }
-  const appContext = `Current app: "${current.name}". ${current.repo ? `GitHub: ${current.repo}.` : "Not on GitHub yet (the Publish button ships it as a website + Android APK)."} ${env.length ? `App settings set: ${env.join(", ")}.` : "No app settings (Supabase keys) yet."}\n\n${projectMemory}${repositoryEvidence ? `\n\n${repositoryEvidence}` : ""}`;
+  const designIntent = scope === "app" ? buildDesignIntentContext(current.name, current.designStudio) : "";
+  const appContext = `Current app: "${current.name}". ${current.repo ? `GitHub: ${current.repo}.` : "Not on GitHub yet (the Publish button ships it as a website + Android APK)."} ${env.length ? `App settings set: ${env.join(", ")}.` : "No app settings (Supabase keys) yet."}\n\n${projectMemory}${designIntent ? `\n\n${designIntent}` : ""}${repositoryEvidence ? `\n\n${repositoryEvidence}` : ""}`;
   return `${P.TALKER}\n\n${scope === "self" ? `${SELF_STACK}\nYou are in the ADMIN panel talking to your creator about upgrading YOURSELF. Briefs here describe changes to your own code.` : appContext}`;
 }
 
