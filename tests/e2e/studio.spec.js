@@ -302,7 +302,7 @@ test.describe("Kuro-chan studio", () => {
   test("creates and restores a checkpoint safely", async ({ page }) => {
     await page.goto("/studio", { waitUntil: "domcontentloaded" });
     await page.getByTestId("sidebar-checkpoints").click();
-    await expect(page.getByRole("heading", { name: "Checkpoints" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Checkpoints", exact: true })).toBeVisible();
 
     await page.locator("#checkpoint-label").fill("Before recovery test");
     await page.getByRole("button", { name: "Save checkpoint" }).click();
