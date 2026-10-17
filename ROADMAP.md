@@ -121,6 +121,25 @@ This is the living plan for Kuro-chan: a chat-first AI coding companion that can
 - [ ] Explore additional desktop packaging only after the web and Android experiences are stable.
 - [ ] Explore localization and offline-friendly documentation.
 
+## P1 — Visual Intent Studio (core creation experience)
+
+The user can describe a product or feeling without knowing UI terminology. Kuro-chan researches visual references, confirms the intended direction with the user, translates feedback into a design brief, and implements the approved design in the real project.
+
+- [ ] Research real UI references and show a small gallery with image previews, source links, and attribution.
+- [ ] Clearly distinguish original source images, thumbnails, generated previews, and unavailable/blocked images; never present placeholders as real references.
+- [ ] Let users select a reference and annotate or select a specific region to discuss.
+- [ ] Accept informal language, typos, incomplete English, and mixed requirements; ask concise clarifying questions only when ambiguity materially changes the result.
+- [ ] Let users compare several design directions when they know the desired feeling but not the desired layout.
+- [ ] Build an editable design brief from approved references and feedback: layout, navigation, typography, color, spacing, components, interactions, responsiveness, and accessibility.
+- [ ] Preserve approved and rejected design decisions per project so later iterations don't silently undo them.
+- [ ] Show a live preview of the actual project, support before/after comparison, and let users refine selected elements conversationally.
+- [ ] Checkpoint before applying substantial design changes and provide a reviewable file diff.
+- [ ] Validate responsive behavior and run relevant tests/builds before reporting completion.
+- [ ] Handle missing search credentials, blocked image hosts, network failures, and unsupported image formats with honest fallbacks.
+- [ ] Track source URLs and asset licensing/attribution; do not copy proprietary assets blindly or imply affiliation with referenced products.
+
+**Acceptance principle:** a user with no coding experience can describe an idea, understand the proposed visual direction, approve or revise it, and receive a working implementation with an honest verification report.
+
 ## P2 — templates, tools, and integrations
 
 - [ ] Add useful project templates and guided starts for common app types.
