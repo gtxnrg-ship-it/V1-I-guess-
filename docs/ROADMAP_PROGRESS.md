@@ -63,3 +63,12 @@ Source of truth: [ROADMAP.md](../ROADMAP.md). This ledger separates **roadmap ch
 ## Original-vision alignment audit (2026-10-17)
 
 The repository has a useful engineering-agent foundation, but the intended product is broader than the verified runtime. The GPT-OSS 20B entry routes through a remote Pollinations-compatible endpoint; the local chat-model catalogue has no download/load path; Kokoro TTS and native speech integrations exist, but physical-device voice acceptance is incomplete. The GitHub API client exists, but installation-based GitHub App authentication requires a server-side token broker that is not present in this repository. These are explicit gaps, not completed features. See [Original vision and implementation map](ORIGINAL_VISION.md).
+
+
+## Latest reliability work (2026-10-17)
+
+- **PR #137 — voice settings persistence: merged.** Check, CodeQL, and Android APK build passed. Browser E2E covers provider selection, speech speed, auto-speak/auto-send, and reload persistence.
+- **PR #138 — voice output interruption: merged.** Check, CodeQL, and Android APK build passed. Browser E2E verifies cancellation and UI lifecycle for mocked browser speech; native/remote audio still needs physical-device acceptance.
+- **PR #139 — repository snapshot consistency: pending merge at the time of this update.** The source-context builder accepts the exact inspected commit SHA, reads the recursive tree from that immutable SHA, and the agent passes the diagnosis baseline into context loading. Regression tests cover immutable-SHA reads and continuing with the known SHA if a redundant moving-ref lookup is unavailable. Check, CodeQL, and APK build passed for head 2f2eba64efb9420890c198ed77551a77ee9e1003; merge state must be checked before treating it as shipped.
+- The strict roadmap count remains **13/142 = 9.2%** until a roadmap acceptance item is fully met. Recent merged work does not automatically change the checkbox count.
+- Use [Implementation priorities](IMPLEMENTATION_PRIORITIES.md) as the ranked next-work queue. The current order is repository evidence/write safety, end-to-end build/repair reliability, secure GitHub installation flow, real local inference, physical-device acceptance, Visual Intent Studio, then secondary polish.

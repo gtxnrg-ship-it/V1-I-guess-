@@ -51,12 +51,16 @@ export async function inspectGitHubRepository(
     throw new Error("The selected repository branch/ref is malformed.");
   }
   const inspectedRef = requestedRef || defaultBranch;
-  const [commitsResult, treeResult, runsResult] = await Promise.all([
+  const [commitsResult, runsResult] = await Promise.all([
     client.req("GET", `${repoPath}/commits${requestedRef ? `?sha=${encodeURIComponent(inspectedRef)}&per_page=1` : "?per_page=1"}`),
-    client.req("GET", `${repoPath}/git/trees/${encodeURIComponent(inspectedRef)}?recursive=1`),
     client.req("GET", `${repoPath}/actions/runs?per_page=10`),
   ]);
-  const commitsKnown = commitsResult.status === 200 && Array.isArray(commitsResult.json);
+  const commitsKnown = commitsResult.status === 200 && Array.isArray(commitsResult.json) && typeof commitsResult.json[0]?.sha === "string";
+  // Inspect the immutable commit we actually recorded, not a branch name that may move
+  // between the commit request and the recursive tree request.
+  const observedCommitSha: string | null = commitsKnown ? commitsResult.json[0].sha : null;
+  const treeRef = observedCommitSha || inspectedRef;
+  const treeResult = await client.req("GET", `${repoPath}/git/trees/${encodeURIComponent(treeRef)}?recursive=1`);
   // GitHub returns 409 for an empty repository's commit list and 404 for its missing tree.
   // Treat that combination as empty only when repository metadata also has no default branch.
   const confirmedEmptyRepository = commitsResult.status === 409 && !metadata.default_branch && treeResult.status === 404;

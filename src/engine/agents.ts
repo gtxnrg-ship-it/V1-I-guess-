@@ -230,7 +230,7 @@ async function talkerContext(scope: Scope, pid: string): Promise<string> {
         let sourceContext = "";
         let sourceContextSha: string | null = null;
         try {
-          const pack = await buildRepositoryContext(github, current.repo, selectedRef ? { branch: selectedRef } : {});
+          const pack = await buildRepositoryContext(github, current.repo, { ...(selectedRef ? { branch: selectedRef } : {}), ...(inspection.baselineSha ? { commitSha: inspection.baselineSha } : {}) });
           sourceContext = pack.asPrompt();
           sourceContextSha = pack.commitSha;
         } catch (contextError) {

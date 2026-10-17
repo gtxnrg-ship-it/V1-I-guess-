@@ -6,7 +6,7 @@
 
 **Bring an idea. Bring an existing codebase. Talk through the goal, inspect the project, make changes, run checks, and keep the work reviewable.**
 
-[**Android APK releases**](https://github.com/gtxnrg-ship-it/kuro-chan/releases/latest) · [Roadmap](ROADMAP.md) · [Architecture & original vision](docs/ORIGINAL_VISION.md) · [Report a bug](https://github.com/gtxnrg-ship-it/kuro-chan/issues/new?template=bug_report.yml)
+[**Android APK releases**](https://github.com/gtxnrg-ship-it/kuro-chan/releases/latest) · [Roadmap](ROADMAP.md) · [Prioritized implementation plan](docs/IMPLEMENTATION_PRIORITIES.md) · [Architecture & original vision](docs/ORIGINAL_VISION.md) · [Report a bug](https://github.com/gtxnrg-ship-it/kuro-chan/issues/new?template=bug_report.yml)
 
 [![Android build](https://github.com/gtxnrg-ship-it/kuro-chan/actions/workflows/android.yml/badge.svg)](https://github.com/gtxnrg-ship-it/kuro-chan/actions/workflows/android.yml)
 [![Automated checks](https://github.com/gtxnrg-ship-it/kuro-chan/actions/workflows/check.yml/badge.svg)](https://github.com/gtxnrg-ship-it/kuro-chan/actions/workflows/check.yml)
@@ -57,7 +57,7 @@ These are product goals, not a blanket claim that every bullet is complete today
 | Local models | Curated candidate catalogue and rough device-fit guidance | **Downloading, installing, and running the listed chat models locally is not implemented as a complete end-to-end feature.** A catalogue entry is not a runnable model |
 | Android delivery | GitHub Actions workflow builds APK artifacts/releases when successful | A successful CI build does not prove the APK works on every phone; APKs are development builds, not Play Store releases |
 
-The [roadmap](ROADMAP.md) tracks the wider implementation, and [roadmap progress notes](docs/ROADMAP_PROGRESS.md) explain how progress is counted. Checked items indicate a repository foundation; they should not be interpreted as a production-readiness percentage.
+The [roadmap](ROADMAP.md) tracks the wider implementation, the [prioritized implementation plan](docs/IMPLEMENTATION_PRIORITIES.md) ranks work by impact and dependency, and [roadmap progress notes](docs/ROADMAP_PROGRESS.md) explain how progress is counted. Checked items indicate a repository foundation; they should not be interpreted as a production-readiness percentage.
 
 ## Get the Android build
 
@@ -86,7 +86,8 @@ The current repository-context builder:
 4. Prioritizes likely high-value files—README and package metadata, build configuration, application entry points, source/engine files, project instructions, and tests.
 5. Fetches a bounded set of actual text-file bodies, with limits on file count and context size.
 6. Reports the observed commit, included/skipped counts, truncation, and warnings so the workflow can reason from evidence rather than pretending it read everything.
-7. Revalidates cached repository context against the latest default-branch commit before reusing it; when the head changes or validation fails, it rebuilds the inspection.
+7. Pins the recursive file tree and source-body reads to the exact commit SHA observed for the selected ref, so a moving branch cannot silently mix different snapshots during one inspection.
+8. Revalidates cached repository context against the latest selected-ref commit before reuse; if the head changes or validation fails, it rebuilds rather than treating stale context as current.
 
 This design is meant to be both practical and honest. Large repositories can contain generated files, binary assets, vendored dependencies, and far more source than a single model request can safely absorb. A useful assistant needs prioritization, targeted follow-up reads, search, and explicit limits—not a claim of infinite context.
 
@@ -228,6 +229,7 @@ Read [SECURITY.md](SECURITY.md) for responsible vulnerability reporting and [Fee
 
 ## Roadmap and project documentation
 
+- [Prioritized implementation plan](docs/IMPLEMENTATION_PRIORITIES.md) — ordered workstreams, dependency rationale, and rules to avoid duplicate rewrites.
 - [Roadmap](ROADMAP.md) — current checklist and planned work.
 - [Original vision and capability map](docs/ORIGINAL_VISION.md) — product goals and explicit implementation boundaries.
 - [Roadmap progress notes](docs/ROADMAP_PROGRESS.md) — how progress is counted and reconciled.

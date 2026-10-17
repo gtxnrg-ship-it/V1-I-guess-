@@ -72,7 +72,7 @@ async function run() {
   assert(branchReport.defaultBranch === "main" && branchReport.inspectedRef === "feature/branch-sync", "preserves default branch metadata while identifying selected inspection ref");
   assert(branchReport.baselineSha === "feature-sha", "anchors diagnosis to selected-ref commit");
   assert(branchRequests.some((path) => path.includes("commits?sha=feature%2Fbranch-sync")), "looks up commit from selected branch");
-  assert(branchRequests.some((path) => path.includes("trees/feature%2Fbranch-sync")), "inspects selected branch tree");
+  assert(branchRequests.some((path) => path.includes("trees/feature-sha")), "reads selected-ref tree from the exact observed commit SHA");
   let unsafeRefRejected = false;
   try { await inspectGitHubRepository(branchClient, "acme/app", "../main"); } catch { unsafeRefRejected = true; }
   assert(unsafeRefRejected, "rejects malformed selected refs");

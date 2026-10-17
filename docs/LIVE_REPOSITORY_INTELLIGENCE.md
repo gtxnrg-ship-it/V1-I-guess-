@@ -4,8 +4,8 @@ This adapter connects the existing evidence-based repository diagnosis to real G
 
 ## What it inspects
 - Repository metadata and the actual default branch
-- The latest commit returned by GitHub
-- Recursive Git tree and whether GitHub marked that tree as truncated
+- The latest commit returned by GitHub for the selected ref
+- Recursive Git tree read by the immutable observed commit SHA, plus whether GitHub marked that tree as truncated
 - Recognized manifest, README, and entry-point paths
 - The ten most recent GitHub Actions runs when the token has access
 
@@ -18,4 +18,4 @@ This adapter connects the existing evidence-based repository diagnosis to real G
 - Repository tree paths are evidence, not proof that every file is readable or that the app builds.
 
 ## Integration status
-This is the first live adapter layer. The next step is to call it from the repository connection/import and agent conversation flow, show its evidence and unknowns to the user, and use the inspected baseline SHA to prevent stale assumptions. It does not yet automatically run on every chat message.
+The adapter is connected to the agent conversation context. When a project has a repository and a GitHub credential, the agent includes live inspection evidence and a bounded source-context pack. The context builder accepts the inspection baseline SHA, reads the tree by that immutable SHA, and records which file bodies were actually loaded. Cached context is checked against the selected ref head before reuse. This is still a bounded context pack, not a complete code review or proof that every file was read. The exact integration behavior should remain covered by the repository-context and live-inspection regression tests.

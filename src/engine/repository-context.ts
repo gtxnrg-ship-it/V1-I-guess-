@@ -51,7 +51,7 @@ async function request(client: RepositoryContextClient, path: string): Promise<a
 /** Include the full path inventory and a bounded, prioritized sample of actual source bodies. */
 export async function buildRepositoryContext(
   client: RepositoryContextClient, input: string,
-  options: { maxFiles?: number; maxTotalChars?: number; maxFileChars?: number; branch?: string } = {},
+  options: { maxFiles?: number; maxTotalChars?: number; maxFileChars?: number; branch?: string; commitSha?: string } = {},
 ): Promise<RepositoryContextPack> {
   const repository = safeRepo(input);
   const requestedBranch = options.branch?.trim();
@@ -64,9 +64,22 @@ export async function buildRepositoryContext(
   ]);
   const defaultBranch = typeof metadata.default_branch === "string" && metadata.default_branch ? metadata.default_branch : "main";
   const branch = requestedBranch || defaultBranch;
-  const treeResponse = await client.req("GET", `/repos/${repository}/git/trees/${encodeURIComponent(branch)}?recursive=1`);
-  // GitHub returns 409 for an empty commit list and 404 for its missing tree. Only that paired response is treated as a blank repository; auth and unrelated 404s still fail closed.
-  if (commits.status === 409 && treeResponse.status === 404) {
+  // Pin every subsequent read to the exact commit observed above. Reading a moving branch name
+  // here could mix files from a newer push with a baseline SHA captured before that push.
+  if (options.commitSha && !/^[0-9a-f]{40}$/i.test(options.commitSha)) {
+    throw new Error("The pinned repository commit SHA is malformed.");
+  }
+  if (!options.commitSha && commits.status !== 200 && commits.status !== 409) {
+    throw new Error(`Could not establish the repository baseline commit (HTTP ${commits.status}); source context was not built.`);
+  }
+  if (!options.commitSha && commits.status === 200 && (!Array.isArray(commits.json) || !commits.json[0]?.sha)) {
+    throw new Error("GitHub returned an invalid commit response; source context was not built.");
+  }
+  const observedCommitSha: string | null = options.commitSha || (commits.status === 200 ? commits.json[0].sha : null);
+  const treeRef = observedCommitSha || branch;
+  const treeResponse = await client.req("GET", `/repos/${repository}/git/trees/${encodeURIComponent(treeRef)}?recursive=1`);
+  // Empty-repository inference is allowed only when no explicit commit was supplied.
+  if (!options.commitSha && commits.status === 409 && treeResponse.status === 404) {
     const warnings = ["This repository has no commits yet. There are no source files to inspect; create the initial project files before requesting code diagnosis."];
     return {
       repository, branch, commitSha: null, treeComplete: true, inventoryCount: 0, readableSourceCount: 0,
@@ -111,7 +124,7 @@ export async function buildRepositoryContext(
     }
     if (usedChars >= totalLimit) break;
   }
-  const commitSha = commits.status === 200 && Array.isArray(commits.json) ? commits.json[0]?.sha ?? null : null;
+  const commitSha = observedCommitSha;
   if (!treeComplete) warnings.push("GitHub marked the recursive tree as truncated; the inventory may be incomplete.");
   if (candidates.length > files.length) warnings.push(`Only ${files.length} of ${candidates.length} eligible text files were read; remaining source files were not loaded into this context pack.`);
   if (files.some((file) => file.truncated)) warnings.push("One or more file bodies were truncated to keep context bounded.");

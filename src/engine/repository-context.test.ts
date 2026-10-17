@@ -10,7 +10,7 @@ async function run() {
       requests.push(path);
       if (path === "/repos/acme/app/") return { status: 200, json: { default_branch: "main" } };
       if (path.endsWith("/commits?per_page=1")) return { status: 200, json: [{ sha: "commit-123" }] };
-      if (path.includes("/git/trees/")) return { status: 200, json: { truncated: false, tree: [
+      if (path.includes("/git/trees/commit-123?recursive=1")) return { status: 200, json: { truncated: false, tree: [
         { type: "blob", path: "README.md", sha: "blob-readme", size: 15 },
         { type: "blob", path: "src/App.tsx", sha: "blob-app", size: source.length },
         { type: "blob", path: "assets/logo.png", sha: "blob-image", size: 900 },
@@ -38,7 +38,7 @@ async function run() {
       branchRequests.push(path);
       if (path === "/repos/acme/app/") return { status: 200, json: { default_branch: "main" } };
       if (path === "/repos/acme/app/commits?sha=feature%2Fbranch-sync&per_page=1") return { status: 200, json: [{ sha: "feature-commit-456" }] };
-      if (path === "/repos/acme/app/git/trees/feature%2Fbranch-sync?recursive=1") return { status: 200, json: { truncated: false, tree: [
+      if (path === "/repos/acme/app/git/trees/feature-commit-456?recursive=1") return { status: 200, json: { truncated: false, tree: [
         { type: "blob", path: "src/App.tsx", sha: "branch-app", size: source.length },
       ] } };
       if (path.endsWith("/git/blobs/branch-app")) return { status: 200, json: { encoding: "base64", content: b64("export const branch = true;") } };
@@ -50,10 +50,26 @@ async function run() {
   assert(branchPack.commitSha === "feature-commit-456", "anchors context to the selected branch's commit");
   assert(branchPack.files[0]?.content.includes("branch = true"), "loads source from the selected branch");
   assert(branchPack.asPrompt().includes("Selected source ref: feature/branch-sync"), "prompt names the selected ref clearly");
-  assert(branchRequests.some((path) => path.includes("trees/feature%2Fbranch-sync")), "URL-encodes slash-containing branch refs");
+  assert(branchRequests.some((path) => path.includes("trees/feature-commit-456?recursive=1")), "reads the tree by immutable observed commit SHA rather than moving branch name");
   let unsafeRefRejected = false;
   try { await buildRepositoryContext(branchClient, "acme/app", { branch: "../main" }); } catch { unsafeRefRejected = true; }
   assert(unsafeRefRejected, "rejects malformed refs before fetching the tree");
+  const pinnedRequests: string[] = [];
+  const pinnedClient: RepositoryContextClient = {
+    async req(_method, path) {
+      pinnedRequests.push(path);
+      if (path === "/repos/acme/app/") return { status: 200, json: { default_branch: "main" } };
+      if (path.endsWith("/commits?per_page=1")) return { status: 403, json: { message: "Rate limited after inspection" } };
+      if (path === "/repos/acme/app/git/trees/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa?recursive=1") return { status: 200, json: { truncated: false, tree: [{ type: "blob", path: "src/App.tsx", sha: "pinned-app", size: source.length }] } };
+      if (path.endsWith("/git/blobs/pinned-app")) return { status: 200, json: { encoding: "base64", content: b64("export const pinned = true;") } };
+      throw new Error("Unexpected pinned request: " + path);
+    },
+  };
+  const pinnedPack = await buildRepositoryContext(pinnedClient, "acme/app", { commitSha: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" });
+  assert(pinnedPack.commitSha === "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "preserves the caller's inspected baseline SHA");
+  assert(pinnedPack.files[0]?.content.includes("pinned = true"), "loads bodies from the pinned inspected commit even if a second moving-ref lookup is unavailable");
+  assert(pinnedRequests.some((path) => path.includes("/trees/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")), "uses the exact inspected baseline for tree lookup");
+
   const emptyRequests: string[] = [];
   const emptyClient: RepositoryContextClient = {
     async req(_method, path) {
