@@ -515,9 +515,9 @@ function useDictation(
   const lastFinalized = useRef("");
   draftRef.current = draft;
   const updateDraft = (value: string) => { draftRef.current = value; setDraft(value); };
-  const finalize = () => {
+  const finalize = (baseline = base.current.trim()) => {
     const transcript = draftRef.current.trim();
-    if (!autoSend || !transcript || transcript === base.current.trim() || transcript === lastFinalized.current) return;
+    if (!autoSend || !transcript || transcript === baseline || transcript === lastFinalized.current) return;
     lastFinalized.current = transcript;
     onFinal(transcript);
   };
@@ -531,6 +531,7 @@ function useDictation(
   };
   const stop = () => {
     const wasActive = listeningRef.current || !!rec.current;
+    const baseline = base.current.trim();
     stoppedByUser.current = true;
     listeningRef.current = false;
     setListening(false);
@@ -541,7 +542,7 @@ function useDictation(
       void SpeechRecognition.stop().catch(() => {});
       void releaseNativeListeners();
     }
-    if (wasActive && autoSend) finalize();
+    if (wasActive && autoSend) finalize(baseline);
     resetBase();
   };
   const start = async () => {
