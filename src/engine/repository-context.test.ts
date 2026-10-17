@@ -86,6 +86,26 @@ async function run() {
   assert(emptyPack.asPrompt().includes("no commits yet"), "tells the agent to bootstrap from requirements instead of diagnosing nonexistent code");
   assert(emptyPack.warnings.some((warning) => warning.includes("no commits yet")), "records the empty-repository limitation as a warning");
   assert(emptyRequests.some((path) => path.endsWith("/commits?per_page=1")) && emptyRequests.some((path) => path.includes("/git/trees/main")), "confirms empty state from the paired GitHub API responses");
+  const snapshotRequests: string[] = [];
+  const snapshotClient: RepositoryContextClient = {
+    async req(_method, path) {
+      snapshotRequests.push(path);
+      if (path === "/repos/acme/app/") return { status: 200, json: { default_branch: "main" } };
+      if (path.endsWith("/git/blobs/snapshot-app")) return { status: 200, json: { encoding: "base64", content: b64("export const fromSnapshot = true;") } };
+      throw new Error("Unexpected snapshot request: " + path);
+    },
+  };
+  const snapshotPack = await buildRepositoryContext(snapshotClient, "acme/app", {
+    branch: "feature/branch-sync",
+    snapshot: {
+      commitSha: "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      treeComplete: true,
+      tree: [{ type: "blob", path: "src/App.tsx", sha: "snapshot-app", size: 32 }],
+    },
+  });
+  assert(snapshotPack.commitSha === "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", "uses the snapshot's immutable commit");
+  assert(snapshotPack.files[0]?.content.includes("fromSnapshot"), "reads file bodies referenced by the supplied snapshot tree");
+  assert(!snapshotRequests.some((path) => path.includes("/commits") || path.includes("/git/trees/")), "does not refetch commits or recursive tree when reusing a snapshot");
   console.log("Repository context pack tests passed");
 }
 void run();

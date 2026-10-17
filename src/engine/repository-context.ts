@@ -11,7 +11,7 @@ export interface RepositoryContextPack {
   inventoryCount: number; readableSourceCount: number; includedCount: number; skippedCount: number;
   files: RepositoryContextFile[]; inventory: string[]; warnings: string[]; asPrompt(): string;
 }
-type TreeEntry = { path?: string; type?: string; sha?: string; size?: number };
+export type RepositoryTreeEntry = { path?: string; type?: string; sha?: string; size?: number };
 const MAX_FILES = 24, MAX_FILE_BYTES = 90_000, MAX_FILE_CHARS = 5_000, MAX_TOTAL_CHARS = 48_000;
 const TEXT_EXT = /\.(?:ts|tsx|js|jsx|mjs|cjs|json|md|mdx|html|css|scss|sass|vue|svelte|py|pyi|go|rs|toml|yaml|yml|xml|gradle|kts|java|kt|swift|sh|sql|graphql|prisma|txt|properties|env\.example)$/i;
 const SKIP_PATH = /(^|\/)(?:node_modules|vendor|dist|build|coverage|\.git|\.next|\.expo|Pods)(\/|$)|\.(?:png|jpe?g|gif|webp|ico|pdf|zip|gz|woff2?|ttf|otf|mp[34]|sqlite|db|lock)$/i;
@@ -51,33 +51,37 @@ async function request(client: RepositoryContextClient, path: string): Promise<a
 /** Include the full path inventory and a bounded, prioritized sample of actual source bodies. */
 export async function buildRepositoryContext(
   client: RepositoryContextClient, input: string,
-  options: { maxFiles?: number; maxTotalChars?: number; maxFileChars?: number; branch?: string; commitSha?: string } = {},
+  options: { maxFiles?: number; maxTotalChars?: number; maxFileChars?: number; branch?: string; commitSha?: string; snapshot?: { commitSha: string; tree: RepositoryTreeEntry[]; treeComplete: boolean } } = {},
 ): Promise<RepositoryContextPack> {
   const repository = safeRepo(input);
   const requestedBranch = options.branch?.trim();
   if (requestedBranch && (requestedBranch.length > 255 || requestedBranch.startsWith("-") || requestedBranch.includes("..") || /[\u0000-\u0020~^:?*\[\]\\]/.test(requestedBranch))) {
     throw new Error("The selected repository branch/ref is malformed.");
   }
-  const [metadata, commits] = await Promise.all([
-    request(client, `/repos/${repository}/`),
-    client.req("GET", `/repos/${repository}/commits${requestedBranch ? `?sha=${encodeURIComponent(requestedBranch)}&per_page=1` : "?per_page=1"}`),
-  ]);
+  const metadata = await request(client, `/repos/${repository}/`);
+  // A live inspection may pass the exact immutable snapshot it already fetched. In that
+  // case, do not re-query a moving ref or fetch the same recursive tree a second time.
+  const commits = options.snapshot || options.commitSha
+    ? { status: 200, json: [] }
+    : await client.req("GET", `/repos/${repository}/commits${requestedBranch ? `?sha=${encodeURIComponent(requestedBranch)}&per_page=1` : "?per_page=1"}`);
   const defaultBranch = typeof metadata.default_branch === "string" && metadata.default_branch ? metadata.default_branch : "main";
   const branch = requestedBranch || defaultBranch;
   // Pin every subsequent read to the exact commit observed above. Reading a moving branch name
   // here could mix files from a newer push with a baseline SHA captured before that push.
-  if (options.commitSha && !/^[0-9a-f]{40}$/i.test(options.commitSha)) {
+  if ((options.snapshot && !/^[0-9a-f]{40}$/i.test(options.snapshot.commitSha)) || (options.commitSha && !/^[0-9a-f]{40}$/i.test(options.commitSha))) {
     throw new Error("The pinned repository commit SHA is malformed.");
   }
-  if (!options.commitSha && commits.status !== 200 && commits.status !== 409) {
+  if (!options.commitSha && !options.snapshot && commits.status !== 200 && commits.status !== 409) {
     throw new Error(`Could not establish the repository baseline commit (HTTP ${commits.status}); source context was not built.`);
   }
-  if (!options.commitSha && commits.status === 200 && (!Array.isArray(commits.json) || !commits.json[0]?.sha)) {
+  if (!options.commitSha && !options.snapshot && commits.status === 200 && (!Array.isArray(commits.json) || !commits.json[0]?.sha)) {
     throw new Error("GitHub returned an invalid commit response; source context was not built.");
   }
-  const observedCommitSha: string | null = options.commitSha || (commits.status === 200 ? commits.json[0].sha : null);
+  const observedCommitSha: string | null = options.snapshot?.commitSha || options.commitSha || (commits.status === 200 ? commits.json[0].sha : null);
   const treeRef = observedCommitSha || branch;
-  const treeResponse = await client.req("GET", `/repos/${repository}/git/trees/${encodeURIComponent(treeRef)}?recursive=1`);
+  const treeResponse = options.snapshot
+    ? { status: 200, json: { truncated: !options.snapshot.treeComplete, tree: options.snapshot.tree } }
+    : await client.req("GET", `/repos/${repository}/git/trees/${encodeURIComponent(treeRef)}?recursive=1`);
   // Empty-repository inference is allowed only when no explicit commit was supplied.
   if (!options.commitSha && commits.status === 409 && treeResponse.status === 404) {
     const warnings = ["This repository has no commits yet. There are no source files to inspect; create the initial project files before requesting code diagnosis."];
@@ -96,7 +100,7 @@ export async function buildRepositoryContext(
     };
   }
   if (treeResponse.status >= 300 || !Array.isArray(treeResponse.json?.tree)) throw new Error(`Could not read the repository tree (HTTP ${treeResponse.status}); source context was not built.`);
-  const tree = treeResponse.json.tree as TreeEntry[], treeComplete = treeResponse.json.truncated === false;
+  const tree = treeResponse.json.tree as RepositoryTreeEntry[], treeComplete = options.snapshot ? options.snapshot.treeComplete : treeResponse.json.truncated === false;
   const candidates = tree.filter((entry) => entry.type === "blob" && typeof entry.path === "string" && typeof entry.sha === "string"
     && !SKIP_PATH.test(entry.path) && TEXT_EXT.test(entry.path) && (entry.size === undefined || entry.size <= MAX_FILE_BYTES));
   const inventory = tree.filter((entry) => entry.type === "blob" && typeof entry.path === "string" && !SKIP_PATH.test(entry.path))

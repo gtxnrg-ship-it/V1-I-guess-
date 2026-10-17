@@ -10,6 +10,7 @@ export interface LiveRepositoryInspection {
   inspectedRef: string;
   baselineSha: string | null;
   treeComplete: boolean;
+  treeEntries: { type?: string; path?: string; sha?: string; size?: number }[];
   fileCount: number;
   readableKeyFiles: string[];
   recentRuns: { name: string; status: string; conclusion: string | null; url: string }[];
@@ -104,5 +105,5 @@ export async function inspectGitHubRepository(
       diagnosis.safeToInitialize = false;
     }
   }
-  return { repository: fullName, defaultBranch, inspectedRef, baselineSha: latestCommitSha, treeComplete, fileCount: files.length, readableKeyFiles, recentRuns, diagnosis, inspectedAt: new Date().toISOString() };
+  return { repository: fullName, defaultBranch, inspectedRef, baselineSha: latestCommitSha, treeComplete, treeEntries: treeKnown ? treeResult.json.tree : [], fileCount: files.length, readableKeyFiles, recentRuns, diagnosis, inspectedAt: new Date().toISOString() };
 }
