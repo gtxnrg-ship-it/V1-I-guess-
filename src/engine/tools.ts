@@ -5,6 +5,7 @@ import { buildQaHarness } from "./qa-harness";
 import { runtimeCheck, look } from "./eyes";
 import * as R from "./research";
 import { getState, project, writeFile, deleteFile, set } from "./db";
+import { findCredentialLeaks, describeCredentialFindings } from "./secrets";
 
 /** Files an agent can work on: the user's app, or (admin only) Kuro-chan's own source. */
 export interface Workspace {
@@ -129,6 +130,8 @@ export async function runTool(ws: Workspace, name: string, a: any): Promise<Tool
     case "write_file": {
       const p = norm(a.path);
       if (!p || typeof a.content !== "string") return { result: "ERROR: path and content are required." };
+      const findings = findCredentialLeaks([{ path: p, content: a.content }]);
+      if (findings.length) return { result: `ERROR: I blocked this write because it resembles a hard-coded credential at ${describeCredentialFindings(findings)}. I did not save the file. Use an environment variable or a clearly fake placeholder instead.` };
       const d = lineDiff(files[p], a.content);
       ws.write(p, a.content);
       return { result: `Wrote ${p} (${a.content.split("\n").length} lines).`, stat: `+${d.added} -${d.removed}` };
@@ -148,6 +151,8 @@ export async function runTool(ws: Workspace, name: string, a: any): Promise<Tool
         if (m && c.split(m[0]).length === 2) { next = c.replace(m[0], () => String(a.replace ?? "")); n = 1; }
       }
       if (next == null) return { result: n === 0 ? `ERROR: "find" text not found in ${p}. Read the file again and copy the exact text, or use write_file.` : `ERROR: "find" matches ${n} places in ${p}; include more surrounding text.` };
+      const findings = findCredentialLeaks([{ path: p, content: next }]);
+      if (findings.length) return { result: `ERROR: I blocked this edit because it resembles a hard-coded credential at ${describeCredentialFindings(findings)}. I did not save the file. Use an environment variable or a clearly fake placeholder instead.` };
       const d = lineDiff(c, next);
       ws.write(p, next);
       return { result: `Edited ${p}.`, stat: `+${d.added} -${d.removed}` };

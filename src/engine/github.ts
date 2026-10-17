@@ -1,5 +1,7 @@
 const API = "https://api.github.com";
 
+import { findCredentialLeaks, describeCredentialFindings } from "./secrets";
+
 export const b64 = (s: string) => {
   const bytes = new TextEncoder().encode(s);
   let bin = "";
@@ -110,6 +112,8 @@ export class GH {
   }
 
   async commitFiles(owner: string, name: string, branch: string, files: { path: string; content: string | null }[], message: string, opts: { full?: boolean; fromBranch?: string } = {}) {
+    const findings = findCredentialLeaks(files);
+    if (findings.length) throw new Error(`Publish blocked before contacting GitHub because possible hard-coded credentials were found at ${describeCredentialFindings(findings)}. Remove the values or use environment variables/placeholders. Credential values are intentionally not shown.`);
     const parent = await this.seedIfEmpty(owner, name, opts.fromBranch || branch);
     if (!parent) throw new Error("Couldn't find a starting commit on the branch.");
     const parentCommit = await this.ok("GET", `/repos/${owner}/${name}/git/commits/${parent}`);
