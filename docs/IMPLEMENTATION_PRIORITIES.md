@@ -2,7 +2,7 @@
 
 Last repository audit: 2026-10-17  
 Repository: [gtxnrg-ship-it/kuro-chan](https://github.com/gtxnrg-ship-it/kuro-chan)  
-Sources of truth: [Original vision](ORIGINAL_VISION.md), [roadmap](../ROADMAP.md), and the code/tests in the current default branch.
+Sources of truth: [Original vision](ORIGINAL_VISION.md), [roadmap](../ROADMAP.md), [verified feature audit](FEATURE_AUDIT.md), and the code/tests in the current default branch.
 
 This document answers two practical questions at the start of every work session: **what matters most next, and what already exists that we should extend rather than rewrite?** It is an execution order, not a claim that the work is done.
 
@@ -99,4 +99,4 @@ This document answers two practical questions at the start of every work session
 
 ## Current next action
 
-Finish and merge the repository snapshot-consistency change in [PR #139](https://github.com/gtxnrg-ship-it/kuro-chan/pull/139) after required checks pass. Then close the remaining P0 snapshot/write-guard gaps before beginning the build–test–repair–retest workstream. Do not restart local-model UI or rewrite the GitHub client merely because those areas are unfinished; inspect their current call paths first.
+[PR #139](https://github.com/gtxnrg-ship-it/kuro-chan/pull/139) is merged: immutable-SHA repository snapshot reads are in place. Continue by closing the remaining P0 snapshot/write-guard gaps—shared snapshot object, moving-ref/truncated-tree/large-file/permission/rate-limit tests, target-head revalidation, conflict-safe writes and evidence reporting. Then move directly to the P1 real build–test–repair–retest acceptance run. Use the [verified feature audit](FEATURE_AUDIT.md) as the workstream checklist and cross-conversation handoff. Do not restart local-model UI or rewrite the GitHub client merely because those areas are unfinished; inspect their current call paths first.
