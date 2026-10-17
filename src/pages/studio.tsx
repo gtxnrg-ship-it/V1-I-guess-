@@ -245,14 +245,19 @@ function ProjectMenu({ busy, onSwitched }: { busy: boolean; onSwitched: () => vo
       setOauthCode("");
       toast({ title: "GitHub connected", description: `Signed in as @${login}. You can now import a repository during this session.` });
     } catch (error) {
-      if (controller.signal.aborted) return;
+      if (controller.signal.aborted) {
+        if (oauthAbortRef.current === controller) setOauthMessage("GitHub sign-in cancelled. No token was saved.");
+        return;
+      }
       const message = errMsg(error);
       setOauthMessage(message.includes("Failed to fetch") || message.includes("NetworkError")
         ? "Kuro-chan couldn't reach GitHub's device authorization endpoint from this app. Check the network and GitHub App Device Flow configuration; no token was saved."
         : message);
     } finally {
-      if (oauthAbortRef.current === controller) oauthAbortRef.current = null;
-      setOauthBusy(false);
+      if (oauthAbortRef.current === controller) {
+        oauthAbortRef.current = null;
+        setOauthBusy(false);
+      }
     }
   };
   const starterChoices: { id: StarterVariant; label: string; blurb: string }[] = [
