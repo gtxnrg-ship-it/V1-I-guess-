@@ -8,6 +8,8 @@ import * as db from "./db";
 import * as P from "./prompts";
 import { SELF_STACK, selfWorkspace } from "./self";
 import { buildProjectContextPack, parseProjectMemoryCommand, sanitizeProjectMemoryFact } from "./project-memory";
+import { GH } from "./github";
+import { inspectGitHubRepository } from "./live-repository-intelligence";
 import type { AgentName, AssistantData, Block, Brief, Message, PlanStep, Role } from "./types";
 
 export type Scope = "app" | "self";
@@ -165,7 +167,9 @@ function filesSummary(ws: Workspace) {
   return Object.keys(f).sort().map((p) => `${p} (${f[p].length}b)`).join("\n");
 }
 
-function talkerSystem(scope: Scope) {
+let repositoryInspectionCache: { key: string; at: number; text: string } | null = null;
+
+async function talkerSystem(scope: Scope) {
   const current = db.project();
   const env = Object.keys(current.env);
   const projectMemory = scope === "app" ? buildProjectContextPack({
@@ -178,7 +182,40 @@ function talkerSystem(scope: Scope) {
     recentSummary: current.memory?.recentSummary,
     observedAt: current.memory?.observedAt,
   }).text : "";
-  const appContext = `Current app: "${current.name}". ${current.repo ? `GitHub: ${current.repo}.` : "Not on GitHub yet (the Publish button ships it as a website + Android APK)."} ${env.length ? `App settings set: ${env.join(", ")}.` : "No app settings (Supabase keys) yet."}\n\n${projectMemory}`;
+  let repositoryEvidence = "";
+  const githubKey = scope === "app" && current.repo ? db.keyOf("github") : undefined;
+  if (current.repo && githubKey?.secret && scope === "app") {
+    const cacheKey = current.repo.trim().toLowerCase();
+    if (repositoryInspectionCache?.key === cacheKey && Date.now() - repositoryInspectionCache.at < 3 * 60 * 1000) {
+      repositoryEvidence = repositoryInspectionCache.text;
+    } else {
+      try {
+        const inspection = await inspectGitHubRepository(new GH(githubKey.secret), current.repo);
+        const recentRuns = inspection.recentRuns.slice(0, 5).map((run) =>
+          `- ${run.name}: ${run.status}${run.conclusion ? ` / ${run.conclusion}` : ""}${run.url ? ` (${run.url})` : ""}`,
+        ).join("\n");
+        repositoryEvidence = [
+          "LIVE GITHUB REPOSITORY INSPECTION (tool evidence; not a complete code review)",
+          `Repository: ${inspection.repository}`,
+          `Default branch: ${inspection.defaultBranch}`,
+          `Observed commit SHA: ${inspection.baselineSha || "unknown"}`,
+          `Tree complete: ${inspection.treeComplete}; file count: ${inspection.fileCount}`,
+          `Recognized key files: ${inspection.readableKeyFiles.join(", ") || "none detected"}`,
+          `Diagnosis: ${inspection.diagnosis.condition} (confidence: ${inspection.diagnosis.confidence})`,
+          `Summary: ${inspection.diagnosis.summary}`,
+          `Evidence: ${inspection.diagnosis.evidence.join("; ") || "none returned"}`,
+          `Unknowns: ${inspection.diagnosis.unknowns.join("; ") || "none reported"}`,
+          `Recommended next steps: ${inspection.diagnosis.recommendedNextSteps.join("; ") || "inspect relevant files and tests"}`,
+          recentRuns ? `Recent GitHub Actions runs:\n${recentRuns}` : "Recent GitHub Actions runs: unavailable or none returned.",
+          "Rules: Treat this as a starting inventory, not proof the repository is healthy or broken. Read relevant source files and logs before making claims or edits. A failed workflow is a clue, not a root-cause diagnosis. If tree completeness is false or unknown, say so and do not assume missing files are absent.",
+        ].join("\n");
+        repositoryInspectionCache = { key: cacheKey, at: Date.now(), text: repositoryEvidence };
+      } catch (error) {
+        repositoryEvidence = `Live GitHub inspection could not be completed: ${error instanceof Error ? error.message : String(error)}. Do not claim the repository was inspected; explain the limitation and continue only with evidence actually available.`;
+      }
+    }
+  }
+  const appContext = `Current app: "${current.name}". ${current.repo ? `GitHub: ${current.repo}.` : "Not on GitHub yet (the Publish button ships it as a website + Android APK)."} ${env.length ? `App settings set: ${env.join(", ")}.` : "No app settings (Supabase keys) yet."}\n\n${projectMemory}${repositoryEvidence ? `\n\n${repositoryEvidence}` : ""}`;
   return `${P.TALKER}\n\n${scope === "self" ? `${SELF_STACK}\nYou are in the ADMIN panel talking to your creator about upgrading YOURSELF. Briefs here describe changes to your own code.` : appContext}`;
 }
 
@@ -258,7 +295,7 @@ Don't ask a question — just orient them, then wait.`;
   await run(live, async () => {
     if (!hasAnyModel()) throw new LLMError(0, "NO_KEYS");
     const ws = scope === "self" ? await selfWorkspace() : appWorkspace();
-    await loop({ live, agent: "Talker", label: "Talking it through", role: "talk", system: talkerSystem(scope), messages: history(pid), tools: SETS.talk, ws, maxSteps: 6, stopOn: ["ask_user", "propose_brief"] });
+    await loop({ live, agent: "Talker", label: "Talking it through", role: "talk", system: await talkerSystem(scope), messages: history(pid), tools: SETS.talk, ws, maxSteps: 6, stopOn: ["ask_user", "propose_brief"] });
   });
 }
 
