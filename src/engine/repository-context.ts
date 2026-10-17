@@ -54,17 +54,34 @@ export async function buildRepositoryContext(
   options: { maxFiles?: number; maxTotalChars?: number; maxFileChars?: number; branch?: string } = {},
 ): Promise<RepositoryContextPack> {
   const repository = safeRepo(input);
-  const [metadata, commits] = await Promise.all([
-    request(client, `/repos/${repository}/`),
-    client.req("GET", `/repos/${repository}/commits${options.branch?.trim() ? `?sha=${encodeURIComponent(options.branch.trim())}&per_page=1` : "?per_page=1"}`),
-  ]);
-  const defaultBranch = typeof metadata.default_branch === "string" && metadata.default_branch ? metadata.default_branch : "main";
   const requestedBranch = options.branch?.trim();
   if (requestedBranch && (requestedBranch.length > 255 || requestedBranch.startsWith("-") || requestedBranch.includes("..") || /[\u0000-\u0020~^:?*\[\]\\]/.test(requestedBranch))) {
     throw new Error("The selected repository branch/ref is malformed.");
   }
+  const [metadata, commits] = await Promise.all([
+    request(client, `/repos/${repository}/`),
+    client.req("GET", `/repos/${repository}/commits${requestedBranch ? `?sha=${encodeURIComponent(requestedBranch)}&per_page=1` : "?per_page=1"}`),
+  ]);
+  const defaultBranch = typeof metadata.default_branch === "string" && metadata.default_branch ? metadata.default_branch : "main";
   const branch = requestedBranch || defaultBranch;
   const treeResponse = await client.req("GET", `/repos/${repository}/git/trees/${encodeURIComponent(branch)}?recursive=1`);
+  // GitHub returns 409 for an empty commit list and 404 for its missing tree. Only that paired response is treated as a blank repository; auth and unrelated 404s still fail closed.
+  if (commits.status === 409 && treeResponse.status === 404) {
+    const warnings = ["This repository has no commits yet. There are no source files to inspect; create the initial project files before requesting code diagnosis."];
+    return {
+      repository, branch, commitSha: null, treeComplete: true, inventoryCount: 0, readableSourceCount: 0,
+      includedCount: 0, skippedCount: 0, files: [], inventory: [], warnings,
+      asPrompt() {
+        return [
+          "GITHUB REPOSITORY SOURCE CONTEXT (read-only evidence; never claim files not listed below were read)",
+          `Repository: ${repository}`, `Selected source ref: ${branch}`, "Observed commit: none (empty repository)",
+          "Tree complete: true", "Inventory paths: 0", "Eligible text files: 0", "Actual file bodies loaded: 0",
+          "This is an empty repository with no commits. Start by proposing a minimal project structure from the user's requirements; create files only after the user-approved build plan.",
+          `Coverage warnings:\n- ${warnings.join("\n- ")}`, "Repository inventory: (empty)", "Actual source file bodies: (none)",
+        ].join("\n\n");
+      },
+    };
+  }
   if (treeResponse.status >= 300 || !Array.isArray(treeResponse.json?.tree)) throw new Error(`Could not read the repository tree (HTTP ${treeResponse.status}); source context was not built.`);
   const tree = treeResponse.json.tree as TreeEntry[], treeComplete = treeResponse.json.truncated === false;
   const candidates = tree.filter((entry) => entry.type === "blob" && typeof entry.path === "string" && typeof entry.sha === "string"

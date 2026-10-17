@@ -54,6 +54,22 @@ async function run() {
   let unsafeRefRejected = false;
   try { await buildRepositoryContext(branchClient, "acme/app", { branch: "../main" }); } catch { unsafeRefRejected = true; }
   assert(unsafeRefRejected, "rejects malformed refs before fetching the tree");
+  const emptyRequests: string[] = [];
+  const emptyClient: RepositoryContextClient = {
+    async req(_method, path) {
+      emptyRequests.push(path);
+      if (path === "/repos/acme/blank/") return { status: 200, json: { default_branch: null } };
+      if (path === "/repos/acme/blank/commits?per_page=1") return { status: 409, json: { message: "Git Repository is empty." } };
+      if (path === "/repos/acme/blank/git/trees/main?recursive=1") return { status: 404, json: { message: "Not Found" } };
+      throw new Error("Unexpected empty-repository request: " + path);
+    },
+  };
+  const emptyPack = await buildRepositoryContext(emptyClient, "acme/blank");
+  assert(emptyPack.repository === "acme/blank" && emptyPack.branch === "main", "creates a valid context pack for an empty repository");
+  assert(emptyPack.commitSha === null && emptyPack.inventoryCount === 0 && emptyPack.includedCount === 0, "does not invent a commit or files for a blank repository");
+  assert(emptyPack.asPrompt().includes("no commits yet"), "tells the agent to bootstrap from requirements instead of diagnosing nonexistent code");
+  assert(emptyPack.warnings.some((warning) => warning.includes("no commits yet")), "records the empty-repository limitation as a warning");
+  assert(emptyRequests.some((path) => path.endsWith("/commits?per_page=1")) && emptyRequests.some((path) => path.includes("/git/trees/main")), "confirms empty state from the paired GitHub API responses");
   console.log("Repository context pack tests passed");
 }
 void run();
