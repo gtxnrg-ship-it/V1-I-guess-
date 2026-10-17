@@ -55,12 +55,14 @@ test.describe("Kuro-chan project memory", () => {
     await page.getByTestId("memory-entry-input").fill("This memory belongs to the original project only.");
     await page.getByTestId("memory-add-entry").click();
     await expect(page.getByTestId("memory-fact-0")).toBeVisible();
+    await page.getByLabel("Project summary").fill("UNSAVED SUMMARY FROM THE ORIGINAL PROJECT");
 
     await page.getByTestId("button-open-sidebar").click();
     await page.getByTestId("button-new-chat").click();
     await page.getByTestId("button-open-sidebar").click();
     await page.getByTestId("sidebar-memory").click();
     await expect(page.getByTestId("memory-fact-0")).toHaveCount(0);
+    await expect(page.getByLabel("Project summary")).toHaveValue("");
 
     await page.getByTestId("button-open-sidebar").click();
     await page.getByTestId(originalProject).click();
