@@ -621,7 +621,7 @@ function useDictation(
     r.onresult = (e: any) => {
       if (rec.current !== r) return;
       const transcript = Array.from(e.results as ArrayLike<any>).map((result: any) => result?.[0]?.transcript || "").join(" ");
-      setDraft((base.current + transcript).replace(/\\s+/g, " ").trimStart());
+      updateDraft((base.current + transcript).replace(/\\s+/g, " ").trimStart());
     };
     r.onerror = (e: any) => {
       if (rec.current !== r) return;
