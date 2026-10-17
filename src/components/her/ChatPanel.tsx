@@ -27,8 +27,12 @@ const isNativeApp = () => Capacitor.isNativePlatform();
 
 let activeRemoteAudio: HTMLAudioElement | null = null;
 let activeAudioUrl: string | null = null;
+// Every stop/new utterance invalidates pending async speech work. Without this,
+// a slow TTS network response can begin speaking again after the user presses Stop.
+let speechGeneration = 0;
 
 function stopAssistantSpeech(onSpeaking: (speaking: boolean) => void = () => {}) {
+  speechGeneration += 1;
   if (typeof window !== "undefined" && "speechSynthesis" in window) window.speechSynthesis.cancel();
   if (typeof window !== "undefined" && isNativeApp()) void TextToSpeech.stop().catch(() => {});
   if (activeRemoteAudio) {
@@ -54,6 +58,8 @@ async function speakAssistantReply(text: string, voiceProvider: "browser" | "ope
 
   if (!safeText) return;
   stopAssistantSpeech(onSpeaking);
+  const generation = speechGeneration;
+  const isCurrentSpeech = () => generation === speechGeneration;
 
   if (voiceProvider === "openai" && openaiKey) {
     try {
@@ -70,8 +76,10 @@ async function speakAssistantReply(text: string, voiceProvider: "browser" | "ope
           input: safeText.slice(0, 4096),
         }),
       });
+      if (!isCurrentSpeech()) return;
       if (response.ok) {
         const blob = await response.blob();
+        if (!isCurrentSpeech()) return;
         const url = URL.createObjectURL(blob);
         const audio = new Audio(url);
         activeAudioUrl = url;
@@ -87,8 +95,20 @@ async function speakAssistantReply(text: string, voiceProvider: "browser" | "ope
         audio.onerror = release;
         try {
           await audio.play();
+          if (!isCurrentSpeech()) {
+            if (activeRemoteAudio === audio) {
+              audio.onended = null;
+              audio.onerror = null;
+              audio.pause();
+              activeRemoteAudio = null;
+            }
+            if (activeAudioUrl === url) activeAudioUrl = null;
+            URL.revokeObjectURL(url);
+            return;
+          }
           return;
         } catch {
+          if (!isCurrentSpeech()) return;
           // Playback can be blocked by mobile autoplay policy; try device speech below.
           if (activeRemoteAudio === audio) {
             audio.onended = null;
@@ -106,18 +126,22 @@ async function speakAssistantReply(text: string, voiceProvider: "browser" | "ope
     }
   }
 
+  if (!isCurrentSpeech()) return;
+
   if (typeof window !== "undefined" && isNativeApp()) {
     try {
       onSpeaking(true);
       await TextToSpeech.speak({ text: safeText.slice(0, 4000), lang: navigator.language || "en-US", rate: speed, pitch: 1.05, volume: 1, category: "ambient", queueStrategy: 1 });
-      onSpeaking(false);
+      if (isCurrentSpeech()) onSpeaking(false);
       return;
     } catch {
-      onSpeaking(false);
+      if (isCurrentSpeech()) onSpeaking(false);
+      if (!isCurrentSpeech()) return;
       // Native voice can be unavailable when the Android device has no TTS engine installed.
     }
   }
 
+  if (!isCurrentSpeech()) return;
   if (typeof window === "undefined" || !("speechSynthesis" in window)) {
     onSpeaking(false);
     return;
