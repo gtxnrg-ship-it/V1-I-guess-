@@ -241,7 +241,8 @@ async function talkerContext(scope: Scope, pid: string): Promise<string> {
         repositoryEvidence = [
           "LIVE GITHUB REPOSITORY INSPECTION (tool evidence; not a complete code review)",
           `Repository: ${inspection.repository}`,
-          `Default branch: ${inspection.defaultBranch}`,\n          `Inspected source ref: ${inspection.inspectedRef}`,
+          `Default branch: ${inspection.defaultBranch}`,
+          `Inspected source ref: ${inspection.inspectedRef}`,
           `Observed commit SHA: ${inspection.baselineSha || "unknown"}`,
           `Tree complete: ${inspection.treeComplete}; file count: ${inspection.fileCount}`,
           `Recognized key files: ${inspection.readableKeyFiles.join(", ") || "none detected"}`,
