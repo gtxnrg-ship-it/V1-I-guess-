@@ -1,4 +1,5 @@
 import { LOCAL_MODEL_CATALOG, gradeLocalModel, localModelRecommendation } from "../engine/local-models";
+import { readDeviceCapabilities } from "../engine/device-capabilities";
 
 function assert(condition: boolean, message: string) {
   if (!condition) throw new Error(`Assertion failed: ${message}`);
@@ -17,3 +18,22 @@ function testLocalModelCatalog() {
   console.log("✓ local model catalog tests passed");
 }
 testLocalModelCatalog();
+
+function testDeviceCapabilities() {
+  const mobile = readDeviceCapabilities({ deviceMemory: 4, hardwareConcurrency: 8, userAgent: "Mozilla/5.0 (Linux; Android 11; Mobile)" });
+  assert(mobile.reportedRamGb === 4, "preserves browser-reported approximate memory");
+  assert(mobile.logicalCores === 8, "preserves reported logical CPU core count");
+  assert(mobile.isLikelyMobile, "recognizes a likely mobile user agent");
+
+  const unknown = readDeviceCapabilities({});
+  assert(unknown.reportedRamGb === null, "does not invent RAM when browser hides it");
+  assert(unknown.logicalCores === null, "does not invent CPU cores when unavailable");
+  assert(!unknown.isLikelyMobile, "does not guess mobile without a user agent");
+
+  const invalid = readDeviceCapabilities({ deviceMemory: -4, hardwareConcurrency: 0, userAgent: "desktop browser" });
+  assert(invalid.reportedRamGb === null, "rejects invalid memory values");
+  assert(invalid.logicalCores === null, "rejects invalid CPU core counts");
+  assert(!invalid.isLikelyMobile, "does not misclassify a desktop user agent");
+  console.log("✓ device capability detection tests passed");
+}
+testDeviceCapabilities();
