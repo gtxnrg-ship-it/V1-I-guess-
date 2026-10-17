@@ -45,6 +45,8 @@ export interface AssistantData {
   models: ModelUsed[];
   ms?: number;
   done?: boolean;
+  /** Final execution state. "completed" means the pipeline returned without a recorded failure, not that every optional check ran. */
+  outcome?: "completed" | "failed" | "stopped";
   error?: string;
   snapshotId?: string;
   filesChanged?: number;
