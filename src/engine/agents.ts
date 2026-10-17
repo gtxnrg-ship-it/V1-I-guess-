@@ -14,6 +14,7 @@ import type { AgentName, AssistantData, Block, Brief, Message, PlanStep, Role } 
 import { executionOutcome } from "./execution-status";
 import { buildDesignIntentContext } from "./design-intent";
 import { buildPersonaPreferencesPrompt } from "./persona-preferences";
+import { buildAdaptiveConversationStyle } from "./adaptive-conversation-style";
 
 export type Scope = "app" | "self";
 export const SELF_PID = "__self";
@@ -235,10 +236,16 @@ async function talkerContext(scope: Scope, pid: string): Promise<string> {
   return appContext;
 }
 
-function talkerSystem(scope: Scope): string {
-  // Keep system instructions static. Project/repository/design data is added only to user messages.
-  const preferences = buildPersonaPreferencesPrompt(db.getState().settings);
-  return `${P.TALKER}\n\n${preferences}${scope === "self" ? `\n\n${SELF_STACK}\nYou are in the ADMIN panel talking to your creator about upgrading YOURSELF. Briefs here describe changes to your own code.` : ""}`;
+function talkerSystem(scope: Scope, pid: string): string {
+  // Derive style signals locally; keep actual user text in the conversation, not the system prompt.
+  const settings = db.getState().settings;
+  const preferences = buildPersonaPreferencesPrompt(settings);
+  const recentUserMessages = scope === "self" ? [] : db.messages(pid)
+    .filter((message) => message.role === "user")
+    .slice(-20)
+    .map((message) => message.content);
+  const adaptiveStyle = buildAdaptiveConversationStyle({ recentUserMessages, explicitPlayfulness: settings.personalityPlayfulness });
+  return `${P.TALKER}\n\n${preferences}\n\nADAPTIVE CONVERSATION STYLE (derived locally from recent user-message patterns):\n${adaptiveStyle}${scope === "self" ? `\n\n${SELF_STACK}\nYou are in the ADMIN panel talking to your creator about upgrading YOURSELF. Briefs here describe changes to your own code.` : ""}`;
 }
 
 // ───────────── public: talk ─────────────
@@ -317,7 +324,7 @@ Don't ask a question — just orient them, then wait.`;
   await run(live, async () => {
     if (!hasAnyModel()) throw new LLMError(0, "NO_KEYS");
     const ws = scope === "self" ? await selfWorkspace() : appWorkspace(pid);
-    const system = talkerSystem(scope);
+    const system = talkerSystem(scope, pid);
     const context = await talkerContext(scope, pid);
     const messages = history(pid, scope);
     // Repository inspection and project memory are external/user-controlled data; keep them
