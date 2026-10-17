@@ -138,6 +138,7 @@ test.describe("Kuro-chan studio", () => {
 
   test("handles two natural turns in one conversation without dropping or duplicating messages", async ({ page }) => {
     let requests = 0;
+    const payloads = [];
     const replies = [
       "Ooh, a tiny garden planner. Let's keep the first version simple and lovely.",
       "Nice, then we'll add sunlight reminders as the next small feature.",
@@ -156,6 +157,7 @@ test.describe("Kuro-chan studio", () => {
         return;
       }
 
+      payloads.push(route.request().postDataJSON());
       const index = requests++;
       const reply = replies[index] ?? "I received the extra turn.";
       await route.fulfill({
@@ -190,6 +192,9 @@ test.describe("Kuro-chan studio", () => {
     await expect(page.getByText(replies[0], { exact: true })).toHaveCount(1);
     await expect(page.getByText(replies[1], { exact: true })).toHaveCount(1);
     expect(requests).toBe(2);
+    const secondTurnMessages = payloads[1]?.messages ?? [];
+    expect(secondTurnMessages.some((message) => message.role === "user" && String(message.content).includes("tiny garden planner"))).toBe(true);
+    expect(secondTurnMessages.some((message) => message.role === "assistant" && String(message.content).includes("first version simple and lovely"))).toBe(true);
   });
 
   test("shows a provider error instead of pretending a reply succeeded", async ({ page }) => {
