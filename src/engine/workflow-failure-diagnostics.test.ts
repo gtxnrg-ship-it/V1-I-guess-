@@ -62,8 +62,8 @@ async function run() {
   assert(!running.ready && running.state === "running", "running checks are not complete");
   const skipped = buildVerificationSummary(["Tests"], [{ name: "Tests", status: "completed", conclusion: "skipped" }]);
   assert(!skipped.ready && skipped.state === "incomplete", "skipped checks are incomplete");
-  const unavailable = buildVerificationSummary(["Tests"], [], false);
-  assert(!unavailable.ready && unavailable.unavailable === 1, "unavailable check data blocks readiness");
+  const unavailableReport = buildVerificationSummary(["Tests"], [], false);
+  assert(!unavailableReport.ready && unavailableReport.unavailable === 1, "unavailable check data blocks readiness");
   assert(!buildVerificationSummary([], []).ready, "empty required check lists never pass");
   const duplicate = buildVerificationSummary(["Tests"], [
     { name: "Tests", status: "completed", conclusion: "success" },
