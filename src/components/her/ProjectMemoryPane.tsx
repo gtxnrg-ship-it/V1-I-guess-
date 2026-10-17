@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Brain, Plus, Pencil, Trash2, Save, X, ShieldCheck, AlertTriangle, MessageSquareText, Lightbulb, CircleHelp, RotateCcw } from "lucide-react";
 import * as db from "@/engine/db";
 import { containsSensitiveMemoryText, type ProjectMemoryFact } from "@/engine/project-memory";
@@ -33,6 +33,16 @@ export function ProjectMemoryPane() {
   const [editText, setEditText] = useState("");
   const [summaryDraft, setSummaryDraft] = useState(memory.recentSummary || "");
   const [clearConfirm, setClearConfirm] = useState(false);
+
+  // The pane can stay mounted while the active project changes. Reset unsaved
+  // drafts so a summary or in-progress edit can never leak into another project.
+  useEffect(() => {
+    setDraft("");
+    setEditing(null);
+    setEditText("");
+    setSummaryDraft(project.memory?.recentSummary || "");
+    setClearConfirm(false);
+  }, [project.id, project.memory?.recentSummary]);
 
   const addEntry = () => {
     const text = draft.trim();
