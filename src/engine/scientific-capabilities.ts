@@ -121,6 +121,14 @@ function parseManifestNames(path: string, content: string): { ecosystem: string;
   }
   if (["requirements.txt", "requirements-dev.txt", "pyproject.toml", "pipfile", "poetry.lock", "uv.lock", "environment.yml", "environment.yaml"].includes(file) || /requirements[^/]*\.txt$/.test(file)) {
     const names: string[] = [];
+    if (file === "pyproject.toml") {
+      for (const match of content.matchAll(/(?:^|\n)\s*(?:dependencies|optional-dependencies)\s*=\s*\[([\s\S]*?)\]/gm)) {
+        for (const quoted of match[1].matchAll(/["']([^"']+)["']/g)) {
+          const packageName = quoted[1].trim().match(/^([A-Za-z][A-Za-z0-9_.-]*)(?:\[[^\]]+\])?/);
+          if (packageName) names.push(packageName[1]);
+        }
+      }
+    }
     for (const line of content.split(/\r?\n/)) {
       const trimmed = line.trim();
       if (!trimmed || trimmed.startsWith("#")) continue;
@@ -168,7 +176,7 @@ export function detectScientificCapabilities(paths: Iterable<string>, fileConten
     const evidence = matches.flatMap((name) => (evidenceByEcosystem.get(rule.manifestKinds[0])?.get(normalizeName(name)) || []).map((path) => `${path}: ${name}`));
     results.push({ id: rule.id, label: rule.label, ecosystem: rule.ecosystem, focus: rule.focus, evidence: [...new Set(evidence)], validation: rule.validation });
   }
-  if (fileSet.has("dbt_project.yml") || fileSet.has("dbt_project.yaml")) {
+  if ([...fileSet].some((path) => ["dbt_project.yml", "dbt_project.yaml"].includes(basename(path).toLowerCase()))) {
     if (!results.some((item) => item.id === "dbt")) results.push({ id: "dbt", label: "dbt", ecosystem: "SQL / analytics", focus: "Versioned analytics transformations and data tests", evidence: ["dbt_project.yml project marker"], validation: "Confirm the target adapter/database, test constraints, source freshness, and data contracts." });
   }
   return results;
