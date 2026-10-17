@@ -134,7 +134,7 @@ export async function runTool(ws: Workspace, name: string, a: any): Promise<Tool
   const files = ws.all();
   switch (name) {
     case "inspect_project_capabilities": {
-      const report = detectProjectToolchains(Object.keys(files));
+      const report = detectProjectToolchains(Object.keys(files), files);
       const languageText = report.languages.length ? report.languages.map((item) => [
         `- ${item.label} (evidence: ${item.evidence.join(", ")})`,
         `  Toolchain: ${item.toolchain}`,
