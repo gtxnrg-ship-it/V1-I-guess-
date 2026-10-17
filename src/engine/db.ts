@@ -2,7 +2,7 @@
 import { useSyncExternalStore } from "react";
 import type { KeyRec, Message, Project, Settings, Snapshot, UsageDay } from "./types";
 import { containsSensitiveMemoryText, sanitizeProjectMemoryFacts } from "./project-memory";
-import { filterPersistableCredentials } from "./github-session";
+import { filterPersistableCredentials, getGitHubSession, getGitHubSessionToken } from "./github-session";
 
 export interface State {
   ready: boolean;
@@ -303,7 +303,18 @@ export function restoreSnapshot(snapshotId: string, projectId = project().id): S
 export function addKey(k: KeyRec) { state.keys = [...state.keys, k]; persist("keys"); }
 export function updateKey(id: string, patch: Partial<KeyRec>) { state.keys = state.keys.map((k) => (k.id === id ? { ...k, ...patch } : k)); persist("keys"); }
 export function removeKey(id: string) { state.keys = state.keys.filter((k) => k.id !== id); persist("keys"); }
-export const keyOf = (provider: string) => state.keys.find((k) => k.provider === provider && k.status !== "disabled");
+export const keyOf = (provider: string): KeyRec | undefined => {
+  const saved = state.keys.find((key) => key.provider === provider && key.status !== "disabled");
+  if (saved || provider !== "github") return saved;
+  const token = getGitHubSessionToken();
+  const session = getGitHubSession();
+  if (!token || !session) return undefined;
+  return {
+    id: "github-runtime-session", label: `GitHub · ${session.login}`, kind: "github", provider: "github",
+    secret: token, hint: "Runtime-only sign-in session", models: [], status: "active",
+    requests: 0, errors: 0, login: session.login, createdAt: session.connectedAt,
+  };
+};
 
 // ───────────── settings & usage ─────────────
 export function setSettings(patch: Partial<Settings>) { state.settings = { ...state.settings, ...patch }; persist("settings"); }
