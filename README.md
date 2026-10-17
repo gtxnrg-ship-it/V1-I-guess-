@@ -43,20 +43,22 @@ The release page contains the newest APK published by the Android build workflow
 
 These are development APKs, not Play Store releases. Back up important project data before testing, and report reproducible issues through GitHub Issues.
 
-## 🔐 GitHub sign-in and repository chats
+## 🧩 GitHub App integration
 
-Kuro-chan's repository import dialog includes an in-context GitHub Device Flow sign-in panel, so users do not have to navigate to Settings to connect an account. After authorization, the user can paste a repository URL and create a dedicated project chat with its own files and memory.
+**The intended experience is a built-in GitHub connection, not a confusing developer-token setup.** Users should connect GitHub inside Kuro-chan, choose repositories, let her inspect the project, and work on a branch with visible diffs and pull requests.
 
-**One-time maintainer setup is required before the sign-in button can complete authorization:**
+GitHub Apps and OAuth are related but not interchangeable. A GitHub App installation can provide repository-scoped permissions and short-lived installation tokens; issuing those tokens safely requires a trusted server-side component holding the App private key. That private key must never be bundled into a browser build or Android APK. Kuro-chan is currently browser-first and does not yet include that token broker, so the complete installation-based experience is **not finished**.
 
-1. Create a GitHub App in GitHub Developer Settings and enable **Device Flow** for it.
-2. Set the app's homepage URL to this repository's public project page.
-3. Add the GitHub App's **Client ID** as the repository Actions variable `VITE_GITHUB_APP_CLIENT_ID` (Settings → Secrets and variables → Actions → Variables). The client ID is public; never add a client secret to the Vite app, APK, or repository.
-4. Rebuild the web app or run the Android build workflow after setting the variable.
+The repository contains a GitHub API client, repository-inspection foundations, and a client-side Device Flow path that depends on maintainer configuration. That is a partial integration, not the final one-click GitHub App experience. Do not mistake a smoother interim authorization flow for completion of the intended architecture.
 
-The panel requests `repo` and `workflow` scopes because coding tasks may need to read/write private repositories and manage workflow files. Users must review and approve GitHub's authorization screen. GitHub tokens are kept in runtime memory for the current session and are not intentionally persisted across app restarts. Reconnect after restarting Kuro-chan, and revoke Kuro-chan's access from GitHub settings when no longer needed. The app must not claim to be connected unless it validates the returned token against GitHub.
+Planned connection experience:
+1. Install/authorize the Kuro-chan GitHub App from inside the product and choose which repositories it may access.
+2. Explain permissions in plain language and provide a clear disconnect/revoke path.
+3. Browse accessible repositories and branches, including private repositories only when permission is granted.
+4. Inspect the accessible tree, project instructions, build scripts, dependencies, tests, latest commit, and CI state before planning.
+5. Work on an isolated branch, display a readable diff, run relevant checks, and create a pull request.
+6. Use short-lived, repository-scoped credentials from a trusted broker. Never ship the App private key or claim a public client ID alone enables privileged GitHub App operations.
 
-If the GitHub App client ID is not configured, the panel explains the missing setup instead of simulating a successful connection.
 
 ## 🧭 What is here today?
 
@@ -94,49 +96,44 @@ Likewise, the long-term vision includes more advanced autonomous engineering, ri
 
 These roles are an architectural direction, not a guarantee that every task will be fully autonomous. Tool access, context limits, model support, external services, and test coverage affect what can be completed. Kuro-chan should make progress and failures visible rather than claiming success without evidence.
 
-## 💬 Personality and conversation
+## 💬 Personality, natural chat, and memory
 
-Kuro-chan is being designed to feel like a familiar, expressive coding companion: friendly, curious, a little mischievous, and able to explain complicated engineering in plain language. She should be able to be playful without making every answer a joke, and direct about uncertainty instead of pretending to have completed work she has not done.
+Kuro-chan should feel like a conversational companion first and an engineering tool second. Users can brainstorm, ask ordinary questions, share references, change their minds, or request a full build in the same chat. She starts mature, kind, lightly funny, and naturally imperfect—not like a scripted mascot. Over time she can adapt to the user's conversational rhythm, including casual slang and occasional profanity when the user consistently uses it, without forcing a bit or copying every mannerism.
 
-The long-term personality direction includes adapting conversational tone to a user's preferences over time, retaining useful project context, and making creator-related Easter eggs appear naturally when relevant. Personalization must not override user control, privacy, or accurate reporting.
+The Talker prompt already defines a warm, playful, honest voice, and saved settings control playfulness and reply length. Recent conversation style adaptation is being added separately. Project memory is inspectable and user-controlled; it is not yet a complete automatic memory of every preference across every project. Memory must remain scoped, explainable, editable, and deletable.
 
-## 🔌 Models and integrations
+The chat should read like a real conversation. Tools, specialist agents, tests, and sources should be visible when useful, but should not dominate every answer with dashboard cards. Rich previews, images, code diffs, links, and artifact links should appear naturally when they help the user understand the work. Users should be able to ask “what's that?” and get a simple explanation rather than being forced to understand engineering terminology.
 
-Kuro-chan is designed to work with supported AI providers and compatible endpoints, with model choice and capabilities depending on what is configured in the app.
 
-The longer-term integration direction includes:
+## 🧠 Models: cloud providers and true on-device AI
 
-- Multiple model providers and OpenAI-compatible endpoints.
-- Different model choices for planning, research, code editing, and checking.
-- Clear information about vision, tool calling, context limits, speed, cost, and provider restrictions.
-- Optional local inference through a user-configured Ollama endpoint where the deployment and network settings permit it.
-- More robust handling of provider errors, quotas, timeouts, cancellation, and retries.
-- Future exploration of browser-local inference through WebGPU or WebAssembly for compatible models and devices.
+Kuro-chan has a multi-provider model router for configured API providers, role-based model selection, streaming, and bounded fallback behavior. The free starter entry labelled **GPT-OSS 20B** currently calls a remote Pollinations-compatible endpoint; it is not proof that GPT-OSS weights are bundled with Kuro-chan or running locally. Availability, quality, quotas, and model identity depend on the external endpoint.
 
-Some integrations require an account, a paid plan, an API key, or extra setup. A free tier may have limits and can change without notice. Kuro-chan cannot guarantee unlimited or permanently free access to third-party models or services.
+The Local Models screen currently offers a catalogue and rough device-fit guidance. It does **not yet** download, install, or execute the listed open-weight chat models. A model link is not a working local runtime.
 
-## 🛠️ Long-term vision
+The intended one-tap local-model flow is: choose a compatible model; review exact download size, license, runtime compatibility, and device guidance; download with progress, cancellation, retry, and integrity verification; install into app-private storage; load through a real Android-compatible inference runtime; run an inference smoke test; and only then mark it Ready for model routing. Users must be able to update, repair, unload, or delete models without losing project files.
 
-The ambition is bigger than a chat window that generates snippets. Kuro-chan should grow into a project-aware engineering companion that can help take an idea from rough concept to tested, reviewable deliverable.
+The catalogue should include practical open-weight chat and coding models from several families, not a list of model-card links presented as runnable software. Kuro-chan must check licenses and access gates, never invent artifact URLs or sizes, and gracefully explain when a phone cannot run a model. Download weights on demand rather than bloating every APK. Offline inference must actually work after installation when the device is offline.
 
-The planned direction includes:
 
-- **A real GitHub connection:** user-authorized sign-in, repository listing, repository import, branch selection, sync status, and clear permission boundaries.
-- **Safer code changes:** readable diffs, selective acceptance, snapshots, restore points, feature branches, pull requests, and conflict explanations before risky writes.
-- **Deeper project understanding:** inspect architecture, dependencies, scripts, documentation, and existing conventions before changing a repository.
-- **Visible task progress:** show what the agent is doing, what changed, which checks ran, and where human review is needed.
-- **Testing and repair loops:** run relevant tests and builds, summarize failures, attempt bounded fixes, and verify again instead of treating a generated patch as proof.
-- **App delivery:** improve web and Android project builds, artifact verification, release notes, and practical download/update guidance.
-- **Voice-first interaction:** more natural spoken conversation, reliable interruption and cancellation, configurable voice settings, and better behavior on mobile devices.
-- **Persistent project memory:** remember useful decisions and project-specific facts while keeping data scoped, inspectable, and under user control.
-- **Project templates and reusable workflows:** starter recipes, framework-aware plans, repeatable tasks, and configurable agent workflows.
-- **Security and privacy controls:** secret detection, explicit confirmation for consequential actions, safer token handling, permission explanations, and privacy-respecting diagnostics.
-- **Performance and accessibility:** responsive layouts, keyboard support, reduced-motion options, better low-end-device behavior, and clearer offline/error/loading states.
-- **Cross-device reach:** a coherent experience on Android phones, tablets, and desktop browsers, with platform-specific packaging explored where it is practical.
-- **Optional extensions and integrations:** a capability-aware integration system where each tool's permissions and data access are explained before use.
-- **Better release communication:** clear changelogs, build identifiers, verified artifacts, and user-facing upgrade guidance.
+## 🛠️ The original vision: an engineering team in one chat
 
-See [ROADMAP.md](ROADMAP.md) for the working checklist. Priorities may change as implementation and testing reveal what matters most.
+Kuro-chan is meant to help a non-coder go from a rough idea to a working, tested deliverable. A calculator is a small task; a large game, creative tool, or engine is a long engineering program. She should plan either appropriately, build in phases, preserve decisions, run real checks, repair failures, and explain progress in plain language.
+
+The intended system includes:
+- **Natural conversation and adaptive personality:** brainstorming and normal chat without forcing every message into a build workflow.
+- **An in-app GitHub App connection:** repository selection, branch-aware work, scoped permissions, diffs, pull requests, and safe synchronization.
+- **A specialist-agent pipeline:** research, architecture, implementation, tests, independent review, bounded repair loops, checkpoints, cancellation, and honest verification evidence.
+- **Project-wide understanding:** inspect the accessible repository tree, architecture, dependencies, scripts, documentation, and tests before planning; record skipped files and exact base commit.
+- **A working local-model manager:** one-tap download, integrity checks, supported mobile inference runtime, smoke test, model routing, offline use, updates, and deletion.
+- **Voice conversation:** speech input, natural voice playback, interruption, and clear fallbacks. Local Kokoro speech synthesis and native speech integrations exist, but full real-device reliability and natural live turn-taking are not yet verified.
+- **Rich conversational output:** relevant image/reference previews, links, code snippets, diffs, and artifact links embedded naturally instead of a wall of generic cards.
+- **Beginner-first explanations:** plain-language choices, useful defaults, concise clarification only when necessary, and a clear explanation of failures.
+- **Small-to-large creation:** websites, tools, apps, games, creative software, and eventually large engine-scale projects through staged architecture and testing—not by pretending a single prompt can reproduce an entire mature engine instantly.
+- **Professional UI and documentation:** mobile-first chat, coherent settings, accessible controls, accurate feature status, current release links, and setup instructions that match the code.
+
+See [docs/ORIGINAL_VISION.md](docs/ORIGINAL_VISION.md) for the capability map and implementation boundaries, and [ROADMAP.md](ROADMAP.md) for the working list. Planned features are labelled as planned; ambition must never be presented as completed functionality.
+
 
 ## 🔐 Privacy and security
 
