@@ -106,7 +106,7 @@ test.describe("Kuro-chan studio", () => {
         "",
         "data: [DONE]",
         "",
-      ].join("\\n");
+      ].join("\n");
       await route.fulfill({
         status: 200,
         headers: {
