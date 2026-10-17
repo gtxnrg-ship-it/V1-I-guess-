@@ -54,6 +54,22 @@ async function run() {
   let unsafeRefRejected = false;
   try { await buildRepositoryContext(branchClient, "acme/app", { branch: "../main" }); } catch { unsafeRefRejected = true; }
   assert(unsafeRefRejected, "rejects malformed refs before fetching the tree");
+  const pinnedRequests: string[] = [];
+  const pinnedClient: RepositoryContextClient = {
+    async req(_method, path) {
+      pinnedRequests.push(path);
+      if (path === "/repos/acme/app/") return { status: 200, json: { default_branch: "main" } };
+      if (path.endsWith("/commits?per_page=1")) return { status: 403, json: { message: "Rate limited after inspection" } };
+      if (path === "/repos/acme/app/git/trees/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa?recursive=1") return { status: 200, json: { truncated: false, tree: [{ type: "blob", path: "src/App.tsx", sha: "pinned-app", size: source.length }] } };
+      if (path.endsWith("/git/blobs/pinned-app")) return { status: 200, json: { encoding: "base64", content: b64("export const pinned = true;") } };
+      throw new Error("Unexpected pinned request: " + path);
+    },
+  };
+  const pinnedPack = await buildRepositoryContext(pinnedClient, "acme/app", { commitSha: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" });
+  assert(pinnedPack.commitSha === "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "preserves the caller's inspected baseline SHA");
+  assert(pinnedPack.files[0]?.content.includes("pinned = true"), "loads bodies from the pinned inspected commit even if a second moving-ref lookup is unavailable");
+  assert(pinnedRequests.some((path) => path.includes("/trees/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")), "uses the exact inspected baseline for tree lookup");
+
   const emptyRequests: string[] = [];
   const emptyClient: RepositoryContextClient = {
     async req(_method, path) {
