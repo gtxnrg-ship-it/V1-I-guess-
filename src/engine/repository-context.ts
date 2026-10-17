@@ -71,10 +71,10 @@ export async function buildRepositoryContext(
   if ((options.snapshot && !/^[0-9a-f]{40}$/i.test(options.snapshot.commitSha)) || (options.commitSha && !/^[0-9a-f]{40}$/i.test(options.commitSha))) {
     throw new Error("The pinned repository commit SHA is malformed.");
   }
-  if (!options.commitSha && commits.status !== 200 && commits.status !== 409) {
+  if (!options.commitSha && !options.snapshot && commits.status !== 200 && commits.status !== 409) {
     throw new Error(`Could not establish the repository baseline commit (HTTP ${commits.status}); source context was not built.`);
   }
-  if (!options.commitSha && commits.status === 200 && (!Array.isArray(commits.json) || !commits.json[0]?.sha)) {
+  if (!options.commitSha && !options.snapshot && commits.status === 200 && (!Array.isArray(commits.json) || !commits.json[0]?.sha)) {
     throw new Error("GitHub returned an invalid commit response; source context was not built.");
   }
   const observedCommitSha: string | null = options.snapshot?.commitSha || options.commitSha || (commits.status === 200 ? commits.json[0].sha : null);
