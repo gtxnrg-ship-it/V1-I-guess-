@@ -2,6 +2,8 @@ name: Build Kuro-chan APK
 on:
   push:
     branches: [main]
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -29,7 +31,7 @@ jobs:
       - name: Build web app
         run: npm run build
         env:
-          VITE_GITHUB_CLIENT_ID: ${{ vars.VITE_GITHUB_CLIENT_ID }}
+          VITE_GITHUB_APP_CLIENT_ID: ${{ vars.VITE_GITHUB_APP_CLIENT_ID }}
       - run: npx cap add android
       - name: Allow microphone (voice typing)
         run: |
@@ -46,7 +48,7 @@ jobs:
             exit 1
           fi
       - uses: softprops/action-gh-release@v2
-        if: steps.check_apk.outputs.apk_exists == 'true'
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.check_apk.outputs.apk_exists == 'true'
         with:
           tag_name: build-${{ github.run_number }}
           name: Kuro-chan Android build ${{ github.run_number }}
