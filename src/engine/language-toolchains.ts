@@ -57,7 +57,7 @@ const RULES: LanguageRule[] = [
   { id: "perl", label: "Perl", markers: ["Makefile.PL", "Build.PL", "cpanfile", "*.pl", "*.pm"], buildCommands: ["perl Makefile.PL && make"], testCommands: ["prove -lr t"], toolchain: "Perl + CPAN build/test tooling" },
   { id: "sql", label: "SQL", markers: ["*.sql", "sqlfluff", ".sqlfluff", "dbt_project.yml"], buildCommands: [], testCommands: ["sqlfluff lint .", "dbt test"], toolchain: "Database-specific SQL dialect and optional linter/migration/test tooling; configure the actual database before execution" },
   { id: "bash", label: "Bash / shell", markers: ["*.sh", "Makefile", ".shellcheckrc"], buildCommands: [], testCommands: ["bash -n ./script.sh", "shellcheck ."], toolchain: "POSIX-compatible shell; ShellCheck is optional static analysis" },
-  { id: "powershell", label: "PowerShell", markers: ["*.ps1", "*.psm1", "*.psd1"], buildCommands: ["pwsh -NoProfile -Command '$ErrorActionPreference=\\"Stop\\"; Get-ChildItem -Recurse -Filter *.ps1'"], testCommands: ["Invoke-Pester"], toolchain: "PowerShell 7+; Pester is the common test framework" },
+  { id: "powershell", label: "PowerShell", markers: ["*.ps1", "*.psm1", "*.psd1"], buildCommands: ["pwsh -NoProfile -Command '$ErrorActionPreference=\"Stop\"; Get-ChildItem -Recurse -Filter *.ps1'"], testCommands: ["Invoke-Pester"], toolchain: "PowerShell 7+; Pester is the common test framework" },
   { id: "solidity", label: "Solidity", markers: ["foundry.toml", "hardhat.config.ts", "hardhat.config.js", "*.sol"], buildCommands: ["forge build", "npx hardhat compile"], testCommands: ["forge test", "npx hardhat test"], toolchain: "Solidity compiler via Foundry or Hardhat; contract tests should run on a local test chain" },
 ];
 
