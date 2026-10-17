@@ -9,7 +9,7 @@ import { GH } from "./github";
 import { readRepositoryFile, searchRepositoryCode } from "./repository-files";
 import { credentialGuardMessage } from "./secrets";
 import { runGitHubChecks } from "./github-check-runner";
-import { detectProjectToolchains } from "./language-toolchains";
+import { detectProjectToolchains, inspectProjectExecutionEvidence } from "./language-toolchains";
 import { detectScientificCapabilities } from "./scientific-capabilities";
 
 /** Files an agent can work on: the user's app, or (admin only) Kuro-chan's own source. */
@@ -137,6 +137,7 @@ export async function runTool(ws: Workspace, name: string, a: any): Promise<Tool
     case "inspect_project_capabilities": {
       const report = detectProjectToolchains(Object.keys(files), files);
       const scientific = detectScientificCapabilities(Object.keys(files), files);
+      const execution = inspectProjectExecutionEvidence(Object.keys(files), files);
       const languageText = report.languages.length ? report.languages.map((item) => [
         `- ${item.label} (evidence: ${item.evidence.join(", ")})`,
         `  Toolchain: ${item.toolchain}`,
@@ -165,6 +166,10 @@ export async function runTool(ws: Workspace, name: string, a: any): Promise<Tool
         `Scientific/statistical stacks detected: ${scientific.length}`,
         scientificText,
         `Build manifests: ${report.buildFiles.join(", ") || "none detected"}`,
+        `Declared package managers: ${execution.packageManagers.join(", ") || "not identified from lockfiles/package.json"}`,
+        `Lockfiles present: ${execution.lockfiles.join(", ") || "none detected"}`,
+        `Declared runtime pins/constraints: ${execution.runtimePins.join("; ") || "none detected; versions remain unknown"}`,
+        `Actual package.json scripts (declared, not run): ${execution.packageScripts.length ? execution.packageScripts.map((item) => `${item.name} = ${item.command} [${item.manifest}]`).join(" | ") : "none detected"}`,
         `Important: ${report.note}`,
         "Scientific stack detection is dependency evidence only; it does not prove packages are installed or numerical results are correct.",
       ].join("\n\n");
