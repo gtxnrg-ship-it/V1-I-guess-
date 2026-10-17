@@ -133,7 +133,7 @@ function QuestionsCard({ b, ctx }: { b: Extract<Block, { type: "questions" }>; c
     agents.answer(ctx.pid, ctx.msgId, b.id, ans, ctx.scope);
   };
   return (
-    <div className="her-rise rounded-xl border border-border bg-card p-4" data-testid="card-questions">
+    <div className="her-rise py-2" data-testid="card-questions">
       <div className="space-y-4">
         {b.items.map((q) => (
           <div key={q.id}>
@@ -165,9 +165,8 @@ function BriefCard({ b, ctx }: { b: Extract<Block, { type: "brief" }>; ctx: Ctx 
   const busy = db.getState().busy;
   const br = b.brief;
   return (
-    <div className="her-rise relative overflow-hidden rounded-2xl border border-border bg-card" data-testid="card-brief">
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-[hsl(var(--ember))] via-[hsl(var(--rose))] to-transparent" />
-      <div className="p-4">
+    <div className="her-rise py-2" data-testid="card-brief">
+      <div>
         <div className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
           <Sparkles className="h-3.5 w-3.5 text-[hsl(var(--ember))]" /> {br.size === "quick" ? "Quick change" : "The brief"}
         </div>
@@ -180,7 +179,7 @@ function BriefCard({ b, ctx }: { b: Extract<Block, { type: "brief" }>; ctx: Ctx 
         )}
         {(br.design || br.backend) && (
           <div className="mt-3 grid gap-2 sm:grid-cols-2">
-            {br.design && <div className="rounded-lg bg-muted/70 px-3 py-2"><div className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Design</div><div className="mt-0.5 text-[13px] leading-snug">{br.design}</div></div>}
+            {br.design && <div className="border-l border-border pl-3 py-1"><div className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Design</div><div className="mt-0.5 text-[13px] leading-snug">{br.design}</div></div>}
             {br.backend && <div className="rounded-lg bg-muted/70 px-3 py-2"><div className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Backend</div><div className="mt-0.5 text-[13px] leading-snug">{br.backend}</div></div>}
           </div>
         )}
@@ -207,7 +206,7 @@ function BriefCard({ b, ctx }: { b: Extract<Block, { type: "brief" }>; ctx: Ctx 
 function PlanCard({ b }: { b: Extract<Block, { type: "plan" }> }) {
   const done = b.steps.filter((s) => s.status === "done").length;
   return (
-    <div className="her-rise rounded-xl border border-border bg-card p-4" data-testid="card-plan">
+    <div className="her-rise py-2" data-testid="card-plan">
       <div className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
         <ListChecks className="h-3.5 w-3.5" /> {b.title}<span className="ml-auto tabular-nums normal-case tracking-normal">{done}/{b.steps.length}</span>
       </div>
@@ -230,11 +229,11 @@ function SqlCard({ b }: { b: Extract<Block, { type: "sql" }> }) {
   const { toast } = useToast();
   const url = db.project().env.VITE_SUPABASE_URL?.match(/https:\/\/([a-z0-9]+)\.supabase\.co/)?.[1];
   return (
-    <div className="her-rise overflow-hidden rounded-xl border border-border bg-card" data-testid="card-sql">
-      <div className="flex items-center gap-2 px-4 pt-3.5 text-[13.5px] font-medium"><Database className="h-4 w-4 text-emerald-600" /> {b.title}</div>
-      <p className="px-4 pt-1 text-[12.5px] text-muted-foreground">Paste this into Supabase's SQL editor and run it once.</p>
-      <pre className="her-scroll mx-4 mt-2 max-h-56 overflow-auto rounded-lg bg-muted px-3 py-2 font-mono text-[11.5px] leading-relaxed">{b.sql}</pre>
-      <div className="flex gap-2 p-3 px-4">
+    <div className="her-rise py-2" data-testid="card-sql">
+      <div className="flex items-center gap-2 pt-2 text-[13.5px] font-medium"><Database className="h-4 w-4 text-emerald-600" /> {b.title}</div>
+      <p className="pt-1 text-[12.5px] text-muted-foreground">Paste this into Supabase's SQL editor and run it once.</p>
+      <pre className="her-scroll mt-2 max-h-56 overflow-auto border-l border-border pl-3 py-2 font-mono text-[11.5px] leading-relaxed">{b.sql}</pre>
+      <div className="flex gap-2 pt-3">
         <button data-testid="button-copy-sql" onClick={() => { navigator.clipboard?.writeText(b.sql); toast({ title: "SQL copied" }); }} className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-[12.5px] font-medium text-primary-foreground"><Copy className="h-3.5 w-3.5" /> Copy SQL</button>
         <a href={url ? `https://supabase.com/dashboard/project/${url}/sql/new` : "https://supabase.com/dashboard/projects"} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-[12.5px] hover:bg-muted"><ExternalLink className="h-3.5 w-3.5" /> Open Supabase</a>
       </div>
@@ -256,8 +255,7 @@ function UpgradeCard({ b, ctx }: { b: Extract<Block, { type: "upgrade" }>; ctx: 
     setBusy(false);
   };
   return (
-    <div className="her-rise relative overflow-hidden rounded-xl border border-border bg-card p-4" data-testid="card-upgrade">
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-[hsl(var(--ember))] via-[hsl(var(--rose))] to-[hsl(var(--iris))]" />
+    <div className="her-rise border-l-2 border-[hsl(var(--ember))] pl-3 py-2" data-testid="card-upgrade">
       <div className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-wider text-muted-foreground"><GitPullRequestArrow className="h-3.5 w-3.5" /> Upgrade to myself</div>
       <div className="mt-1.5 text-[15px] font-semibold">{b.title}</div>
       <div className="mt-2 flex flex-wrap gap-1.5">{Object.keys(b.files).map((f) => <span key={f} className="rounded-md bg-muted px-2 py-0.5 font-mono text-[11px]">{f}{b.files[f] === null ? " (deleted)" : ""}</span>)}</div>
