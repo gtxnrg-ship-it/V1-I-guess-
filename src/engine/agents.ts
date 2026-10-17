@@ -365,8 +365,8 @@ export async function approve(pid: string, msgId: string, briefId: string, scope
 async function buildPipeline(live: Live, brief: Brief, ws: Workspace, scope: Scope, images: Img[]) {
   const data = live.data;
   const before = JSON.stringify(ws.all());
-  if (scope === "app" && !db.snapshots().length) db.takeSnapshot("Starting point");
-  const currentProject = db.project();
+  if (scope === "app" && !db.snapshots(live.pid).length) db.takeSnapshot("Starting point", live.pid);
+  const currentProject = db.getState().projects.find((project) => project.id === live.pid) || db.project();
   const designIntent = scope === "app" ? buildDesignIntentContext(currentProject.name, currentProject.designStudio) : "";
   const ctx = `APPROVED BRIEF
 Title: ${brief.title}
