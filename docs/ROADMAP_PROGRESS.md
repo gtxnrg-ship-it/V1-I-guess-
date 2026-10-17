@@ -5,8 +5,8 @@ Source of truth: [ROADMAP.md](../ROADMAP.md). This ledger separates **roadmap ch
 
 ## Overall checklist progress
 
-- **13 of 122 roadmap checkboxes complete: 10.7%.**
-- Calculation: checked boxes divided by all checklist items currently in `ROADMAP.md`, rounded to one decimal place. The latest reconciliation includes merged checkpoint-recovery, project-memory, personality-preference, and local-model-advisor work.
+- **13 of 133 roadmap checkboxes complete: 9.8%.**
+- Calculation: checked boxes divided by all checklist items currently in `ROADMAP.md`, rounded to one decimal place. The latest reconciliation includes merged checkpoint-recovery, project-memory, personality-preference, and local-model-advisor work, plus 11 new original-vision acceptance gates.
 - This is a strict checklist percentage, not a claim that only 8.2% of the product code exists. Several merged changes are not yet represented by checked roadmap items, and partial features do not count as complete.
 - Reconcile this ledger whenever roadmap items are added, removed, or verified. Only check a roadmap item when its acceptance criteria are implemented and verified; record evidence below.
 
@@ -27,7 +27,8 @@ Source of truth: [ROADMAP.md](../ROADMAP.md). This ledger separates **roadmap ch
 | P2 — templates, tools, and integrations | 0 | 9 |
 | P2 — delivery, releases, and quality of life | 0 | 8 |
 | P3 — longer-term experiments | 0 | 6 |
-| **Total** | **13** | **122** |
+| Original-vision alignment | 0 | 11 |
+| **Total** | **13** | **133** |
 
 ## Shipped capability evidence
 
@@ -56,3 +57,8 @@ Source of truth: [ROADMAP.md](../ROADMAP.md). This ledger separates **roadmap ch
 3. Run unit tests, TypeScript, production build, E2E, CodeQL, and Android build where applicable. If any required check fails, repair the cause and rerun the affected checks before calling the PR verified.
 4. A merged PR is evidence of merged code, not proof every roadmap acceptance criterion is complete.
 5. Update the overall percentage from the current roadmap checkbox counts rather than estimating from PR count or lines of code.
+
+
+## Original-vision alignment audit (2026-10-17)
+
+The repository has a useful engineering-agent foundation, but the intended product is broader than the verified runtime. The GPT-OSS 20B entry routes through a remote Pollinations-compatible endpoint; the local chat-model catalogue has no download/load path; Kokoro TTS and native speech integrations exist, but physical-device voice acceptance is incomplete. The GitHub API client exists, but installation-based GitHub App authentication requires a server-side token broker that is not present in this repository. These are explicit gaps, not completed features. See [Original vision and implementation map](ORIGINAL_VISION.md).

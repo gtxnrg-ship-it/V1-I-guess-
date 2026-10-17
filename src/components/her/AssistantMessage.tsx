@@ -91,19 +91,19 @@ function ToolRow({ b }: { b: ToolB }) {
 }
 
 function ToolGroup({ tools, live }: { tools: ToolB[]; live: boolean }) {
-  const running = tools.some((t) => t.status === "running");
-  const [open, setOpen] = useState(live || tools.some((t) => t.thumbs?.length));
-  const edits = tools.filter((t) => t.name === "write_file" || t.name === "edit_file").length;
-  const searches = tools.filter((t) => ["web_search", "read_url", "search_npm", "search_github", "get_docs"].includes(t.name)).length;
+  const [open, setOpen] = useState(live || tools.some((tool) => tool.thumbs?.length));
+  const running = tools.some((tool) => tool.status === "running");
+  const edits = tools.filter((tool) => tool.name === "write_file" || tool.name === "edit_file").length;
+  const searches = tools.filter((tool) => ["web_search", "read_url", "search_npm", "search_github", "get_docs"].includes(tool.name)).length;
   return (
-    <div className="her-rise overflow-hidden rounded-xl border border-border bg-card shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
-      <button data-testid="button-toolgroup" onClick={() => setOpen((o) => !o)} className="flex w-full items-center gap-2 px-3 py-2 text-[12px] text-muted-foreground hover:text-foreground">
+    <div className="her-rise py-1" data-testid="tool-activity">
+      <button data-testid="button-toolgroup" type="button" onClick={() => setOpen((value) => !value)} className="inline-flex max-w-full items-center gap-1.5 text-left text-[12px] text-muted-foreground transition-colors hover:text-foreground">
         {running ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
-        <span className="font-medium">{running ? "Working" : "Worked"}</span>
-        <span className="truncate">· {tools.length} {tools.length === 1 ? "action" : "actions"}{edits ? ` · ${edits} ${edits === 1 ? "edit" : "edits"}` : ""}{searches ? ` · ${searches} lookups` : ""}</span>
-        <ChevronRight className={`ml-auto h-3.5 w-3.5 shrink-0 transition-transform ${open ? "rotate-90" : ""}`} />
+        <span>{running ? "I'm working through this" : "What I did"}</span>
+        <span className="truncate">· {tools.length} {tools.length === 1 ? "action" : "actions"}{edits ? ` · ${edits} edits` : ""}{searches ? ` · ${searches} lookups` : ""}</span>
+        <ChevronRight className={`h-3 w-3 shrink-0 transition-transform ${open ? "rotate-90" : ""}`} />
       </button>
-      {open && <div className="border-t border-border/70">{tools.map((t) => <ToolRow key={t.id} b={t} />)}</div>}
+      {open && <div className="mt-2 ml-1 border-l border-border pl-3">{tools.map((tool) => <ToolRow key={tool.id} b={tool} />)}</div>}
     </div>
   );
 }
@@ -133,7 +133,7 @@ function QuestionsCard({ b, ctx }: { b: Extract<Block, { type: "questions" }>; c
     agents.answer(ctx.pid, ctx.msgId, b.id, ans, ctx.scope);
   };
   return (
-    <div className="her-rise rounded-xl border border-border bg-card p-4" data-testid="card-questions">
+    <div className="her-rise py-2" data-testid="card-questions">
       <div className="space-y-4">
         {b.items.map((q) => (
           <div key={q.id}>
@@ -165,9 +165,8 @@ function BriefCard({ b, ctx }: { b: Extract<Block, { type: "brief" }>; ctx: Ctx 
   const busy = db.getState().busy;
   const br = b.brief;
   return (
-    <div className="her-rise relative overflow-hidden rounded-2xl border border-border bg-card" data-testid="card-brief">
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-[hsl(var(--ember))] via-[hsl(var(--rose))] to-transparent" />
-      <div className="p-4">
+    <div className="her-rise py-2" data-testid="card-brief">
+      <div>
         <div className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
           <Sparkles className="h-3.5 w-3.5 text-[hsl(var(--ember))]" /> {br.size === "quick" ? "Quick change" : "The brief"}
         </div>
@@ -180,12 +179,12 @@ function BriefCard({ b, ctx }: { b: Extract<Block, { type: "brief" }>; ctx: Ctx 
         )}
         {(br.design || br.backend) && (
           <div className="mt-3 grid gap-2 sm:grid-cols-2">
-            {br.design && <div className="rounded-lg bg-muted/70 px-3 py-2"><div className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Design</div><div className="mt-0.5 text-[13px] leading-snug">{br.design}</div></div>}
-            {br.backend && <div className="rounded-lg bg-muted/70 px-3 py-2"><div className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Backend</div><div className="mt-0.5 text-[13px] leading-snug">{br.backend}</div></div>}
+            {br.design && <div className="border-l border-border pl-3 py-1"><div className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Design</div><div className="mt-0.5 text-[13px] leading-snug">{br.design}</div></div>}
+            {br.backend && <div className="border-l border-border pl-3 py-1"><div className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Backend</div><div className="mt-0.5 text-[13px] leading-snug">{br.backend}</div></div>}
           </div>
         )}
       </div>
-      <div className="flex flex-wrap items-center gap-2 border-t border-border bg-muted/30 px-4 py-3">
+      <div className="flex flex-wrap items-center gap-2 pt-3">
         {b.status === "pending" ? (
           <>
             <button data-testid="button-build-it" disabled={busy || ctx.live} onClick={() => agents.approve(ctx.pid, ctx.msgId, b.id, ctx.scope)}
@@ -207,7 +206,7 @@ function BriefCard({ b, ctx }: { b: Extract<Block, { type: "brief" }>; ctx: Ctx 
 function PlanCard({ b }: { b: Extract<Block, { type: "plan" }> }) {
   const done = b.steps.filter((s) => s.status === "done").length;
   return (
-    <div className="her-rise rounded-xl border border-border bg-card p-4" data-testid="card-plan">
+    <div className="her-rise py-2" data-testid="card-plan">
       <div className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
         <ListChecks className="h-3.5 w-3.5" /> {b.title}<span className="ml-auto tabular-nums normal-case tracking-normal">{done}/{b.steps.length}</span>
       </div>
@@ -230,11 +229,11 @@ function SqlCard({ b }: { b: Extract<Block, { type: "sql" }> }) {
   const { toast } = useToast();
   const url = db.project().env.VITE_SUPABASE_URL?.match(/https:\/\/([a-z0-9]+)\.supabase\.co/)?.[1];
   return (
-    <div className="her-rise overflow-hidden rounded-xl border border-border bg-card" data-testid="card-sql">
-      <div className="flex items-center gap-2 px-4 pt-3.5 text-[13.5px] font-medium"><Database className="h-4 w-4 text-emerald-600" /> {b.title}</div>
-      <p className="px-4 pt-1 text-[12.5px] text-muted-foreground">Paste this into Supabase's SQL editor and run it once.</p>
-      <pre className="her-scroll mx-4 mt-2 max-h-56 overflow-auto rounded-lg bg-muted px-3 py-2 font-mono text-[11.5px] leading-relaxed">{b.sql}</pre>
-      <div className="flex gap-2 p-3 px-4">
+    <div className="her-rise py-2" data-testid="card-sql">
+      <div className="flex items-center gap-2 pt-2 text-[13.5px] font-medium"><Database className="h-4 w-4 text-emerald-600" /> {b.title}</div>
+      <p className="pt-1 text-[12.5px] text-muted-foreground">Paste this into Supabase's SQL editor and run it once.</p>
+      <pre className="her-scroll mt-2 max-h-56 overflow-auto border-l border-border pl-3 py-2 font-mono text-[11.5px] leading-relaxed">{b.sql}</pre>
+      <div className="flex gap-2 pt-3">
         <button data-testid="button-copy-sql" onClick={() => { navigator.clipboard?.writeText(b.sql); toast({ title: "SQL copied" }); }} className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-[12.5px] font-medium text-primary-foreground"><Copy className="h-3.5 w-3.5" /> Copy SQL</button>
         <a href={url ? `https://supabase.com/dashboard/project/${url}/sql/new` : "https://supabase.com/dashboard/projects"} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-[12.5px] hover:bg-muted"><ExternalLink className="h-3.5 w-3.5" /> Open Supabase</a>
       </div>
@@ -256,8 +255,7 @@ function UpgradeCard({ b, ctx }: { b: Extract<Block, { type: "upgrade" }>; ctx: 
     setBusy(false);
   };
   return (
-    <div className="her-rise relative overflow-hidden rounded-xl border border-border bg-card p-4" data-testid="card-upgrade">
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-[hsl(var(--ember))] via-[hsl(var(--rose))] to-[hsl(var(--iris))]" />
+    <div className="her-rise border-l-2 border-[hsl(var(--ember))] pl-3 py-2" data-testid="card-upgrade">
       <div className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-wider text-muted-foreground"><GitPullRequestArrow className="h-3.5 w-3.5" /> Upgrade to myself</div>
       <div className="mt-1.5 text-[15px] font-semibold">{b.title}</div>
       <div className="mt-2 flex flex-wrap gap-1.5">{Object.keys(b.files).map((f) => <span key={f} className="rounded-md bg-muted px-2 py-0.5 font-mono text-[11px]">{f}{b.files[f] === null ? " (deleted)" : ""}</span>)}</div>
