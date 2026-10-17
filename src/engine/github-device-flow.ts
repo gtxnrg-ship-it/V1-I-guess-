@@ -42,6 +42,7 @@ function abortableSleep(milliseconds: number, signal?: AbortSignal): Promise<voi
       reject(abortError());
     };
     signal?.addEventListener("abort", onAbort, { once: true });
+    if (signal?.aborted) onAbort();
   });
 }
 async function jsonResponse<T>(response: Response, purpose: string): Promise<T> {
@@ -100,7 +101,7 @@ export async function runGitHubDeviceFlow(options: GitHubDeviceFlowOptions): Pro
     });
     const result = await jsonResponse<TokenResponse>(response, "checking authorization");
     if (!response.ok && !result.error) throw new Error(`GitHub authorization check failed (${response.status}). Try again.`);
-    if (result.access_token) return result.access_token;
+    if (response.ok && typeof result.access_token === "string" && result.access_token.trim()) return result.access_token;
     if (result.error === "authorization_pending") continue;
     if (result.error === "slow_down") { interval += 5; continue; }
     throw new Error(describeOAuthError(result));
