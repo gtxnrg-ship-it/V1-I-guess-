@@ -1,4 +1,4 @@
-import { detectLanguageCapabilities, detectProjectToolchains } from "./language-toolchains";
+import { detectGameEngineCapabilities, detectLanguageCapabilities, detectProjectToolchains } from "./language-toolchains";
 
 function assert(value: unknown, message: string): asserts value {
   if (!value) throw new Error(message);
@@ -25,8 +25,28 @@ assert(javaKotlin.some((x) => x.id === "java"), "shared JVM build systems should
 const csharp = detectLanguageCapabilities(["src/App.csproj", "src/Program.cs"]);
 assert(csharp.some((x) => x.id === "csharp" && x.testCommands.includes("dotnet test")), ".NET test guidance should be available");
 
-const unknown = detectProjectToolchains(["README.md", "assets/logo.png"]);
-assert(unknown.languages.length === 0 && unknown.confidence === "none", "documentation-only repos should not be assigned a language");
-assert(unknown.note.includes("Verify tool availability"), "the detector must not claim commands were run");
+const scientific = detectLanguageCapabilities(["analysis/model.R", "notebooks/forecast.ipynb", "src/analysis.py", "src/simulation.jl"]);
+assert(scientific.some((x) => x.id === "r" && x.testCommands.some((x) => x.includes("testthat"))), "R statistical projects should be detected with test guidance");
+assert(scientific.some((x) => x.id === "python"), "Python scientific workflows should be detected");
+assert(scientific.some((x) => x.id === "julia"), "Julia numerical/scientific projects should be detected");
 
-console.log("Language toolchain detection tests passed");
+const polyglot = detectLanguageCapabilities(["src/main.py", "src/main.rs", "src/main.go", "src/Main.kt", "contracts/Token.sol", "db/schema.sql", "scripts/deploy.sh"]);
+for (const id of ["python", "rust", "go", "kotlin", "solidity", "sql", "bash"]) {
+  assert(polyglot.some((x) => x.id === id), `Polyglot repository should detect ${id}`);
+}
+
+const game = detectGameEngineCapabilities(["ProjectSettings/ProjectVersion.txt", "Assets/Scenes/Main.unity", "project.godot", "scenes/main.tscn", "Source/MyGame.Build.cs", "Game.uproject", "phaser.config.ts"]);
+assert(game.some((x) => x.id === "unity"), "Unity project markers should be detected");
+assert(game.some((x) => x.id === "godot"), "Godot project markers should be detected");
+assert(game.some((x) => x.id === "unreal"), "Unreal project markers should be detected");
+assert(game.some((x) => x.id === "phaser"), "Phaser config markers should be detected");
+assert(game.every((x) => x.notes.length > 0), "Game-engine results should explain important execution boundaries");
+
+const ambiguous = detectGameEngineCapabilities(["Cargo.toml", "src/main.rs", "README.md"]);
+assert(ambiguous.length === 0, "Ordinary Rust projects must not be mislabeled as Bevy games");
+
+const unknown = detectProjectToolchains(["README.md", "assets/logo.png"]);
+assert(unknown.languages.length === 0 && unknown.gameEngines.length === 0 && unknown.confidence === "none", "documentation-only repos should not be assigned a language or game engine");
+assert(unknown.note.includes("not proof"), "the detector must not claim commands were run");
+
+console.log("Language and game-engine capability detection tests passed");
