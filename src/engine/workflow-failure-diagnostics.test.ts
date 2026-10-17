@@ -15,7 +15,7 @@ async function run() {
     "xoxb-1234567890-abcdefghijkl",
     "npm_12345678901234567890123456789012",
   ];
-  const providerClues = extractLogClues(providerTokens.map((token, index) => `Error: provider ${index} credential ${token}`).join("\\n"));
+  const providerClues = extractLogClues(providerTokens.map((token, index) => `Error: provider ${index} credential ${token}`).join("\n"));
   assert(providerClues.length === providerTokens.length, "retains diagnostic clues after provider-token redaction");
   assert(providerTokens.every((token) => !providerClues.some((line) => line.includes(token))), "never exposes AWS, Google, Slack, or npm credentials in log clues");
   assert(providerClues.every((line) => line.includes("[REDACTED_")), "marks provider credentials as redacted");
