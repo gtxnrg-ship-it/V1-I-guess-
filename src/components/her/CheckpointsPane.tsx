@@ -8,7 +8,7 @@ function formatTime(value: number) {
 }
 
 export function CheckpointsPane() {
-  const state = db.useKuro();
+  db.useKuro();
   const project = db.project();
   const checkpoints = [...db.snapshots(project.id)].sort((a, b) => b.createdAt - a.createdAt);
   const { toast } = useToast();
