@@ -27,6 +27,16 @@ The capability inspector also checks supported project manifests for scientific/
 
 Results include the manifest/path evidence, the likely purpose of the dependency, and a suggested validation concern. Detection is dependency evidence only: a manifest may be stale, optional, or describe a package that is not installed. It does not inspect arbitrary source semantics, download data/models, confirm GPU availability, run numerical workloads, or validate scientific conclusions. Those require a real runner and known-answer/project-specific acceptance tests.
 
+## Project-specific execution evidence
+
+The capability report now inspects project files for concrete execution-planning evidence:
+
+- Declared `package.json` scripts and their exact command strings, including custom test and E2E scripts.
+- Package manager declaration and available lockfiles, with explicit ambiguity preserved when signals conflict.
+- Runtime/toolchain constraints from supported files such as `.nvmrc`, `.node-version`, `.python-version`, `pyproject.toml`, `rust-toolchain.toml`, `global.json`, `go.mod`, `.tool-versions`, Unity's `ProjectVersion.txt`, and `Package.swift`.
+
+This helps agents select the project's actual scripts and respect version pins instead of guessing generic commands. These values are reported as **declared evidence only**. Kuro-chan does not run those scripts, install dependencies, or confirm the pinned runtime is available merely by inspecting a manifest. Conflicting lockfiles are reported rather than silently choosing one.
+
 ## Honest execution boundary
 
 - This detector does not install compilers, engines, SDKs, dependencies, or model weights.
