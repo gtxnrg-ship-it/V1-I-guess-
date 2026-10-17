@@ -24,7 +24,7 @@
     "clsx": "^2.1.1",
     "esbuild-wasm": "0.28.2",
     "kokoro-js": "^1.2.1",
-    "lucide-react": "^0.453.0",
+    "lucide-react": "^0.577.0",
     "modern-screenshot": "^4.6.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
