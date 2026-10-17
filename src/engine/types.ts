@@ -69,6 +69,15 @@ export interface KeyRec {
   createdAt: number;
 }
 
+export interface DesignStudioState {
+  query: string;
+  photos: { url: string; thumb: string; alt: string; credit: string; source: string }[];
+  selectedUrls: string[];
+  feedback: string;
+  brief: string;
+  updatedAt: number;
+}
+
 export interface Project {
   id: string;
   name: string;
@@ -76,6 +85,8 @@ export interface Project {
   /** Last remote commit observed when importing or successfully publishing this project. */
   repoBaseSha?: string;
   /** Project-scoped long-term notes; saved with the project in IndexedDB. */
+  /** Project-scoped visual research and design decisions. */
+  designStudio?: DesignStudioState;
   memory?: {
     facts: ProjectMemoryFact[];
     decisions: ProjectMemoryFact[];
