@@ -323,9 +323,11 @@ export function ChatPanel({ scope = "app", onOpenKeys, draft, setDraft, onSent }
 
   return (
     <div className="studio-chat-panel relative flex h-full min-h-0 flex-col">
-      {!isEmpty && (running || speaking || dict.listening) && (
-        <div role="status" aria-live="polite" className="absolute right-4 top-4 z-50 pointer-events-none" aria-label={running ? "Kuro-chan is thinking" : dict.listening ? "Listening" : "Kuro-chan is speaking"}>
-          <HerOrb size={32} state={running ? "thinking" : dict.listening ? "listening" : "speaking"} className="her-orb-glow" />
+      {!isEmpty && (running || voiceLoading || speaking || dict.listening) && (
+        <div role="status" aria-live="polite" className="pointer-events-none absolute right-4 top-4 z-50 flex items-center gap-2 rounded-full border border-border/60 bg-background/75 py-1 pl-2 pr-3 shadow-lg backdrop-blur-md"
+          aria-label={running ? "Kuro-chan is thinking" : dict.listening ? "Kuro-chan is listening" : voiceLoading ? "Kuro-chan is preparing voice playback" : "Kuro-chan is speaking"}>
+          <HerOrb size={32} state={running || voiceLoading ? "thinking" : dict.listening ? "listening" : "speaking"} className="her-orb-glow" />
+          <span className="text-[11px] text-muted-foreground">{running ? "Thinking" : dict.listening ? "Listening" : voiceLoading ? "Preparing voice" : "Speaking"}</span>
         </div>
       )}
       <div ref={scroller} onScroll={(e) => { const el = e.currentTarget; stick.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80; }}
@@ -417,7 +419,7 @@ export function ChatPanel({ scope = "app", onOpenKeys, draft, setDraft, onSent }
         )}
       </div>
 
-      <div className="px-3 pb-3 md:px-4 md:pb-4">
+      <div className="px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] md:px-4 md:pb-4">
         <div
           onDragOver={(e) => e.preventDefault()} onDrop={(e) => { e.preventDefault(); addFiles(e.dataTransfer.files); }}
           className="studio-composer mx-auto max-w-[720px] rounded-2xl border bg-card transition-colors focus-within:border-foreground/25">
