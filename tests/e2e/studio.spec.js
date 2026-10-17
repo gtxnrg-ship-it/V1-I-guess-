@@ -228,6 +228,30 @@ test.describe("Kuro-chan studio", () => {
     await expect(page.getByTestId("button-stop")).toHaveCount(0);
   });
 
+  test("saves conversation personality preferences and keeps them after navigation", async ({ page }) => {
+    await page.goto("/studio", { waitUntil: "domcontentloaded" });
+    await page.getByTestId("sidebar-settings").click();
+    await page.getByRole("button", { name: /Personality & chat/i }).click();
+
+    const playfulness = page.getByRole("slider", { name: "Playfulness" });
+    await expect(playfulness).toHaveValue("2");
+    await playfulness.fill("3");
+    await page.getByLabel("Reply length").selectOption("detailed");
+    const memory = page.getByRole("switch", { name: "Use saved project memory" });
+    await memory.click();
+    await expect(memory).toHaveAttribute("aria-checked", "false");
+
+    await page.getByTestId("button-open-sidebar").click();
+    await page.getByTestId("sidebar-projects").click();
+    await page.getByTestId("button-open-sidebar").click();
+    await page.getByTestId("sidebar-settings").click();
+    await page.getByRole("button", { name: /Personality & chat/i }).click();
+
+    await expect(page.getByRole("slider", { name: "Playfulness" })).toHaveValue("3");
+    await expect(page.getByLabel("Reply length")).toHaveValue("detailed");
+    await expect(page.getByRole("switch", { name: "Use saved project memory" })).toHaveAttribute("aria-checked", "false");
+  });
+
   test("exposes the local voice option and makes offline preference functional", async ({ page }) => {
     await page.goto("/studio", { waitUntil: "domcontentloaded" });
     await page.getByTestId("sidebar-settings").click();

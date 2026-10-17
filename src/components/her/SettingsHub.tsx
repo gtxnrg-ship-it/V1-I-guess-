@@ -9,10 +9,11 @@ import * as db from "@/engine/db";
 import { KeysPane } from "@/components/her/KeysPane";
 import { LocalModelsPane } from "@/components/her/LocalModelsPane";
 
-type Section = "appearance" | "voice" | "models" | "repositories" | "privacy" | "device" | "about";
+type Section = "appearance" | "voice" | "personality" | "models" | "repositories" | "privacy" | "device" | "about";
 const SECTIONS: { id: Section; label: string; description: string; icon: typeof Palette }[] = [
   { id: "appearance", label: "Appearance", description: "Theme and motion", icon: Palette },
   { id: "voice", label: "Voice & speech", description: "Talk naturally, or type", icon: AudioLines },
+  { id: "personality", label: "Personality & chat", description: "Tune Kuro-chan’s conversational style", icon: Sparkles },
   { id: "models", label: "AI & models", description: "Providers and local models", icon: Bot },
   { id: "repositories", label: "Repositories", description: "GitHub and project access", icon: Github },
   { id: "privacy", label: "Privacy & security", description: "Your data and permissions", icon: ShieldCheck },
@@ -97,6 +98,25 @@ export function SettingsHub() {
               <SettingRow title="Automatic voice tuning" detail="Kuro-chan will use sensible pacing and clean text automatically rather than requiring detailed manual tuning."><span className="rounded-full border border-primary/25 bg-primary/10 px-2.5 py-1 text-[10px] text-primary">Automatic defaults</span></SettingRow>
             </Card>
           </>}
+          {section === "personality" && <>
+            <Card title="Conversation style" subtitle="Shape how Kuro-chan talks to you. These preferences affect her conversation prompt, not the code or safety checks she uses.">
+              <SettingRow title="Playfulness" detail="From calm and direct to more expressive and mischievous. She should still read the room and never force a joke.">
+                <div className="flex min-w-[150px] items-center gap-3">
+                  <input aria-label="Playfulness" type="range" min="0" max="3" step="1" value={settings.personalityPlayfulness ?? 2} onChange={(e) => patch({ personalityPlayfulness: Number(e.target.value) })} className="w-20 accent-primary" />
+                  <span className="w-20 text-right text-xs text-muted-foreground">{(["Calm", "Subtle", "Playful", "Extra playful"][settings.personalityPlayfulness ?? 2])}</span>
+                </div>
+              </SettingRow>
+              <SettingRow title="Reply length" detail="Choose how much detail Kuro-chan usually gives. She can still go deeper when a task genuinely needs it.">
+                <select aria-label="Reply length" value={settings.responseLength ?? "balanced"} onChange={(e) => patch({ responseLength: e.target.value as "concise" | "balanced" | "detailed" })} className="max-w-[180px] rounded-lg border border-border bg-background px-2 py-2 text-xs">
+                  <option value="concise">Concise</option><option value="balanced">Balanced</option><option value="detailed">Detailed</option>
+                </select>
+              </SettingRow>
+              <SettingRow title="Use saved project memory" detail="Include facts and decisions you explicitly saved for this project. Memory stays project-scoped; disabling this does not disable technical repository inspection.">
+                <Toggle checked={settings.conversationPersonalization !== false} label="Use saved project memory" onChange={(v) => { patch({ conversationPersonalization: v }); toast({ title: v ? "Project memory enabled" : "Project memory paused", description: v ? "Kuro-chan can use this project's saved facts and decisions again." : "Saved project facts and decisions won't be added to new conversation context." }); }} />
+              </SettingRow>
+              <p className="pt-2 text-xs leading-relaxed text-muted-foreground">Kuro-chan remains an AI, keeps claims honest, and will not invent personal details or carry project memories into unrelated workspaces.</p>
+            </Card>
+          </>}
           {section === "models" && <>
             <Card title="AI providers" subtitle="Connect providers and choose models for planning, research, building, and checking."><KeysPane /></Card>
             <Card title="Local models" subtitle="Inspect the local model options currently supported by this build."><LocalModelsPane /></Card>
@@ -129,7 +149,7 @@ export function SettingsHub() {
               <SettingRow title="Application version" detail="Version declared in package.json."><span className="text-xs tabular-nums">2.0.0</span></SettingRow>
               <SettingRow title="Project license" detail="Check the repository license and individual model/voice licenses before redistribution."><span className="text-xs">MIT app license</span></SettingRow>
               <SettingRow title="Source repository" detail="Browse the code, report issues, and follow development."><a className="inline-flex items-center gap-1 text-xs text-primary hover:underline" href="https://github.com/gtxnrg-ship-it/kuro-chan" target="_blank" rel="noreferrer"><Github className="h-3.5 w-3.5" /> GitHub <ChevronRight className="h-3 w-3" /></a></SettingRow>
-              <SettingRow title="Reset optional preferences" detail="Restore voice and appearance preferences to the recommended defaults."><button type="button" className="inline-flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-xs hover:bg-muted" onClick={() => { patch({ reduceMotion: false, voiceAutoSpeak: true, voiceProvider: "browser", voiceSpeed: 1, voiceConversationMode: false, preferOfflineVoice: false }); toast({ title: "Preferences restored", description: "Your projects and provider keys were not changed." }); }}><RotateCcw className="h-3 w-3" /> Reset</button></SettingRow>
+              <SettingRow title="Reset optional preferences" detail="Restore voice and appearance preferences to the recommended defaults."><button type="button" className="inline-flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-xs hover:bg-muted" onClick={() => { patch({ reduceMotion: false, voiceAutoSpeak: true, voiceProvider: "browser", voiceSpeed: 1, voiceConversationMode: false, preferOfflineVoice: false, personalityPlayfulness: 2, responseLength: "balanced", conversationPersonalization: true }); toast({ title: "Preferences restored", description: "Your projects and provider keys were not changed." }); }}><RotateCcw className="h-3 w-3" /> Reset</button></SettingRow>
             </Card>
           </>}
           <p className="px-1 text-[10px] leading-relaxed text-muted-foreground">Settings marked as planned describe preferences for upcoming functionality; they do not claim a model or capability is installed. Your projects and settings stay in this app’s local storage.</p>
