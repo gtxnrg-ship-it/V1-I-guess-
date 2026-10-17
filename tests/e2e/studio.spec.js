@@ -439,7 +439,8 @@ test.describe("Kuro-chan studio", () => {
     await expect(page.getByText(/BUILD ERRORS:/)).toBeVisible({ timeout: 20_000 });
     await expect(page.getByText("Builds and runs cleanly.")).toBeVisible({ timeout: 30_000 });
     await expect(page.getByText(/I caught the seeded syntax error, repaired the screen/)).toBeVisible({ timeout: 30_000 });
-    expect(requestCount).toBe(8);
+    // The ninth request is the final Talker wrap-up after the pipeline's own final QA pass.
+    expect(requestCount).toBe(9);
 
     await page.getByTestId("sidebar-preview").click();
     const preview = page.frameLocator('[data-testid="project-preview-frame"]');
