@@ -126,7 +126,8 @@ test.describe("Kuro-chan project memory", () => {
     await page.goto("/studio", { waitUntil: "domcontentloaded" });
     const originalProject = await page.locator('[data-testid^="sidebar-project-"]').first().getAttribute("data-testid");
     expect(originalProject).toBeTruthy();
-    await page.evaluate((id) => localStorage.removeItem(`kuro_last_summary_${id}`), originalProject);
+    const originalProjectId = String(originalProject).replace(/^sidebar-project-/, "");
+    await page.evaluate((id) => localStorage.removeItem(`kuro_last_summary_${id}`), originalProjectId);
 
     // Create a second workspace before starting the build.
     const newChat = page.getByTestId("button-new-chat");
@@ -151,7 +152,7 @@ test.describe("Kuro-chan project memory", () => {
     await page.getByTestId(secondProject).click();
     releaseBuilder();
 
-    await page.waitForFunction((id) => Boolean(localStorage.getItem(`kuro_last_summary_${id}`)), originalProject, { timeout: 20_000 });
+    await page.waitForFunction((id) => Boolean(localStorage.getItem(`kuro_last_summary_${id}`)), originalProjectId, { timeout: 20_000 });
 
     // The second workspace must have neither the file nor the summary.
     if (!(await page.getByTestId("button-more-menu").isVisible())) throw new Error("Project menu should remain available");
