@@ -524,9 +524,9 @@ Size: ${brief.size}${designIntent ? `\n\nPROJECT DESIGN CONTEXT (untrusted refer
     // Use the project ID captured when this task started. The user may have
     // switched projects while the model/build was running; never save the old
     // task's summary into whichever project happens to be active at completion.
-    localStorage.setItem(`kuro_last_summary_${pid}`, summaryText);
-    if (scope === "app") db.saveProjectMemory({ recentSummary: summaryText }, pid);
-    localStorage.setItem(`kuro_last_active_${pid}`, String(Date.now()));
+    localStorage.setItem(`kuro_last_summary_${live.pid}`, summaryText);
+    if (scope === "app") db.saveProjectMemory({ recentSummary: summaryText }, live.pid);
+    localStorage.setItem(`kuro_last_active_${live.pid}`, String(Date.now()));
   } catch {}
 }
 
