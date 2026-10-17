@@ -110,6 +110,19 @@ These gates describe the intended Kuro-chan experience. A catalogue, prompt, or 
 - [ ] Support cancellation, pause/resume, and recovery when a model or external tool becomes unavailable.
 - [ ] Explore optional parallel research and independent code review where it genuinely improves results.
 
+## P1 — multi-language, scientific, and game-engine capabilities
+
+Kuro-chan must recognize the kind of project before proposing commands, then use real, isolated toolchains and project-specific acceptance tests. Listing languages or suggesting commands is not proof of execution.
+
+- [x] Detect 26 language families from repository evidence and expose candidate toolchains/build/test guidance through the agent capability-inspection tool. (PR #149; regression checks in PR #150.)
+- [x] Detect 10 game-engine families from explicit project markers and supported Cargo/package.json dependency evidence, without assuming every Rust or JavaScript project is a game.
+- [ ] Inspect actual manifests, scripts, lockfiles, versions, and CI configuration before selecting exact build/test commands; distinguish candidates from commands actually run.
+- [ ] Provide a permissioned isolated runner with explicit allowlists, resource/time limits, cancellation, controlled network/filesystem access, and exact command/exit-code/log evidence.
+- [ ] Support bounded dependency installation and build/test adapters for the detected toolchain, including actionable missing-SDK/runtime and unsupported-platform failures.
+- [ ] Prove a representative multi-language project through real build, tests, a deliberately seeded failure, repair, and a fresh successful retest.
+- [ ] Add scientific/statistical acceptance fixtures for known-answer numerical results, assumptions, data provenance, reproducibility, uncertainty reporting, and performance.
+- [ ] Add game-engine vertical-slice acceptance for asset import, headless/editor checks, target export/build, gameplay smoke tests, and target-device performance; a successful compile alone is insufficient.
+
 ## P1 — models, routing, and cost transparency
 
 - [ ] Build a model catalog with provider, context length, vision, tool calling, latency, and limitations.
