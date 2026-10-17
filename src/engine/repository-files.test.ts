@@ -15,12 +15,19 @@ async function run() {
   assert(file.sources?.[0].url.includes("src/App.tsx"), "links to the real GitHub file");
   const directory = await readRepositoryFile(client, "acme/app", "src");
   assert(directory.result.includes("[dir] src/lib"), "handles directory responses clearly");
+  const branchFile = await readRepositoryFile(client, "acme/app", "src/App.tsx", "feature/branch-sync");
+  assert(seen.some((path) => path.endsWith("?ref=feature%2Fbranch-sync")), "requests the explicitly selected branch ref");
+  assert(branchFile.result.includes("ref: feature/branch-sync"), "labels the returned source with the requested ref");
+  assert(branchFile.sources?.[0].url.includes("/blob/feature/branch-sync/"), "links to the matching branch rather than the default branch");
   const search = await searchRepositoryCode(client, "acme/app", "useState");
   assert(search.result.includes("src/App.tsx") && search.sources?.length === 1, "returns code search paths and source links");
   let rejected = false;
   try { await readRepositoryFile(client, "acme/app", "../secrets.env"); } catch { rejected = true; }
   assert(rejected, "rejects traversal paths");
   assert(seen.every((path) => !path.includes("..")), "does not send traversal paths to GitHub");
+  let invalidBranchRejected = false;
+  try { await readRepositoryFile(client, "acme/app", "src/App.tsx", "feature/../main"); } catch { invalidBranchRejected = true; }
+  assert(invalidBranchRejected, "rejects malformed branch refs before making a GitHub request");
 
   const fallbackCalls: string[] = [];
   const fallbackClient: RepositoryFileClient = { async req(_method, path) {
