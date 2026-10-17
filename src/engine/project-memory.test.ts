@@ -44,6 +44,10 @@ assert(!bounded.text.includes("s".repeat(901)), "summary must be capped");
 
 assert(sanitizeProjectMemoryFact({ text: "api_key = abc123", source: "user-confirmed" }) === null, "key assignments should be rejected");
 assert(sanitizeProjectMemoryFact({ text: "-----BEGIN PRIVATE KEY-----", source: "user-confirmed" }) === null, "private keys should be rejected");
+assert(sanitizeProjectMemoryFact({ text: "AWS credential AKIA1234567890ABCDEF", source: "user-confirmed" }) === null, "AWS access keys should be rejected");
+assert(sanitizeProjectMemoryFact({ text: "Google key AIza1234567890abcdefghijklmnopqrstuv", source: "user-confirmed" }) === null, "Google API keys should be rejected");
+assert(sanitizeProjectMemoryFact({ text: "Slack token xoxb-1234567890-abcdefghijkl", source: "user-confirmed" }) === null, "Slack tokens should be rejected");
+assert(sanitizeProjectMemoryFact({ text: "npm token npm_12345678901234567890123456789012", source: "user-confirmed" }) === null, "npm tokens should be rejected");
 const deduped = sanitizeProjectMemoryFacts([
   { text: "Keep Android supported", source: "user-confirmed" },
   { text: "  Keep   Android supported ", source: "user-confirmed" },

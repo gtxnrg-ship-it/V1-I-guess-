@@ -45,6 +45,11 @@ const SECRET_PATTERNS = [
   /-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----/i,
   /\bBearer\s+[A-Za-z0-9._~+\/-]{12,}/i,
   /\b(?:gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,})\b/i,
+  // Common provider tokens that do not contain an explicit key=value label.
+  /\bAKIA[0-9A-Z]{16}\b/,
+  /\bAIza[0-9A-Za-z_-]{30,}\b/,
+  /\bxox[baprs]-[A-Za-z0-9-]{10,}\b/i,
+  /\bnpm_[A-Za-z0-9]{30,}\b/i,
   /\b(?:api[_-]?key|access[_-]?token|refresh[_-]?token|client[_-]?secret|password|passwd|secret)\s*[:=]\s*\S+/i,
   /\bsk-[A-Za-z0-9_-]{20,}\b/i,
 ];
