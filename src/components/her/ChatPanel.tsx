@@ -580,7 +580,7 @@ function useDictation(
     if (listeningRef.current || rec.current) return;
     stoppedByUser.current = false;
     lastFinalized.current = "";
-    base.current = draftRef.current ? draftRef.current.replace(/\\s*$/, " ") : "";
+    base.current = draftRef.current ? draftRef.current.replace(/\s*$/, " ") : "";
     // Android WebViews do not consistently implement browser SpeechRecognition.
     // Use the maintained Capacitor native bridge first; web keeps the browser API.
     if (isNativeApp()) {
@@ -599,7 +599,7 @@ function useDictation(
         nativeListeners.current.push(await SpeechRecognition.addListener("partialResults", (event) => {
           if (rec.current !== sentinel || stoppedByUser.current) return;
           const transcript = (event.matches || []).join(" ").trim();
-          if (transcript) updateDraft((base.current + transcript).replace(/\\s+/g, " ").trimStart());
+          if (transcript) updateDraft((base.current + transcript).replace(/\s+/g, " ").trimStart());
         }));
         nativeListeners.current.push(await SpeechRecognition.addListener("listeningState", (event) => {
           if (rec.current !== sentinel) return;
@@ -652,7 +652,7 @@ function useDictation(
     r.onresult = (e: any) => {
       if (rec.current !== r) return;
       const transcript = Array.from(e.results as ArrayLike<any>).map((result: any) => result?.[0]?.transcript || "").join(" ");
-      updateDraft((base.current + transcript).replace(/\\s+/g, " ").trimStart());
+      updateDraft((base.current + transcript).replace(/\s+/g, " ").trimStart());
     };
     r.onerror = (e: any) => {
       if (rec.current !== r) return;
