@@ -179,13 +179,46 @@ export function saveProjectMemory(
   return true;
 }
 export function deleteProject(id: string) {
+  const exists = state.projects.some((p) => p.id === id);
+  if (!exists) return;
+
   state.projects = state.projects.filter((p) => p.id !== id);
-  delete state.messages[id]; delete state.snapshots[id];
-  idbDel(`messages:${id}`); idbDel(`snapshots:${id}`);
-  if (state.settings.activeProject === id && state.projects[0]) state.settings = { ...state.settings, activeProject: state.projects[0].id };
+  delete state.messages[id];
+  delete state.snapshots[id];
+  idbDel(`messages:${id}`);
+  idbDel(`snapshots:${id}`);
+
+  // The studio assumes an active project always exists. Deleting the final
+  // project must therefore create a clean workspace rather than leave every
+  // project-scoped accessor pointing at undefined.
+  if (state.projects.length === 0) {
+    const replacement: Project = {
+      id: uid(),
+      name: "New chat",
+      repo: null,
+      env: {},
+      files: {},
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    };
+    state.projects = [replacement];
+    state.settings = { ...state.settings, activeProject: replacement.id };
+  } else if (state.settings.activeProject === id
+    || !state.projects.some((p) => p.id === state.settings.activeProject)) {
+    state.settings = { ...state.settings, activeProject: state.projects[0].id };
+  }
+  state.runtimeErrors = [];
   persist("projects", "settings");
 }
-export function switchProject(id: string) { state.settings = { ...state.settings, activeProject: id }; state.runtimeErrors = []; persist("settings"); }
+
+/** Switch only to an existing workspace; stale UI IDs must not corrupt active state. */
+export function switchProject(id: string): boolean {
+  if (!state.projects.some((p) => p.id === id)) return false;
+  state.settings = { ...state.settings, activeProject: id };
+  state.runtimeErrors = [];
+  persist("settings");
+  return true;
+}
 
 export function writeFile(path: string, content: string) {
   const p = project();
