@@ -221,7 +221,7 @@ test.describe("Kuro-chan studio", () => {
     await page.getByTestId("input-message").fill("I want a tiny habit tracker for my phone. Keep it calm and simple.");
     await page.getByTestId("button-send").click();
 
-    await expect.poll(() => providerRequests, { timeout: 10_000 }).toBeGreaterThan(0);
+    await expect(page.getByTestId("card-brief")).toBeVisible({ timeout: 10_000 });
     await expect(page.getByText("Tiny habit tracker", { exact: true })).toBeVisible();
     await expect(page.getByTestId("button-build-it")).toBeVisible();
     await expect(page.getByText(/A calm, phone-friendly habit tracker/)).toBeVisible();
@@ -293,6 +293,6 @@ test.describe("Kuro-chan studio", () => {
     await page.evaluate(() => window.__kuroMockRecognition.finish());
 
     await expect(page.getByText("I want a tiny voice demo app")).toBeVisible({ timeout: 10_000 });
-    await expect(page.getByTestId("card-brief")).toBeVisible({ timeout: 10_000 });
+    await expect.poll(() => providerRequests, { timeout: 10_000 }).toBeGreaterThan(0);
   });
 });
