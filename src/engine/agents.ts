@@ -10,6 +10,7 @@ import { SELF_STACK, selfWorkspace } from "./self";
 import { buildProjectContextPack, parseProjectMemoryCommand, sanitizeProjectMemoryFact } from "./project-memory";
 import { GH } from "./github";
 import { inspectGitHubRepository } from "./live-repository-intelligence";
+import { buildRepositoryContext } from "./repository-context";
 import type { AgentName, AssistantData, Block, Brief, Message, PlanStep, Role } from "./types";
 import { executionOutcome } from "./execution-status";
 import { buildDesignIntentContext } from "./design-intent";
@@ -206,7 +207,15 @@ async function talkerContext(scope: Scope, pid: string): Promise<string> {
       repositoryEvidence = repositoryInspectionCache.text;
     } else {
       try {
-        const inspection = await inspectGitHubRepository(new GH(githubKey.secret), current.repo);
+        const github = new GH(githubKey.secret);
+        const inspection = await inspectGitHubRepository(github, current.repo);
+        let sourceContext = "";
+        try {
+          const pack = await buildRepositoryContext(github, current.repo);
+          sourceContext = pack.asPrompt();
+        } catch (contextError) {
+          sourceContext = "Repository source bodies could not be loaded: " + (contextError instanceof Error ? contextError.message : String(contextError)) + ". Do not claim source files were read.";
+        }
         const recentRuns = inspection.recentRuns.slice(0, 5).map((run) =>
           `- ${run.name}: ${run.status}${run.conclusion ? ` / ${run.conclusion}` : ""}${run.url ? ` (${run.url})` : ""}`,
         ).join("\n");
@@ -224,6 +233,7 @@ async function talkerContext(scope: Scope, pid: string): Promise<string> {
           `Recommended next steps: ${inspection.diagnosis.recommendedNextSteps.join("; ") || "inspect relevant files and tests"}`,
           recentRuns ? `Recent GitHub Actions runs:\n${recentRuns}` : "Recent GitHub Actions runs: unavailable or none returned.",
           "Rules: Treat this as a starting inventory, not proof the repository is healthy or broken. Read relevant source files and logs before making claims or edits. A failed workflow is a clue, not a root-cause diagnosis. If tree completeness is false or unknown, say so and do not assume missing files are absent.",
+          sourceContext,
         ].join("\n");
         repositoryInspectionCache = { key: cacheKey, at: Date.now(), text: repositoryEvidence };
       } catch (error) {
