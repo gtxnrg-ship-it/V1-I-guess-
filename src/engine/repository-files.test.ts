@@ -21,6 +21,27 @@ async function run() {
   try { await readRepositoryFile(client, "acme/app", "../secrets.env"); } catch { rejected = true; }
   assert(rejected, "rejects traversal paths");
   assert(seen.every((path) => !path.includes("..")), "does not send traversal paths to GitHub");
+
+  const fallbackCalls: string[] = [];
+  const fallbackClient: RepositoryFileClient = { async req(_method, path) {
+    fallbackCalls.push(path);
+    if (path.startsWith("/search/code?")) return { status: 403, json: { message: "Resource not accessible by integration" } };
+    if (path === "/repos/acme/app") return { status: 200, json: { default_branch: "main" } };
+    if (path.includes("/git/trees/main?recursive=1")) return { status: 200, json: { truncated: false, tree: [
+      { type: "blob", path: "src/App.tsx", sha: "blob-app", size: 80 },
+      { type: "blob", path: ".env", sha: "secret-env", size: 30 },
+      { type: "blob", path: "node_modules/pkg/index.js", sha: "vendor", size: 90 },
+      { type: "blob", path: "README.md", sha: "blob-readme", size: 60 },
+    ] } };
+    if (path.endsWith("/git/blobs/blob-app")) return { status: 200, json: { encoding: "base64", content: b64("export const uniqueSymbol = 'target-value';\nexport default function App() {}") } };
+    if (path.endsWith("/git/blobs/blob-readme")) return { status: 200, json: { encoding: "base64", content: b64("# App\nNo match here") } };
+    throw new Error("Unexpected fallback request " + path);
+  } };
+  const fallback = await searchRepositoryCode(fallbackClient, "acme/app", "uniqueSymbol");
+  assert(fallback.result.includes("src/App.tsx:1"), "falls back to searching actual repository blob contents");
+  assert(fallback.result.includes("not an exhaustive repository search"), "clearly reports bounded, non-exhaustive coverage");
+  assert(fallbackCalls.some((path) => path.endsWith("/git/blobs/blob-app")), "reads actual GitHub blob data in fallback");
+  assert(!fallbackCalls.some((path) => path.endsWith("/git/blobs/secret-env") || path.includes("node_modules")), "does not scan environment secrets or vendored dependencies");
   console.log("Repository file read/search tests passed");
 }
 void run();
