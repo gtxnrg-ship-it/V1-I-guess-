@@ -63,6 +63,11 @@ assert(db.getState().projects.find((p) => p.id === first.id)?.memory?.recentSumm
   "an explicit project ID must target that project's summary even when it is not active");
 assert(!db.getState().projects.find((p) => p.id === second.id)?.memory,
   "saving a summary for a non-active project must not create memory in the active project");
+const nonActiveCheckpoint = db.takeSnapshot("First workspace task completed", first.id);
+assert(nonActiveCheckpoint.projectId === first.id,
+  "a completion checkpoint must stay attached to its originating non-active project");
+assert(!db.snapshots(second.id).some((snapshot) => snapshot.id === nonActiveCheckpoint.id),
+  "creating a checkpoint for a non-active project must not leak into the active project");
 
 // File edits must target the active project, not the project opened previously.
 db.writeFile("src/main.cpp", "int main() { return 7; }");

@@ -513,7 +513,7 @@ Size: ${brief.size}${designIntent ? `\n\nPROJECT DESIGN CONTEXT (untrusted refer
     maxSteps: 1,
   });
   if (scope === "app" && JSON.stringify(after) !== before) {
-    const s = db.takeSnapshot(brief.title.slice(0, 80));
+    const s = db.takeSnapshot(brief.title.slice(0, 80), live.pid);
     data.snapshotId = s.id;
     data.filesChanged = changedCount;
   }

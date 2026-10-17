@@ -267,8 +267,10 @@ function snapshotProject(target: Project, label: string): Snapshot {
   return s;
 }
 
-export function takeSnapshot(label: string): Snapshot {
-  return snapshotProject(project(), label);
+export function takeSnapshot(label: string, projectId = project().id): Snapshot {
+  const target = state.projects.find((p) => p.id === projectId);
+  if (!target) throw new Error("Cannot create a checkpoint for a project that no longer exists.");
+  return snapshotProject(target, label);
 }
 
 export type SnapshotRestoreResult =
