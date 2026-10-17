@@ -358,7 +358,7 @@ export async function approve(pid: string, msgId: string, briefId: string, scope
   const live = startLive(pid);
   await run(live, async () => {
     if (!hasAnyModel()) throw new LLMError(0, "NO_KEYS");
-    const ws = scope === "self" ? await selfWorkspace() : appWorkspace();
+    const ws = scope === "self" ? await selfWorkspace() : appWorkspace(pid);
     await buildPipeline(live, blk.brief, ws, scope, images);
   });
 }
