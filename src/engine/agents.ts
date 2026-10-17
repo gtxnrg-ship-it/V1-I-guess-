@@ -13,7 +13,7 @@ import { GH } from "./github";
 import { inspectGitHubRepository } from "./live-repository-intelligence";
 import { buildRepositoryContext } from "./repository-context";
 import type { AgentName, AssistantData, Block, Brief, Message, PlanStep, Role } from "./types";
-import { executionOutcome } from "./execution-status";
+import { executionOutcome, toolResultFailed } from "./execution-status";
 import { buildDesignIntentContext } from "./design-intent";
 import { buildPersonaPreferencesPrompt } from "./persona-preferences";
 import { buildAdaptiveConversationStyle } from "./adaptive-conversation-style";
@@ -112,7 +112,7 @@ async function loop(o: LoopOpts): Promise<LoopResult> {
       try {
         const out = await runTool(o.ws, call.name, call.args || {});
         outs.push(out);
-        Object.assign(blk, { status: /^ERROR|^No such|^Unknown tool|^BUILD ERRORS/.test(out.result) ? "error" : "ok", stat: out.stat, detail: out.detail ?? out.result.slice(0, 1500), sources: out.sources, ms: Date.now() - ts });
+        Object.assign(blk, { status: toolResultFailed(out.result, out.stat) ? "error" : "ok", stat: out.stat, detail: out.detail ?? out.result.slice(0, 1500), sources: out.sources, ms: Date.now() - ts });
         if (out.questions?.length) data.blocks.push({ type: "questions", id: call.id, items: out.questions });
         if (out.brief) data.blocks.push({ type: "brief", id: call.id, brief: out.brief, status: "pending" });
         if (out.plan) data.blocks.push({ type: "plan", title: out.plan.title, steps: out.plan.steps });
