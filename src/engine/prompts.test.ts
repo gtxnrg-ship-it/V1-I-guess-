@@ -11,6 +11,6 @@ assert.match(TALKER, /GitHub repository URL/);
 assert.match(TALKER, /respond to what the user actually says instead of forcing a scripted greeting/i);
 assert.match(RESEARCHER, /inspect_project_capabilities/);
 assert.match(PLANNER, /known-answer fixtures/);
-assert.match(BUILDER, /verify_project.*not a universal compiler/);
+assert.match(BUILDER, /verify_project[\\s\\S]*not a universal compiler/);
 assert.match(BUILDER, /game-engine implementation/);
 console.log("Conversational capability standard: passed");
