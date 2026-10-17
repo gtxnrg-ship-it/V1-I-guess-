@@ -74,8 +74,8 @@ test.describe("Kuro-chan project memory", () => {
   test("keeps a running task's completion summary in the project where it started", async ({ page }) => {
     let releaseFirst;
     let requestStarted;
-    const firstRequestStarted = new Promise<void>((resolve) => { requestStarted = resolve; });
-    const release = new Promise<void>((resolve) => { releaseFirst = resolve; });
+    const firstRequestStarted = new Promise((resolve) => { requestStarted = resolve; });
+    const release = new Promise((resolve) => { releaseFirst = resolve; });
     let requestCount = 0;
     const reply = [
       'data: {"choices":[{"delta":{"content":"I reviewed the project and completed the requested task."}}]}',
@@ -112,7 +112,7 @@ test.describe("Kuro-chan project memory", () => {
     await newChat.click();
     if (!(await page.getByTestId(originalProject!).isVisible())) await page.getByTestId("button-open-sidebar").click();
     const projectIds = await page.locator('[data-testid^="sidebar-project-"]').evaluateAll((elements) =>
-      elements.map((element) => element.getAttribute("data-testid")).filter((value): value is string => Boolean(value)),
+      elements.map((element) => element.getAttribute("data-testid")).filter(Boolean),
     );
     const secondProject = projectIds.find((id) => id !== originalProject);
     expect(secondProject).toBeTruthy();
