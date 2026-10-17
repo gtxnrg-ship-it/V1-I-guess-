@@ -29,7 +29,7 @@ Source of truth: [ROADMAP.md](../ROADMAP.md). This ledger separates **roadmap ch
 | P3 — longer-term experiments | 0 | 6 |
 | Original-vision alignment | 0 | 11 |
 | Public feedback and model evolution | 0 | 9 |
-| **Total** | **13** | **133** |
+| **Total** | **13** | **142** |
 
 ## Shipped capability evidence
 
