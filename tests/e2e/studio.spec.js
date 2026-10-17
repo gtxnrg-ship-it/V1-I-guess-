@@ -161,4 +161,62 @@ test.describe("Kuro-chan studio", () => {
     await expect(page.getByText(/NO_KEYS/)).toHaveCount(0);
     await expect(page.getByTestId("button-stop")).toHaveCount(0);
   });
+
+  test("keeps substantial code changes behind a visible approval step", async ({ page }) => {
+    await page.route("https://text.pollinations.ai/openai/chat/completions", async (route) => {
+      if (route.request().method() === "OPTIONS") {
+        await route.fulfill({
+          status: 204,
+          headers: {
+            "access-control-allow-origin": "*",
+            "access-control-allow-methods": "POST, OPTIONS",
+            "access-control-allow-headers": "authorization, content-type",
+          },
+        });
+        return;
+      }
+
+      const event = {
+        choices: [{
+          delta: {
+            tool_calls: [{
+              index: 0,
+              id: "call_brief_1",
+              type: "function",
+              function: {
+                name: "propose_brief",
+                arguments: JSON.stringify({
+                  title: "Tiny habit tracker",
+                  summary: "A calm, phone-friendly habit tracker.",
+                  features: ["Create habits", "Mark daily progress", "See a weekly streak"],
+                  design: "Warm, minimal, accessible",
+                  backend: "none",
+                  size: "full",
+                }),
+              },
+            }],
+          },
+        }],
+      };
+      await route.fulfill({
+        status: 200,
+        headers: {
+          "access-control-allow-origin": "*",
+          "content-type": "text/event-stream; charset=utf-8",
+          "cache-control": "no-cache",
+        },
+        body: `data: ${JSON.stringify(event)}\n\ndata: [DONE]\n\n`,
+      });
+    });
+
+    await page.goto("/studio", { waitUntil: "domcontentloaded" });
+    await page.getByTestId("input-message").fill("I want a tiny habit tracker for my phone. Keep it calm and simple.");
+    await page.getByTestId("button-send").click();
+
+    await expect(page.getByRole("heading", { name: "Tiny habit tracker" })).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByTestId("button-build-it")).toBeVisible();
+    await expect(page.getByText(/A calm, phone-friendly habit tracker/)).toBeVisible();
+    // This test intentionally does not approve the brief: the user remains in control of code generation.
+    await expect(page.getByTestId("button-stop")).toHaveCount(0);
+  });
 });
