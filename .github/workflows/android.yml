@@ -27,12 +27,17 @@ jobs:
           distribution: temurin
           java-version: 21
       - run: npm ci
-      - run: npm install --no-save @capacitor/core@7 @capacitor/cli@7 @capacitor/android@7 @capacitor-community/text-to-speech@6.1.0 @capacitor-community/speech-recognition@7.0.1
+      - run: npm install --no-save @capacitor/core@7 @capacitor/cli@7 @capacitor/android@7 @capacitor-community/text-to-speech@6.1.0 @capacitor-community/speech-recognition@7.0.1 @capacitor/assets
       - name: Build web app
         run: npm run build
         env:
           VITE_GITHUB_APP_CLIENT_ID: ${{ vars.VITE_GITHUB_APP_CLIENT_ID }}
       - run: npx cap add android
+      - name: Generate Android launcher icons from approved Kuro-chan artwork
+        run: |
+          mkdir -p assets
+          cp public/icon-512.png assets/icon.png
+          npx capacitor-assets generate --android
       - name: Allow microphone (voice typing)
         run: |
           sed -i 's#<uses-permission android:name="android.permission.INTERNET" />#<uses-permission android:name="android.permission.INTERNET" />\n    <uses-permission android:name="android.permission.RECORD_AUDIO" />\n    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />#' android/app/src/main/AndroidManifest.xml
