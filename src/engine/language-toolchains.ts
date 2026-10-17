@@ -55,7 +55,7 @@ const RULES: LanguageRule[] = [
   { id: "haskell", label: "Haskell", markers: ["*.cabal", "cabal.project", "stack.yaml", "*.hs", "*.lhs"], buildCommands: ["cabal build all", "stack build"], testCommands: ["cabal test all", "stack test"], toolchain: "GHC + Cabal or Stack" },
   { id: "erlang", label: "Erlang", markers: ["rebar.config", "mix.exs", "*.erl", "*.hrl"], buildCommands: ["rebar3 compile"], testCommands: ["rebar3 eunit", "rebar3 ct"], toolchain: "Erlang/OTP + Rebar3 or Mix" },
   { id: "perl", label: "Perl", markers: ["Makefile.PL", "Build.PL", "cpanfile", "*.pl", "*.pm"], buildCommands: ["perl Makefile.PL && make"], testCommands: ["prove -lr t"], toolchain: "Perl + CPAN build/test tooling" },
-  { id: "sql", label: "SQL", markers: ["*.sql", "sqlfluff", ".sqlfluff", "dbt_project.yml", "prisma/schema.prisma"], buildCommands: [], testCommands: ["sqlfluff lint .", "dbt test"], toolchain: "Database-specific SQL dialect and optional linter/migration/test tooling; configure the actual database before execution" },
+  { id: "sql", label: "SQL", markers: ["*.sql", "sqlfluff", ".sqlfluff", "dbt_project.yml"], buildCommands: [], testCommands: ["sqlfluff lint .", "dbt test"], toolchain: "Database-specific SQL dialect and optional linter/migration/test tooling; configure the actual database before execution" },
   { id: "bash", label: "Bash / shell", markers: ["*.sh", "Makefile", ".shellcheckrc"], buildCommands: [], testCommands: ["bash -n ./script.sh", "shellcheck ."], toolchain: "POSIX-compatible shell; ShellCheck is optional static analysis" },
   { id: "powershell", label: "PowerShell", markers: ["*.ps1", "*.psm1", "*.psd1"], buildCommands: ["pwsh -NoProfile -Command '$ErrorActionPreference="Stop"; Get-ChildItem -Recurse -Filter *.ps1'"], testCommands: ["Invoke-Pester"], toolchain: "PowerShell 7+; Pester is the common test framework" },
   { id: "solidity", label: "Solidity", markers: ["foundry.toml", "hardhat.config.ts", "hardhat.config.js", "*.sol"], buildCommands: ["forge build", "npx hardhat compile"], testCommands: ["forge test", "npx hardhat test"], toolchain: "Solidity compiler via Foundry or Hardhat; contract tests should run on a local test chain" },
@@ -117,10 +117,21 @@ const GAME_RULES: Array<Omit<GameEngineCapability, "evidence"> & { markers: stri
   { id: "playcanvas", label: "PlayCanvas", markers: [".playcanvasrc", "playcanvas.config.js", "playcanvas.config.ts"], buildCommands: ["npm run build"], testCommands: ["npm test"], toolchain: "PlayCanvas project tooling + Node.js when using a bundled workflow", notes: "Some PlayCanvas projects are editor/cloud-first and cannot be fully built from repository files alone." },
 ];
 
-export function detectGameEngineCapabilities(paths: Iterable<string>): GameEngineCapability[] {
+function dependencyPresent(content: string, name: string): boolean {\n  try {\n    const manifest = JSON.parse(content);\n    return [manifest.dependencies, manifest.devDependencies, manifest.peerDependencies, manifest.optionalDependencies].some((group) => group && Object.prototype.hasOwnProperty.call(group, name));\n  } catch {\n    return false;\n  }\n}\n\nexport function detectGameEngineCapabilities(paths: Iterable<string>, fileContents: Record<string, string> = {}): GameEngineCapability[] {
   const files = [...new Set([...paths].map(normalize).filter(Boolean))];
+  const contents = new Map(Object.entries(fileContents).map(([path, content]) => [normalize(path), content]));
+  const manifestEngines: Array<{ id: GameEngineId; evidence: string; matches: (path: string, content: string) => boolean }> = [
+    { id: "bevy", evidence: "Cargo.toml dependency", matches: (path, content) => path.endsWith("Cargo.toml") && /(?:^|\\n)\\s*(?:bevy\\s*=|\\[dependencies\\.bevy\\])/m.test(content) },
+    { id: "phaser", evidence: "package.json dependency", matches: (path, content) => path.endsWith("package.json") && dependencyPresent(content, "phaser") },
+    { id: "threejs", evidence: "package.json dependency", matches: (path, content) => path.endsWith("package.json") && dependencyPresent(content, "three") },
+    { id: "babylonjs", evidence: "package.json dependency", matches: (path, content) => path.endsWith("package.json") && dependencyPresent(content, "@babylonjs/core") },
+    { id: "playcanvas", evidence: "package.json dependency", matches: (path, content) => path.endsWith("package.json") && dependencyPresent(content, "playcanvas") },
+  ];
   return GAME_RULES.flatMap((rule) => {
     const evidence = rule.markers.filter((marker) => files.some((path) => markerMatches(path, marker)));
+    for (const signal of manifestEngines.filter((item) => item.id === rule.id)) {
+      if ([...contents.entries()].some(([path, content]) => signal.matches(path, content))) evidence.push(signal.evidence);
+    }
     return evidence.length ? [{ id: rule.id, label: rule.label, evidence, buildCommands: [...rule.buildCommands], testCommands: [...rule.testCommands], toolchain: rule.toolchain, notes: rule.notes }] : [];
   });
 }
