@@ -14,6 +14,7 @@ jobs:
       - run: npm ci
       - run: npm install --no-save @capacitor-community/text-to-speech@6.1.0 @capacitor/core@7
       - run: npm test
+      - run: npx --yes tsx@4.20.6 src/engine/design-intent.test.ts
       - run: npx tsc --noEmit
       - run: npm run build
       - run: npx playwright install --with-deps chromium
