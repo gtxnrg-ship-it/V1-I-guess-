@@ -210,7 +210,7 @@ async function talkerContext(scope: Scope, pid: string): Promise<string> {
       // default-branch head before reusing source context; if verification fails,
       // rebuild rather than pretending a stale snapshot is current.
       try {
-        const cleanRepo = current.repo.trim().replace(/^https?:\\/\\/github\\.com\\//i, "").replace(/\\.git$/i, "").replace(/\\/$/, "");
+        const cleanRepo = current.repo.trim().replace(/^https?:\/\/github\.com\//i, "").replace(/\.git$/i, "").replace(/\/$/, "");
         const parts = cleanRepo.split("/");
         if (parts.length === 2 && parts.every((part) => /^[a-zA-Z0-9_.-]+$/.test(part))) {
           const latest = await github.req("GET", `/repos/${encodeURIComponent(parts[0])}/${encodeURIComponent(parts[1])}/commits?per_page=1`);
