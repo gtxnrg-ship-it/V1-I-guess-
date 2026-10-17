@@ -69,7 +69,17 @@ assert(nonActiveCheckpoint.projectId === first.id,
 assert(!db.snapshots(second.id).some((snapshot) => snapshot.id === nonActiveCheckpoint.id),
   "creating a checkpoint for a non-active project must not leak into the active project");
 
-// File edits must target the active project, not the project opened previously.
+// File writes/deletes must target the explicit task project even if another project is active.
+db.writeFile("src/first-workspace.txt", "only first", first.id);
+assert(db.getState().projects.find((p) => p.id === first.id)?.files["src/first-workspace.txt"] === "only first",
+  "an explicit project ID must receive its task file write");
+assert(!db.getState().projects.find((p) => p.id === second.id)?.files["src/first-workspace.txt"],
+  "writing to a non-active project must not alter the active project's files");
+db.deleteFile("src/first-workspace.txt", first.id);
+assert(!db.getState().projects.find((p) => p.id === first.id)?.files["src/first-workspace.txt"],
+  "an explicit project ID must receive its task file deletion");
+
+// Default file edits still target the active project.
 db.writeFile("src/main.cpp", "int main() { return 7; }");
 assert(db.getState().projects.find((p) => p.id === second.id)?.files["src/main.cpp"] === "int main() { return 7; }",
   "file edits must update the active workspace");
