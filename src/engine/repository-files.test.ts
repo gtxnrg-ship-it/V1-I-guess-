@@ -49,6 +49,22 @@ async function run() {
   assert(fallback.result.includes("not an exhaustive repository search"), "clearly reports bounded, non-exhaustive coverage");
   assert(fallbackCalls.some((path) => path.endsWith("/git/blobs/blob-app")), "reads actual GitHub blob data in fallback");
   assert(!fallbackCalls.some((path) => path.endsWith("/git/blobs/secret-env") || path.includes("node_modules")), "does not scan environment secrets or vendored dependencies");
+  const selectedRefCalls: string[] = [];
+  const selectedRefClient: RepositoryFileClient = { async req(_method, path) {
+    selectedRefCalls.push(path);
+    if (path === "/repos/acme/app") return { status: 200, json: { default_branch: "main" } };
+    if (path.includes("/git/trees/feature%2Fbranch-sync?recursive=1")) return { status: 200, json: { truncated: false, tree: [
+      { type: "blob", path: "src/Feature.ts", sha: "feature-blob", size: 45 },
+    ] } };
+    if (path.endsWith("/git/blobs/feature-blob")) return { status: 200, json: { encoding: "base64", content: b64("export const featureOnlySymbol = true;") } };
+    throw new Error("Unexpected selected-ref request " + path);
+  } };
+  const selectedSearch = await searchRepositoryCode(selectedRefClient, "acme/app", "featureOnlySymbol", "feature/branch-sync");
+  assert(selectedSearch.result.includes("selected ref"), "explains that selected-ref search used the bounded source scan");
+  assert(selectedSearch.result.includes("feature/branch-sync"), "reports which ref was searched");
+  assert(selectedSearch.result.includes("src/Feature.ts:1"), "finds symbols from the selected branch");
+  assert(selectedSearch.sources?.[0].url.includes("/blob/feature/branch-sync/"), "links results to the selected branch");
+  assert(selectedRefCalls.every((path) => !path.startsWith("/search/code?")), "does not use branch-ambiguous indexed search for an explicit ref");
   console.log("Repository file read/search tests passed");
 }
 void run();

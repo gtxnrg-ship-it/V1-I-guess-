@@ -32,6 +32,28 @@ async function run() {
   let rejected = false;
   try { await buildRepositoryContext(client, "https://github.com/acme/app/tree/main"); } catch { rejected = true; }
   assert(rejected, "rejects nested URLs instead of guessing the repository");
+  const branchRequests: string[] = [];
+  const branchClient: RepositoryContextClient = {
+    async req(_method, path) {
+      branchRequests.push(path);
+      if (path === "/repos/acme/app/") return { status: 200, json: { default_branch: "main" } };
+      if (path === "/repos/acme/app/commits?sha=feature%2Fbranch-sync&per_page=1") return { status: 200, json: [{ sha: "feature-commit-456" }] };
+      if (path === "/repos/acme/app/git/trees/feature%2Fbranch-sync?recursive=1") return { status: 200, json: { truncated: false, tree: [
+        { type: "blob", path: "src/App.tsx", sha: "branch-app", size: source.length },
+      ] } };
+      if (path.endsWith("/git/blobs/branch-app")) return { status: 200, json: { encoding: "base64", content: b64("export const branch = true;") } };
+      throw new Error("Unexpected branch request: " + path);
+    },
+  };
+  const branchPack = await buildRepositoryContext(branchClient, "acme/app", { branch: "feature/branch-sync" });
+  assert(branchPack.branch === "feature/branch-sync", "uses the explicitly selected branch in the context metadata");
+  assert(branchPack.commitSha === "feature-commit-456", "anchors context to the selected branch's commit");
+  assert(branchPack.files[0]?.content.includes("branch = true"), "loads source from the selected branch");
+  assert(branchPack.asPrompt().includes("Selected source ref: feature/branch-sync"), "prompt names the selected ref clearly");
+  assert(branchRequests.some((path) => path.includes("trees/feature%2Fbranch-sync")), "URL-encodes slash-containing branch refs");
+  let unsafeRefRejected = false;
+  try { await buildRepositoryContext(branchClient, "acme/app", { branch: "../main" }); } catch { unsafeRefRejected = true; }
+  assert(unsafeRefRejected, "rejects malformed refs before fetching the tree");
   console.log("Repository context pack tests passed");
 }
 void run();

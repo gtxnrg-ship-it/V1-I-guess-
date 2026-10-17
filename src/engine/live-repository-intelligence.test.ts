@@ -58,6 +58,24 @@ async function run() {
   try { await inspectGitHubRepository(healthy, "https://github.com/acme/app/issues/2"); } catch { rejected = true; }
   assert(rejected, "rejects nested issue/file URLs instead of guessing a repository");
 
+  const branchRequests: string[] = [];
+  const branchClient: GitHubInspectionClient = { async req(_method, path) {
+    branchRequests.push(path);
+    const url = new URL(path, "https://api.github.com");
+    if (url.pathname === "/repos/acme/app") return { status: 200, json: { default_branch: "main" } };
+    if (url.pathname.endsWith("/commits")) return { status: 200, json: [{ sha: "feature-sha" }] };
+    if (url.pathname.includes("/git/trees/")) return { status: 200, json: { truncated: false, tree: [{ type: "blob", path: "src/Feature.ts" }] } };
+    if (url.pathname.endsWith("/actions/runs")) return { status: 200, json: { workflow_runs: [] } };
+    return { status: 404, json: {} };
+  } };
+  const branchReport = await inspectGitHubRepository(branchClient, "acme/app", "feature/branch-sync");
+  assert(branchReport.defaultBranch === "main" && branchReport.inspectedRef === "feature/branch-sync", "preserves default branch metadata while identifying selected inspection ref");
+  assert(branchReport.baselineSha === "feature-sha", "anchors diagnosis to selected-ref commit");
+  assert(branchRequests.some((path) => path.includes("commits?sha=feature%2Fbranch-sync")), "looks up commit from selected branch");
+  assert(branchRequests.some((path) => path.includes("trees/feature%2Fbranch-sync")), "inspects selected branch tree");
+  let unsafeRefRejected = false;
+  try { await inspectGitHubRepository(branchClient, "acme/app", "../main"); } catch { unsafeRefRejected = true; }
+  assert(unsafeRefRejected, "rejects malformed selected refs");
   console.log("Live repository intelligence tests passed");
 }
 void run();

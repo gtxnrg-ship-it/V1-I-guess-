@@ -202,7 +202,8 @@ async function talkerContext(scope: Scope, pid: string): Promise<string> {
   let repositoryEvidence = "";
   const githubKey = scope === "app" && current.repo ? db.keyOf("github") : undefined;
   if (current.repo && githubKey?.secret && scope === "app") {
-    const cacheKey = current.repo.trim().toLowerCase();
+    const selectedRef = current.repoBranch?.trim() || "";
+    const cacheKey = `${current.repo.trim().toLowerCase()}@${selectedRef || "default"}`;
     const github = new GH(githubKey.secret);
     let cacheIsFresh = false;
     if (repositoryInspectionCache?.key === cacheKey && Date.now() - repositoryInspectionCache.at < 3 * 60 * 1000) {
@@ -213,7 +214,7 @@ async function talkerContext(scope: Scope, pid: string): Promise<string> {
         const cleanRepo = current.repo.trim().replace(/^https?:\/\/github\.com\//i, "").replace(/\.git$/i, "").replace(/\/$/, "");
         const parts = cleanRepo.split("/");
         if (parts.length === 2 && parts.every((part) => /^[a-zA-Z0-9_.-]+$/.test(part))) {
-          const latest = await github.req("GET", `/repos/${encodeURIComponent(parts[0])}/${encodeURIComponent(parts[1])}/commits?per_page=1`);
+          const latest = await github.req("GET", `/repos/${encodeURIComponent(parts[0])}/${encodeURIComponent(parts[1])}/commits${selectedRef ? `?sha=${encodeURIComponent(selectedRef)}&per_page=1` : "?per_page=1"}`);
           const latestSha = latest.status === 200 && Array.isArray(latest.json) ? latest.json[0]?.sha ?? null : null;
           cacheIsFresh = !!latestSha && latestSha === repositoryInspectionCache.sha;
         }
@@ -224,11 +225,13 @@ async function talkerContext(scope: Scope, pid: string): Promise<string> {
     } else {
       repositoryInspectionCache = null;
       try {
-        const inspection = await inspectGitHubRepository(github, current.repo);
+        const inspection = await inspectGitHubRepository(github, current.repo, selectedRef || undefined);
         let sourceContext = "";
+        let sourceContextSha: string | null = null;
         try {
-          const pack = await buildRepositoryContext(github, current.repo);
+          const pack = await buildRepositoryContext(github, current.repo, selectedRef ? { branch: selectedRef } : {});
           sourceContext = pack.asPrompt();
+          sourceContextSha = pack.commitSha;
         } catch (contextError) {
           sourceContext = "Repository source bodies could not be loaded: " + (contextError instanceof Error ? contextError.message : String(contextError)) + ". Do not claim source files were read.";
         }
@@ -238,7 +241,7 @@ async function talkerContext(scope: Scope, pid: string): Promise<string> {
         repositoryEvidence = [
           "LIVE GITHUB REPOSITORY INSPECTION (tool evidence; not a complete code review)",
           `Repository: ${inspection.repository}`,
-          `Default branch: ${inspection.defaultBranch}`,
+          `Default branch: ${inspection.defaultBranch}`,\n          `Inspected source ref: ${inspection.inspectedRef}`,
           `Observed commit SHA: ${inspection.baselineSha || "unknown"}`,
           `Tree complete: ${inspection.treeComplete}; file count: ${inspection.fileCount}`,
           `Recognized key files: ${inspection.readableKeyFiles.join(", ") || "none detected"}`,
@@ -251,7 +254,7 @@ async function talkerContext(scope: Scope, pid: string): Promise<string> {
           "Rules: Treat this as a starting inventory, not proof the repository is healthy or broken. Read relevant source files and logs before making claims or edits. A failed workflow is a clue, not a root-cause diagnosis. If tree completeness is false or unknown, say so and do not assume missing files are absent.",
           sourceContext,
         ].join("\n");
-        repositoryInspectionCache = { key: cacheKey, at: Date.now(), sha: inspection.baselineSha, text: repositoryEvidence };
+        repositoryInspectionCache = { key: cacheKey, at: Date.now(), sha: sourceContextSha || inspection.baselineSha, text: repositoryEvidence };
       } catch (error) {
         repositoryEvidence = `Live GitHub inspection could not be completed: ${error instanceof Error ? error.message : String(error)}. Do not claim the repository was inspected; explain the limitation and continue only with evidence actually available.`;
       }

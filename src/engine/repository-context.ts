@@ -51,14 +51,19 @@ async function request(client: RepositoryContextClient, path: string): Promise<a
 /** Include the full path inventory and a bounded, prioritized sample of actual source bodies. */
 export async function buildRepositoryContext(
   client: RepositoryContextClient, input: string,
-  options: { maxFiles?: number; maxTotalChars?: number; maxFileChars?: number } = {},
+  options: { maxFiles?: number; maxTotalChars?: number; maxFileChars?: number; branch?: string } = {},
 ): Promise<RepositoryContextPack> {
   const repository = safeRepo(input);
   const [metadata, commits] = await Promise.all([
     request(client, `/repos/${repository}/`),
-    client.req("GET", `/repos/${repository}/commits?per_page=1`),
+    client.req("GET", `/repos/${repository}/commits${options.branch?.trim() ? `?sha=${encodeURIComponent(options.branch.trim())}&per_page=1` : "?per_page=1"}`),
   ]);
-  const branch = typeof metadata.default_branch === "string" && metadata.default_branch ? metadata.default_branch : "main";
+  const defaultBranch = typeof metadata.default_branch === "string" && metadata.default_branch ? metadata.default_branch : "main";
+  const requestedBranch = options.branch?.trim();
+  if (requestedBranch && (requestedBranch.length > 255 || requestedBranch.startsWith("-") || requestedBranch.includes("..") || /[\u0000-\u0020~^:?*\[\]\\]/.test(requestedBranch))) {
+    throw new Error("The selected repository branch/ref is malformed.");
+  }
+  const branch = requestedBranch || defaultBranch;
   const treeResponse = await client.req("GET", `/repos/${repository}/git/trees/${encodeURIComponent(branch)}?recursive=1`);
   if (treeResponse.status >= 300 || !Array.isArray(treeResponse.json?.tree)) throw new Error(`Could not read the repository tree (HTTP ${treeResponse.status}); source context was not built.`);
   const tree = treeResponse.json.tree as TreeEntry[], treeComplete = treeResponse.json.truncated === false;
@@ -100,7 +105,7 @@ export async function buildRepositoryContext(
       const bodies = files.map((file) => `===== ${file.path}${file.truncated ? " (TRUNCATED)" : ""} =====\n${file.content}`).join("\n\n");
       return [
         "GITHUB REPOSITORY SOURCE CONTEXT (read-only evidence; never claim files not listed below were read)",
-        `Repository: ${repository}`, `Default branch: ${branch}`, `Observed commit: ${commitSha || "unknown"}`,
+        `Repository: ${repository}`, `Selected source ref: ${branch}`, `Observed commit: ${commitSha || "unknown"}`,
         `Tree complete: ${treeComplete}`, `Inventory paths: ${inventory.length}`, `Eligible text files: ${candidates.length}`,
         `Actual file bodies loaded: ${files.length}`, `Source bodies omitted: ${Math.max(0, candidates.length - files.length)}`,
         warnings.length ? `Coverage warnings:\n- ${warnings.join("\n- ")}` : "",

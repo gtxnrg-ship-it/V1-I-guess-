@@ -7,6 +7,7 @@ export interface GitHubInspectionClient {
 export interface LiveRepositoryInspection {
   repository: string;
   defaultBranch: string;
+  inspectedRef: string;
   baselineSha: string | null;
   treeComplete: boolean;
   fileCount: number;
@@ -39,14 +40,20 @@ const KEY_FILES = [
 export async function inspectGitHubRepository(
   client: GitHubInspectionClient,
   input: string,
+  refInput?: string,
 ): Promise<LiveRepositoryInspection> {
   const { owner, name, fullName } = parseRepository(input);
   const repoPath = `/repos/${encodeURIComponent(owner)}/${encodeURIComponent(name)}`;
   const metadata = await get(client, repoPath);
   const defaultBranch = typeof metadata.default_branch === "string" && metadata.default_branch ? metadata.default_branch : "main";
+  const requestedRef = refInput?.trim();
+  if (requestedRef && (requestedRef.length > 255 || requestedRef.startsWith("-") || requestedRef.includes("..") || /[\u0000-\u0020~^:?*\[\]\\]/.test(requestedRef))) {
+    throw new Error("The selected repository branch/ref is malformed.");
+  }
+  const inspectedRef = requestedRef || defaultBranch;
   const [commitsResult, treeResult, runsResult] = await Promise.all([
-    client.req("GET", `${repoPath}/commits?per_page=1`),
-    client.req("GET", `${repoPath}/git/trees/${encodeURIComponent(defaultBranch)}?recursive=1`),
+    client.req("GET", `${repoPath}/commits${requestedRef ? `?sha=${encodeURIComponent(inspectedRef)}&per_page=1` : "?per_page=1"}`),
+    client.req("GET", `${repoPath}/git/trees/${encodeURIComponent(inspectedRef)}?recursive=1`),
     client.req("GET", `${repoPath}/actions/runs?per_page=10`),
   ]);
   const commitsKnown = commitsResult.status === 200 && Array.isArray(commitsResult.json);
@@ -70,7 +77,7 @@ export async function inspectGitHubRepository(
     run.status === "completed" && run.conclusion !== null && run.conclusion !== "success" && run.conclusion !== "skipped",
   ).length;
   const diagnosis = diagnoseRepository({
-    repoFullName: fullName, defaultBranch, latestCommitSha,
+    repoFullName: fullName, defaultBranch: inspectedRef, latestCommitSha,
     commitCount: emptyCommitHistory ? 0 : undefined,
     files, readableFileCount: readableKeyFiles.length, treeComplete,
     actionsFailures: failures, actionsRunsKnown: actionsKnown,
@@ -93,5 +100,5 @@ export async function inspectGitHubRepository(
       diagnosis.safeToInitialize = false;
     }
   }
-  return { repository: fullName, defaultBranch, baselineSha: latestCommitSha, treeComplete, fileCount: files.length, readableKeyFiles, recentRuns, diagnosis, inspectedAt: new Date().toISOString() };
+  return { repository: fullName, defaultBranch, inspectedRef, baselineSha: latestCommitSha, treeComplete, fileCount: files.length, readableKeyFiles, recentRuns, diagnosis, inspectedAt: new Date().toISOString() };
 }
