@@ -101,8 +101,11 @@ export async function buildRepositoryContext(
   }
   if (treeResponse.status >= 300 || !Array.isArray(treeResponse.json?.tree)) throw new Error(`Could not read the repository tree (HTTP ${treeResponse.status}); source context was not built.`);
   const tree = treeResponse.json.tree as RepositoryTreeEntry[], treeComplete = options.snapshot ? options.snapshot.treeComplete : treeResponse.json.truncated === false;
-  const candidates = tree.filter((entry) => entry.type === "blob" && typeof entry.path === "string" && typeof entry.sha === "string"
-    && !SKIP_PATH.test(entry.path) && TEXT_EXT.test(entry.path) && (entry.size === undefined || entry.size <= MAX_FILE_BYTES));
+  const textSources = tree.filter((entry) => entry.type === "blob" && typeof entry.path === "string"
+    && !SKIP_PATH.test(entry.path) && TEXT_EXT.test(entry.path));
+  const oversizedSources = textSources.filter((entry) => typeof entry.size === "number" && entry.size > MAX_FILE_BYTES);
+  const candidates = textSources.filter((entry) => typeof entry.sha === "string"
+    && (entry.size === undefined || entry.size <= MAX_FILE_BYTES));
   const inventory = tree.filter((entry) => entry.type === "blob" && typeof entry.path === "string" && !SKIP_PATH.test(entry.path))
     .map((entry) => entry.path as string).sort();
   const limit = Math.max(1, Math.min(MAX_FILES, options.maxFiles ?? MAX_FILES));
@@ -130,18 +133,19 @@ export async function buildRepositoryContext(
   }
   const commitSha = observedCommitSha;
   if (!treeComplete) warnings.push("GitHub marked the recursive tree as truncated; the inventory may be incomplete.");
-  if (candidates.length > files.length) warnings.push(`Only ${files.length} of ${candidates.length} eligible text files were read; remaining source files were not loaded into this context pack.`);
+  if (oversizedSources.length) warnings.push(`${oversizedSources.length} text source file(s) exceeded the ${MAX_FILE_BYTES}-byte read limit and were skipped.`);
+  if (textSources.length > files.length) warnings.push(`Only ${files.length} of ${textSources.length} text source files were loaded; other source bodies were skipped or omitted by context limits.`);
   if (files.some((file) => file.truncated)) warnings.push("One or more file bodies were truncated to keep context bounded.");
   return {
     repository, branch, commitSha, treeComplete, inventoryCount: inventory.length, readableSourceCount: candidates.length,
-    includedCount: files.length, skippedCount: Math.max(0, candidates.length - files.length), files, inventory, warnings,
+    includedCount: files.length, skippedCount: Math.max(0, textSources.length - files.length), files, inventory, warnings,
     asPrompt() {
       const bodies = files.map((file) => `===== ${file.path}${file.truncated ? " (TRUNCATED)" : ""} =====\n${file.content}`).join("\n\n");
       return [
         "GITHUB REPOSITORY SOURCE CONTEXT (read-only evidence; never claim files not listed below were read)",
         `Repository: ${repository}`, `Selected source ref: ${branch}`, `Observed commit: ${commitSha || "unknown"}`,
         `Tree complete: ${treeComplete}`, `Inventory paths: ${inventory.length}`, `Eligible text files: ${candidates.length}`,
-        `Actual file bodies loaded: ${files.length}`, `Source bodies omitted: ${Math.max(0, candidates.length - files.length)}`,
+        `Actual file bodies loaded: ${files.length}`, `Source bodies omitted: ${Math.max(0, textSources.length - files.length)}`,
         warnings.length ? `Coverage warnings:\n- ${warnings.join("\n- ")}` : "",
         "Repository inventory (paths only; not file contents):", inventory.slice(0, 800).join("\n"),
         "Actual source file bodies:", bodies || "(No source file bodies could be loaded.)",
