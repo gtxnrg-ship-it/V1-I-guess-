@@ -352,9 +352,11 @@ function PublishDialog({ open, onOpenChange, onOpenKeys }: { open: boolean; onOp
   const [step, setStep] = useState("");
   const [links, setLinks] = useState<{ label: string; url: string }[] | null>(null);
   const [publishedPrivate, setPublishedPrivate] = useState(false);
+  const [confirmedPublish, setConfirmedPublish] = useState(false);
   const token = st.keys.find((k) => k.provider === "github");
+  const previewPaths = Object.keys(p.files).filter((path) => path !== ".env" && path !== ".kuro/research.md").sort();
   const slug = (p?.name || "my-app").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-  useEffect(() => { if (open) { setRepo(p?.repo || slug); setLinks(null); setPublishedPrivate(false); setSessionOnly(false); } }, [open]); // eslint-disable-line
+  useEffect(() => { if (open) { setRepo(p?.repo || slug); setLinks(null); setPublishedPrivate(false); setSessionOnly(false); setConfirmedPublish(false); } }, [open]); // eslint-disable-line
 
   const go = async () => {
     if (!token) return;
@@ -439,27 +441,40 @@ function PublishDialog({ open, onOpenChange, onOpenKeys }: { open: boolean; onOp
               <div className="flex items-center justify-between gap-3"><span className="font-medium">Publish preflight</span><span className="text-muted-foreground">{Object.keys(p.files).length} project files</span></div>
               <p className="mt-1 text-muted-foreground">The current publish sends your project files to the selected repository default branch. Local environment values are excluded; only variable names are written to .env.example.</p>
               {p.repo && <p className="mt-1 text-muted-foreground">{p.repoBaseSha ? `Last observed remote commit: ${p.repoBaseSha.slice(0, 7)}` : "No saved remote baseline yet; this project may have been connected before change detection was added."}</p>}
+              <div className="mt-3 border-t border-border/70 pt-3">
+                <div className="font-medium">Files in this project</div>
+                <ul data-testid="publish-file-preview" className="mt-1 space-y-1 font-mono text-[11px] text-muted-foreground">
+                  {previewPaths.slice(0, 8).map((path) => <li key={path} className="truncate">{path}</li>)}
+                  {previewPaths.length > 8 && <li>…and {previewPaths.length - 8} more files</li>}
+                  {!previewPaths.length && <li>No project files yet</li>}
+                </ul>
+                <p className="mt-2 text-muted-foreground">The publish also prepares package.json and may add deployment workflows, Capacitor configuration, a download page, and README links when Ship it is enabled. This is a file-list preview, not a line-by-line diff against GitHub.</p>
+              </div>
             </div>
             <div>
               <label className="text-[12.5px] font-medium text-muted-foreground">Repository</label>
-              <input data-testid="input-publish-repo" value={repo} onChange={(e) => setRepo(e.target.value)} placeholder="my-app or owner/my-app" className="mt-1 h-10 w-full rounded-lg border border-border bg-background px-3 font-mono text-[13px] outline-none focus:border-foreground/30" />
+              <input data-testid="input-publish-repo" value={repo} onChange={(e) => { setRepo(e.target.value); setConfirmedPublish(false); }} placeholder="my-app or owner/my-app" className="mt-1 h-10 w-full rounded-lg border border-border bg-background px-3 font-mono text-[13px] outline-none focus:border-foreground/30" />
             </div>
             <label className="flex items-start gap-3">
-              <Switch data-testid="switch-ship" checked={ship} onCheckedChange={setShip} />
+              <Switch data-testid="switch-ship" checked={ship} onCheckedChange={(value) => { setShip(value); setConfirmedPublish(false); }} />
               <span><span className="block text-[13.5px] font-medium">Ship it: website and Android APK</span><span className="block text-[12.5px] text-muted-foreground">Adds GitHub Actions, turns on Pages, and puts download links in the README.</span></span>
             </label>
             <label className="flex items-start gap-3">
-              <Switch data-testid="switch-session-only" checked={sessionOnly} onCheckedChange={setSessionOnly} />
+              <Switch data-testid="switch-session-only" checked={sessionOnly} onCheckedChange={(value) => { setSessionOnly(value); setConfirmedPublish(false); }} />
               <span><span className="block text-[13.5px] font-medium">Session-only publish</span><span className="block text-[12.5px] text-muted-foreground">Use this repository for this publish without saving it to the project.</span></span>
             </label>
             <div className="flex justify-end">
               <button type="button" onClick={createTemp} className="rounded-lg border border-border px-2.5 py-1.5 text-[12px] hover:bg-muted">Generate temporary repo name</button>
             </div>
             <label className="flex items-start gap-3">
-              <Switch data-testid="switch-private" checked={priv} onCheckedChange={setPriv} />
+              <Switch data-testid="switch-private" checked={priv} onCheckedChange={(value) => { setPriv(value); setConfirmedPublish(false); }} />
               <span><span className="block text-[13.5px] font-medium">Private repo</span><span className="block text-[12.5px] text-muted-foreground">Free GitHub Pages needs a public repo.</span></span>
             </label>
-            <button data-testid="button-publish-confirm" disabled={busy || !repo.trim()} onClick={go} className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-2.5 text-[14px] font-medium text-primary-foreground disabled:opacity-50">
+            <label className="flex items-start gap-2 rounded-lg border border-amber-500/40 bg-amber-500/5 p-3 text-[12.5px] leading-relaxed">
+              <input data-testid="checkbox-publish-confirmation" type="checkbox" checked={confirmedPublish} onChange={(event) => setConfirmedPublish(event.target.checked)} disabled={busy} className="mt-0.5 accent-primary" />
+              <span>I reviewed the file preview and understand this publishes to <b>{repo.trim() || "the selected repository"}</b>'s default branch{ship ? ", with deployment workflows enabled" : ""}. I understand this can change files on GitHub.</span>
+            </label>
+            <button data-testid="button-publish-confirm" disabled={busy || !repo.trim() || !confirmedPublish} onClick={go} className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-2.5 text-[14px] font-medium text-primary-foreground disabled:opacity-50">
               {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Github className="h-4 w-4" />} {busy ? step + "…" : "Push to GitHub"}
             </button>
           </div>
