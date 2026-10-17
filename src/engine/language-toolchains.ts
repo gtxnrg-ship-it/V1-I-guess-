@@ -117,7 +117,16 @@ const GAME_RULES: Array<Omit<GameEngineCapability, "evidence"> & { markers: stri
   { id: "playcanvas", label: "PlayCanvas", markers: [".playcanvasrc", "playcanvas.config.js", "playcanvas.config.ts"], buildCommands: ["npm run build"], testCommands: ["npm test"], toolchain: "PlayCanvas project tooling + Node.js when using a bundled workflow", notes: "Some PlayCanvas projects are editor/cloud-first and cannot be fully built from repository files alone." },
 ];
 
-function dependencyPresent(content: string, name: string): boolean {\n  try {\n    const manifest = JSON.parse(content);\n    return [manifest.dependencies, manifest.devDependencies, manifest.peerDependencies, manifest.optionalDependencies].some((group) => group && Object.prototype.hasOwnProperty.call(group, name));\n  } catch {\n    return false;\n  }\n}\n\nexport function detectGameEngineCapabilities(paths: Iterable<string>, fileContents: Record<string, string> = {}): GameEngineCapability[] {
+function dependencyPresent(content: string, name: string): boolean {
+  try {
+    const manifest = JSON.parse(content);
+    return [manifest.dependencies, manifest.devDependencies, manifest.peerDependencies, manifest.optionalDependencies].some((group) => group && Object.prototype.hasOwnProperty.call(group, name));
+  } catch {
+    return false;
+  }
+}
+
+export function detectGameEngineCapabilities(paths: Iterable<string>, fileContents: Record<string, string> = {}): GameEngineCapability[] {
   const files = [...new Set([...paths].map(normalize).filter(Boolean))];
   const contents = new Map(Object.entries(fileContents).map(([path, content]) => [normalize(path), content]));
   const manifestEngines: Array<{ id: GameEngineId; evidence: string; matches: (path: string, content: string) => boolean }> = [
