@@ -8,7 +8,7 @@ export interface VerificationSummary {
 }
 export interface ObservedVerificationCheck { name?: unknown; status?: unknown; conclusion?: unknown; details_url?: unknown; html_url?: unknown }
 
-const normalizeCheckName = (name: string) => name.trim().replace(/\\s+/g, " ").toLowerCase();
+const normalizeCheckName = (name: string) => name.trim().replace(/\s+/g, " ").toLowerCase();
 
 /** Never treats an absent or inconclusive conclusion as a pass. */
 export function normalizeVerificationCheck(status: unknown, conclusion: unknown): VerificationCheckState {
