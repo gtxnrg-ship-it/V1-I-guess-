@@ -141,18 +141,73 @@ export class GH {
   }
 
   async readTree(owner: string, name: string, branch: string, filter: (p: string) => boolean = () => true): Promise<Record<string, string>> {
-    const sha = await this.headSha(owner, name, branch);
-    if (!sha) return {};
-    const t = await this.ok("GET", `/repos/${owner}/${name}/git/trees/${sha}?recursive=1`);
-    const blobs = (t.tree || []).filter((x: any) => x.type === "blob" && x.size < 200_000 && filter(x.path) && !/\.(png|jpe?g|gif|webp|ico|woff2?|ttf|apk|jar|zip|wasm)$/i.test(x.path));
-    const out: Record<string, string> = {};
-    for (let i = 0; i < blobs.length; i += 8) {
-      await Promise.all(blobs.slice(i, i + 8).map(async (b: any) => {
-        const j = await this.ok("GET", `/repos/${owner}/${name}/git/blobs/${b.sha}`);
-        try { out[b.path] = unb64(j.content); } catch { /* binary */ }
-      }));
+    const result = await this.readTreeBounded(owner, name, branch, filter);
+    if (!result.complete) {
+      throw new Error(`Repository import stopped at its safety budget (${result.files.length} files, ${result.totalBytes} bytes). Refine the import or exclude generated/vendor files before retrying; partial content was not returned as a complete repository.`);
     }
-    return out;
+    return Object.fromEntries(result.files.map((f) => [f.path, f.content]));
+  }
+
+  /**
+   * Bounded remote import for mobile clients. Caps both requests and aggregate
+   * decoded content, and explicitly reports truncation instead of silently
+   * presenting a partial repository as complete.
+   */
+  async readTreeBounded(
+    owner: string,
+    name: string,
+    branch: string,
+    filter: (p: string) => boolean = () => true,
+    limits: { maxFiles?: number; maxTotalBytes?: number; maxFileBytes?: number; concurrency?: number } = {},
+  ): Promise<{ files: Array<{ path: string; content: string }>; complete: boolean; totalBytes: number; skipped: number; reason?: string }> {
+    const maxFiles = Math.max(1, Math.min(1000, limits.maxFiles ?? 300));
+    const maxTotalBytes = Math.max(1024, Math.min(20_000_000, limits.maxTotalBytes ?? 8_000_000));
+    const maxFileBytes = Math.max(1024, Math.min(1_000_000, limits.maxFileBytes ?? 200_000));
+    const concurrency = Math.max(1, Math.min(8, limits.concurrency ?? 4));
+    const sha = await this.headSha(owner, name, branch);
+    if (!sha) return { files: [], complete: true, totalBytes: 0, skipped: 0 };
+    const tree = await this.ok("GET", `/repos/${owner}/${name}/git/trees/${sha}?recursive=1`);
+    const all = Array.isArray(tree.tree) ? tree.tree : [];
+    const truncated = tree.truncated === true;
+    const candidates = all.filter((x: any) => x.type === "blob" && filter(x.path) && !/\.(png|jpe?g|gif|webp|ico|woff2?|ttf|apk|jar|zip|wasm|pdf|mp4|mp3|mov|psd)$/i.test(x.path));
+    const chosen: any[] = [];
+    let plannedBytes = 0;
+    let budgetHit = false;
+    for (const blob of candidates) {
+      const size = Number(blob.size) || 0;
+      if (size > maxFileBytes || chosen.length >= maxFiles || plannedBytes + size > maxTotalBytes) {
+        budgetHit = true;
+        continue;
+      }
+      chosen.push(blob);
+      plannedBytes += size;
+    }
+    const files: Array<{ path: string; content: string }> = [];
+    let totalBytes = 0;
+    for (let i = 0; i < chosen.length; i += concurrency) {
+      const batch = chosen.slice(i, i + concurrency);
+      const decoded = await Promise.all(batch.map(async (blob: any) => {
+        const data = await this.ok("GET", `/repos/${owner}/${name}/git/blobs/${blob.sha}`);
+        const content = unb64(data.content || "");
+        return { path: blob.path as string, content, bytes: new TextEncoder().encode(content).byteLength };
+      }));
+      for (const file of decoded) {
+        if (totalBytes + file.bytes > maxTotalBytes) {
+          budgetHit = true;
+          continue;
+        }
+        files.push({ path: file.path, content: file.content });
+        totalBytes += file.bytes;
+      }
+    }
+    const complete = !truncated && !budgetHit && files.length === candidates.length;
+    return {
+      files,
+      complete,
+      totalBytes,
+      skipped: Math.max(0, candidates.length - files.length),
+      ...(truncated ? { reason: "GitHub returned a truncated recursive tree." } : budgetHit ? { reason: "Import file-count or byte budget reached." } : undefined),
+    };
   }
 
   async openPR(owner: string, name: string, head: string, base: string, title: string, body: string) {
