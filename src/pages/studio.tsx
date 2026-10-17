@@ -154,9 +154,9 @@ function ProjectMenu({ busy, onSwitched }: { busy: boolean; onSwitched: () => vo
   const current = db.project();
 
   const connectGitHub = async () => {
-    const clientId = import.meta.env.VITE_GITHUB_CLIENT_ID?.trim();
+    const clientId = import.meta.env.VITE_GITHUB_APP_CLIENT_ID?.trim();
     if (!clientId) {
-      setOauthMessage("GitHub sign-in needs the public OAuth App client ID. Register a GitHub OAuth App with Device Flow enabled, then add VITE_GITHUB_CLIENT_ID to the app build environment. No client secret belongs in this app.");
+      setOauthMessage("GitHub sign-in needs the public GitHub App client ID. Register a GitHub App with Device Flow enabled, then add VITE_GITHUB_APP_CLIENT_ID to the app build environment. GitHub tokens stay in memory for this session; reconnect after restarting Kuro-chan. No client secret belongs in this app.");
       return;
     }
     setOauthBusy(true);
@@ -166,7 +166,7 @@ function ProjectMenu({ busy, onSwitched }: { busy: boolean; onSwitched: () => vo
       const deviceResponse = await fetch("https://github.com/login/device/code", {
         method: "POST",
         headers: { Accept: "application/json", "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({ client_id: clientId, scope: "repo workflow" }),
+        body: new URLSearchParams({ client_id: clientId }),
       });
       if (!deviceResponse.ok) throw new Error(`GitHub authorization setup failed (${deviceResponse.status}). Check the OAuth App's Device Flow setting and try again.`);
       const device = await deviceResponse.json();
@@ -199,9 +199,9 @@ function ProjectMenu({ busy, onSwitched }: { busy: boolean; onSwitched: () => vo
             secret: token, hint: `••••${token.slice(-4)}`, models: [], status: "active",
             requests: 0, errors: 0, login, createdAt: Date.now(),
           });
-          setOauthMessage(`Connected successfully as @${login}. Choose a repository below to start a dedicated chat.`);
+          setOauthMessage(`Connected for this session as @${login}. Choose a repository below to start a dedicated chat.`);
           setOauthCode("");
-          toast({ title: "GitHub connected", description: `Signed in as @${login}. You can now import a repository.` });
+          toast({ title: "GitHub connected", description: `Signed in as @${login}. You can now import a repository during this session.` });
           return;
         }
         if (result.error === "authorization_pending") continue;
@@ -214,7 +214,7 @@ function ProjectMenu({ busy, onSwitched }: { busy: boolean; onSwitched: () => vo
     } catch (error) {
       const message = errMsg(error);
       setOauthMessage(message.includes("Failed to fetch") || message.includes("NetworkError")
-        ? "Kuro-chan couldn't reach GitHub's device authorization endpoint from this app. The OAuth App must be configured, and this platform may need a small secure callback service; no token was saved."
+        ? "Kuro-chan couldn't reach GitHub's device authorization endpoint from this app. The GitHub App must be configured and this platform must reach GitHub's Device Flow endpoints; no token was saved."
         : message);
     } finally {
       setOauthBusy(false);
