@@ -24,6 +24,7 @@ This is the living plan for Kuro-chan: a chat-first AI coding companion that can
 - [ ] Confirm the original Kuro-chan artwork is used consistently for app branding and Android launcher/adaptive icons.
 - [ ] Test chat creation, project switching, history persistence, and app restart behavior end to end.
 - [ ] Verify voice playback and interruption on actual Android devices, including permission denial and unavailable audio.
+- [ ] Verify native speech input on real Android devices across permission denial, speech-service unavailable, pause/resume, language, and background/foreground transitions.
 - [ ] Improve first-run onboarding so users know how to start a project, configure a model, and connect a repository.
 - [ ] Audit every visible button and menu item for a working action, clear disabled state, or honest explanation.
 - [ ] Improve loading, empty, offline, error, retry, and success states.
@@ -100,7 +101,7 @@ This is the living plan for Kuro-chan: a chat-first AI coding companion that can
 ## P1 — voice and natural conversation
 
 - [ ] Make speech playback interruption reliable across mobile browsers and Android builds.
-- [ ] Improve speech input, permission handling, and clear microphone status.
+- [x] Add native Capacitor speech recognition on Android with permission checks, partial transcript updates, explicit stop, and browser Web Speech fallback. (Real-device accuracy and OEM behavior remain unverified.)
 - [ ] Explore live, low-latency voice conversation with natural turn-taking.
 - [ ] Add configurable voices, speaking speed, and audio behavior.
 - [ ] Keep spoken output synchronized with the current response and stop it immediately on request.

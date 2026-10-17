@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { TextToSpeech } from "@capacitor-community/text-to-speech";
+import { SpeechRecognition } from "@capacitor-community/speech-recognition";
 import { Capacitor } from "@capacitor/core";
 import { ArrowUp, Square, Plus, ImagePlus, Mic, X, MousePointerClick, Volume2, VolumeX, Sparkles, Github, Cpu, GitBranch } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -422,32 +423,91 @@ function useDictation(draft: string, setDraft: (s: string) => void, onError: (m:
   const [listening, setListening] = useState(false);
   const listeningRef = useRef(false);
   const rec = useRef<any>(null);
+  const nativeListeners = useRef<Array<{ remove: () => Promise<void> }>>([]);
   const base = useRef("");
   const draftRef = useRef(draft);
   const stoppedByUser = useRef(false);
   draftRef.current = draft;
-
   const resetBase = () => { base.current = ""; };
+  const releaseNativeListeners = async () => {
+    const handles = nativeListeners.current;
+    nativeListeners.current = [];
+    await Promise.all(handles.map(async (handle) => {
+      try { await handle.remove(); } catch { /* Plugin may already be shutting down. */ }
+    }));
+  };
   const stop = () => {
     stoppedByUser.current = true;
     listeningRef.current = false;
     setListening(false);
     const active = rec.current;
     rec.current = null;
-    try { active?.stop(); } catch { /* Recognition may already have ended. */ }
+    try { active?.stop?.(); } catch { /* Browser recognition may already have ended. */ }
+    if (isNativeApp()) {
+      void SpeechRecognition.stop().catch(() => {});
+      void releaseNativeListeners();
+    }
     resetBase();
   };
-  const start = () => {
+  const start = async () => {
     if (listeningRef.current || rec.current) return;
-    const SR = typeof window !== "undefined"
-      ? (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
-      : null;
+    stoppedByUser.current = false;
+    base.current = draftRef.current ? draftRef.current.replace(/\\s*$/, " ") : "";
+    // Android WebViews do not consistently implement browser SpeechRecognition.
+    // Use the maintained Capacitor native bridge first; web keeps the browser API.
+    if (isNativeApp()) {
+      const sentinel = { stop: () => { void SpeechRecognition.stop().catch(() => {}); } };
+      rec.current = sentinel;
+      listeningRef.current = true;
+      setListening(true);
+      try {
+        const available = await SpeechRecognition.available();
+        if (!available.available) throw new Error("Speech recognition isn't available on this Android device. Check that a speech service is installed and enabled.");
+        if (rec.current !== sentinel || stoppedByUser.current) return;
+        const permission = await SpeechRecognition.requestPermissions();
+        if (permission.speechRecognition !== "granted") throw new Error("Microphone or speech-recognition permission was denied. Allow it in Android app settings, then try again.");
+        if (rec.current !== sentinel || stoppedByUser.current) return;
+        await releaseNativeListeners();
+        nativeListeners.current.push(await SpeechRecognition.addListener("partialResults", (event) => {
+          if (rec.current !== sentinel || stoppedByUser.current) return;
+          const transcript = (event.matches || []).join(" ").trim();
+          if (transcript) setDraft((base.current + transcript).replace(/\\s+/g, " ").trimStart());
+        }));
+        nativeListeners.current.push(await SpeechRecognition.addListener("listeningState", (event) => {
+          if (rec.current !== sentinel) return;
+          if (event.status === "stopped") {
+            rec.current = null;
+            listeningRef.current = false;
+            setListening(false);
+            void releaseNativeListeners();
+            if (!stoppedByUser.current) resetBase();
+          }
+        }));
+        if (rec.current !== sentinel || stoppedByUser.current) {
+          await releaseNativeListeners();
+          return;
+        }
+        await SpeechRecognition.start({ language: navigator.language || "en-US", maxResults: 1, partialResults: true, popup: false });
+        if (rec.current !== sentinel || stoppedByUser.current) {
+          await SpeechRecognition.stop().catch(() => {});
+          await releaseNativeListeners();
+        }
+      } catch (error) {
+        if (rec.current === sentinel) {
+          rec.current = null;
+          listeningRef.current = false;
+          setListening(false);
+        }
+        await releaseNativeListeners();
+        if (!stoppedByUser.current) onError(error instanceof Error ? error.message : "Couldn't start Android speech recognition. Check microphone permission and try again.");
+      }
+      return;
+    }
+    const SR = typeof window !== "undefined" ? (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition : null;
     if (!SR) {
       onError("This browser doesn't support voice input. Open Kuro-chan in Chrome, or use your keyboard's microphone.");
       return;
     }
-    stoppedByUser.current = false;
-    base.current = draftRef.current ? draftRef.current.replace(/\s*$/, " ") : "";
     const r = new SR();
     rec.current = r;
     r.lang = navigator.language || "en-US";
@@ -461,39 +521,27 @@ function useDictation(draft: string, setDraft: (s: string) => void, onError: (m:
     };
     r.onresult = (e: any) => {
       if (rec.current !== r) return;
-      // Rebuild from the recognizer's current result list. Accumulating final
-      // strings across events can duplicate words on mobile implementations.
-      const transcript = Array.from(e.results as ArrayLike<any>)
-        .map((result: any) => result?.[0]?.transcript || "")
-        .join(" ");
-      setDraft((base.current + transcript).replace(/\s+/g, " ").trimStart());
+      const transcript = Array.from(e.results as ArrayLike<any>).map((result: any) => result?.[0]?.transcript || "").join(" ");
+      setDraft((base.current + transcript).replace(/\\s+/g, " ").trimStart());
     };
     r.onerror = (e: any) => {
       if (rec.current !== r) return;
       listeningRef.current = false;
       setListening(false);
-      if (e.error === "not-allowed" || e.error === "service-not-allowed") {
-        onError("Microphone permission was denied. Open the site in its own browser tab, tap the site controls, and allow Microphone access.");
-      } else if (e.error === "audio-capture") {
-        onError("No microphone was found. Check your phone's microphone permission and make sure another app isn't holding it.");
-      } else if (e.error === "network") {
-        onError("Speech recognition couldn't reach its speech service. Check your connection and try again.");
-      } else if (e.error !== "aborted" && e.error !== "no-speech") {
-        onError("Voice input stopped (" + e.error + "). Tap the microphone to try again.");
-      }
+      if (e.error === "not-allowed" || e.error === "service-not-allowed") onError("Microphone permission was denied. Open the site in its own browser tab, tap the site controls, and allow Microphone access.");
+      else if (e.error === "audio-capture") onError("No microphone was found. Check your phone's microphone permission and make sure another app isn't holding it.");
+      else if (e.error === "network") onError("Speech recognition couldn't reach its speech service. Check your connection and try again.");
+      else if (e.error !== "aborted" && e.error !== "no-speech") onError("Voice input stopped (" + e.error + "). Tap the microphone to try again.");
     };
     r.onend = () => {
       if (rec.current !== r) return;
       rec.current = null;
       listeningRef.current = false;
       setListening(false);
-      // Mobile speech recognition often ends after a pause. Keep the transcript,
-      // but never silently restart the microphone without another user action.
       if (!stoppedByUser.current) resetBase();
     };
-    try {
-      r.start();
-    } catch {
+    try { r.start(); }
+    catch {
       rec.current = null;
       listeningRef.current = false;
       setListening(false);
@@ -502,13 +550,18 @@ function useDictation(draft: string, setDraft: (s: string) => void, onError: (m:
   };
   const toggle = () => {
     if (listeningRef.current || rec.current) stop();
-    else start();
+    else void start();
   };
   useEffect(() => () => {
     stoppedByUser.current = true;
     listeningRef.current = false;
-    try { rec.current?.abort(); } catch { /* */ }
+    try { rec.current?.abort?.(); } catch { /* Browser recognition may already have ended. */ }
+    try { rec.current?.stop?.(); } catch { /* Native or browser recognition may already have stopped. */ }
     rec.current = null;
+    if (isNativeApp()) {
+      void SpeechRecognition.stop().catch(() => {});
+      void releaseNativeListeners();
+    }
   }, []);
   return { listening, toggle, start, stop, resetBase };
 }
