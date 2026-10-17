@@ -48,7 +48,7 @@ assert(ambiguous.length === 0, "Ordinary Rust projects must not be mislabeled as
 const manifestDetected = detectGameEngineCapabilities(
   ["Cargo.toml", "package.json"],
   {
-    "Cargo.toml": '[dependencies]\\nbevy = "0.15"',
+    "Cargo.toml": '[dependencies]\nbevy = "0.15"',
     "package.json": JSON.stringify({ dependencies: { three: "^0.170.0", phaser: "^3.80.0", "@babylonjs/core": "^7.0.0" } }),
   },
 );
