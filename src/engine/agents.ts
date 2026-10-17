@@ -182,7 +182,7 @@ function filesSummary(ws: Workspace) {
   return Object.keys(f).sort().map((p) => `${p} (${f[p].length}b)`).join("\n");
 }
 
-let repositoryInspectionCache: { key: string; at: number; text: string } | null = null;
+let repositoryInspectionCache: { key: string; at: number; sha: string | null; text: string } | null = null;
 
 async function talkerContext(scope: Scope, pid: string): Promise<string> {
   if (scope === "self") return "";
@@ -203,11 +203,27 @@ async function talkerContext(scope: Scope, pid: string): Promise<string> {
   const githubKey = scope === "app" && current.repo ? db.keyOf("github") : undefined;
   if (current.repo && githubKey?.secret && scope === "app") {
     const cacheKey = current.repo.trim().toLowerCase();
+    const github = new GH(githubKey.secret);
+    let cacheIsFresh = false;
     if (repositoryInspectionCache?.key === cacheKey && Date.now() - repositoryInspectionCache.at < 3 * 60 * 1000) {
+      // A time-based cache alone can hide a push made moments ago. Verify the
+      // default-branch head before reusing source context; if verification fails,
+      // rebuild rather than pretending a stale snapshot is current.
+      try {
+        const cleanRepo = current.repo.trim().replace(/^https?:\\/\\/github\\.com\\//i, "").replace(/\\.git$/i, "").replace(/\\/$/, "");
+        const parts = cleanRepo.split("/");
+        if (parts.length === 2 && parts.every((part) => /^[a-zA-Z0-9_.-]+$/.test(part))) {
+          const latest = await github.req("GET", `/repos/${encodeURIComponent(parts[0])}/${encodeURIComponent(parts[1])}/commits?per_page=1`);
+          const latestSha = latest.status === 200 && Array.isArray(latest.json) ? latest.json[0]?.sha ?? null : null;
+          cacheIsFresh = !!latestSha && latestSha === repositoryInspectionCache.sha;
+        }
+      } catch { /* Cache verification failed; force a fresh inspection below. */ }
+    }
+    if (cacheIsFresh && repositoryInspectionCache) {
       repositoryEvidence = repositoryInspectionCache.text;
     } else {
+      repositoryInspectionCache = null;
       try {
-        const github = new GH(githubKey.secret);
         const inspection = await inspectGitHubRepository(github, current.repo);
         let sourceContext = "";
         try {
@@ -235,7 +251,7 @@ async function talkerContext(scope: Scope, pid: string): Promise<string> {
           "Rules: Treat this as a starting inventory, not proof the repository is healthy or broken. Read relevant source files and logs before making claims or edits. A failed workflow is a clue, not a root-cause diagnosis. If tree completeness is false or unknown, say so and do not assume missing files are absent.",
           sourceContext,
         ].join("\n");
-        repositoryInspectionCache = { key: cacheKey, at: Date.now(), text: repositoryEvidence };
+        repositoryInspectionCache = { key: cacheKey, at: Date.now(), sha: inspection.baselineSha, text: repositoryEvidence };
       } catch (error) {
         repositoryEvidence = `Live GitHub inspection could not be completed: ${error instanceof Error ? error.message : String(error)}. Do not claim the repository was inspected; explain the limitation and continue only with evidence actually available.`;
       }
