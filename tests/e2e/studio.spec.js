@@ -136,6 +136,55 @@ test.describe("Kuro-chan studio", () => {
     expect(requests).toBe(1);
   });
 
+
+  test("persists a new project's conversation across an app reload", async ({ page }) => {
+    const userMessage = "Persistence acceptance check: keep this garden plan after reload.";
+    const assistantReply = "Saved in this project workspace; we can continue the garden plan.";
+
+    await page.route("https://text.pollinations.ai/openai/chat/completions", async (route) => {
+      if (route.request().method() === "OPTIONS") {
+        await route.fulfill({
+          status: 204,
+          headers: {
+            "access-control-allow-origin": "*",
+            "access-control-allow-methods": "POST, OPTIONS",
+            "access-control-allow-headers": "authorization, content-type",
+          },
+        });
+        return;
+      }
+      await route.fulfill({
+        status: 200,
+        headers: {
+          "access-control-allow-origin": "*",
+          "content-type": "text/event-stream; charset=utf-8",
+          "cache-control": "no-cache",
+        },
+        body: [
+          `data: ${JSON.stringify({ choices: [{ delta: { content: assistantReply } }] })}`,
+          "",
+          "data: [DONE]",
+          "",
+        ].join("\n"),
+      });
+    });
+
+    await page.goto("/studio", { waitUntil: "domcontentloaded" });
+    await page.getByTestId("sidebar-projects").click();
+    await page.getByTestId("button-projects-new").click();
+    await expect(page.getByTestId("input-message")).toBeVisible();
+
+    await page.getByTestId("input-message").fill(userMessage);
+    await page.getByTestId("button-send").click();
+    await expect(page.getByText(userMessage)).toBeVisible();
+    await expect(page.getByText(assistantReply)).toBeVisible({ timeout: 10_000 });
+
+    await page.reload({ waitUntil: "domcontentloaded" });
+    await expect(page.getByTestId("input-message")).toBeVisible();
+    await expect(page.getByText(userMessage)).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByText(assistantReply)).toBeVisible();
+  });
+
   test("handles two natural turns in one conversation without dropping or duplicating messages", async ({ page }) => {
     let requests = 0;
     const payloads = [];
