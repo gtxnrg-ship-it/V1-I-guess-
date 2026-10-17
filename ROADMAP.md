@@ -181,4 +181,4 @@ Reliability, privacy, and user control come before feature count. We prefer smal
 
 A checkbox should only be marked complete when the implementation exists and has been verified to a level appropriate for the feature. Hardware, providers, model weights, external APIs, and third-party services have their own limits and terms.
 
-Have an idea or found a bug? Open a [feature request](https://github.com/gtxnrg-ship-it/V1-I-guess-/issues/new?template=feature_request.yml) or [bug report](https://github.com/gtxnrg-ship-it/V1-I-guess-/issues/new?template=bug_report.yml).
+Have an idea or found a bug? Open a [feature request](https://github.com/gtxnrg-ship-it/kuro-chan/issues/new?template=feature_request.yml) or [bug report](https://github.com/gtxnrg-ship-it/kuro-chan/issues/new?template=bug_report.yml).
