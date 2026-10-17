@@ -56,4 +56,10 @@ assert(
   "R test command must preserve its nested quotes and remain valid TypeScript",
 );
 
+const powershell = detectLanguageCapabilities(["scripts/verify.ps1"]).find((x) => x.id === "powershell");
+assert(
+  powershell?.buildCommands.includes("pwsh -NoProfile -Command '$ErrorActionPreference=\"Stop\"; Get-ChildItem -Recurse -Filter *.ps1'"),
+  "PowerShell command must preserve nested quotes and remain valid TypeScript",
+);
+
 console.log("Language and game-engine capability detection tests passed");
