@@ -91,6 +91,27 @@ test.describe("Kuro-chan project memory", () => {
         }) },
       }] } }],
     };
+    const research = {
+      choices: [{ delta: { tool_calls: [{
+        index: 0, id: "call_research_project_scope", type: "function",
+        function: { name: "save_research", arguments: JSON.stringify({
+          notes: "Keep the test minimal: one TypeScript file, no dependencies, no backend.",
+        }) },
+      }] } }],
+    };
+    const plan = {
+      choices: [{ delta: { tool_calls: [{
+        index: 0, id: "call_plan_project_scope", type: "function",
+        function: { name: "submit_plan", arguments: JSON.stringify({
+          title: "Create a project-scoped source file",
+          steps: [{
+            title: "Create the source file",
+            detail: "Add src/origin-project-only.ts with a single exported constant.",
+            files: ["src/origin-project-only.ts"],
+          }],
+        }) },
+      }] } }],
+    };
     const writeFile = {
       choices: [{ delta: { tool_calls: [{
         index: 0, id: "call_write_project_scope", type: "function",
@@ -115,6 +136,14 @@ test.describe("Kuro-chan project memory", () => {
         return;
       }
       if (requestCount === 2) {
+        await route.fulfill({ status: 200, headers: { "access-control-allow-origin": "*", "content-type": "text/event-stream; charset=utf-8", "cache-control": "no-cache" }, body: eventStream(research) });
+        return;
+      }
+      if (requestCount === 3) {
+        await route.fulfill({ status: 200, headers: { "access-control-allow-origin": "*", "content-type": "text/event-stream; charset=utf-8", "cache-control": "no-cache" }, body: eventStream(plan) });
+        return;
+      }
+      if (requestCount === 4) {
         builderRequestStarted();
         await holdBuilder;
         await route.fulfill({ status: 200, headers: { "access-control-allow-origin": "*", "content-type": "text/event-stream; charset=utf-8", "cache-control": "no-cache" }, body: eventStream(writeFile) });
