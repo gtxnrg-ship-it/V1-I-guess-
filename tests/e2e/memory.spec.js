@@ -82,7 +82,7 @@ test.describe("Kuro-chan project memory", () => {
       "",
       "data: [DONE]",
       "",
-    ].join("\\n");
+    ].join("\n");
 
     await page.route("https://text.pollinations.ai/openai/chat/completions", async (route) => {
       if (route.request().method() === "OPTIONS") {
@@ -115,6 +115,7 @@ test.describe("Kuro-chan project memory", () => {
     await page.getByTestId("button-new-chat").click();
     releaseFirst();
 
+    await expect(page.getByText(/I reviewed the project and completed the requested task/)).toBeVisible({ timeout: 15_000 });
     await expect(page.getByTestId("button-stop")).toHaveCount(0, { timeout: 15_000 });
     await page.getByTestId("button-open-sidebar").click();
     await page.getByTestId("sidebar-memory").click();
