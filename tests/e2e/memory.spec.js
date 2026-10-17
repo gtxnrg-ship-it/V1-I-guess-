@@ -110,13 +110,13 @@ test.describe("Kuro-chan project memory", () => {
     const newChat = page.getByTestId("button-new-chat");
     if (!(await newChat.isVisible())) await page.getByTestId("button-open-sidebar").click();
     await newChat.click();
-    if (!(await page.getByTestId(originalProject!).isVisible())) await page.getByTestId("button-open-sidebar").click();
+    if (!(await page.getByTestId(originalProject).isVisible())) await page.getByTestId("button-open-sidebar").click();
     const projectIds = await page.locator('[data-testid^="sidebar-project-"]').evaluateAll((elements) =>
       elements.map((element) => element.getAttribute("data-testid")).filter(Boolean),
     );
     const secondProject = projectIds.find((id) => id !== originalProject);
     expect(secondProject).toBeTruthy();
-    await page.getByTestId(originalProject!).click();
+    await page.getByTestId(originalProject).click();
     if (!(await page.getByTestId("input-message").isVisible())) await page.getByTestId("button-open-sidebar").click();
 
     await page.getByTestId("input-message").fill("Please inspect this project and tell me what you completed.");
@@ -125,8 +125,8 @@ test.describe("Kuro-chan project memory", () => {
 
     // Switch while the provider response is pending, as a user might when
     // moving between project chats during a longer task.
-    if (!(await page.getByTestId(secondProject!).isVisible())) await page.getByTestId("button-open-sidebar").click();
-    await page.getByTestId(secondProject!).click();
+    if (!(await page.getByTestId(secondProject).isVisible())) await page.getByTestId("button-open-sidebar").click();
+    await page.getByTestId(secondProject).click();
     releaseFirst();
 
     await expect(page.getByText(/I reviewed the project and completed the requested task/)).toBeVisible({ timeout: 15_000 });
@@ -135,8 +135,8 @@ test.describe("Kuro-chan project memory", () => {
     await page.getByTestId("sidebar-memory").click();
     await expect(page.getByLabel("Project summary")).toHaveValue("");
 
-    if (!(await page.getByTestId(originalProject!).isVisible())) await page.getByTestId("button-open-sidebar").click();
-    await page.getByTestId(originalProject!).click();
+    if (!(await page.getByTestId(originalProject).isVisible())) await page.getByTestId("button-open-sidebar").click();
+    await page.getByTestId(originalProject).click();
     if (!(await page.getByTestId("sidebar-memory").isVisible())) await page.getByTestId("button-open-sidebar").click();
     await page.getByTestId("sidebar-memory").click();
     await expect(page.getByLabel("Project summary")).not.toHaveValue("", { timeout: 15_000 });
