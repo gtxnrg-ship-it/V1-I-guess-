@@ -113,7 +113,11 @@ This document answers two practical questions at the start of every work session
 
 ## Current next action
 
-PR #139 is merged, and PRs #141–#143 are now merged as well: destination-head write guards, snapshot reuse, and the first GitHub App migration boundary are in place. The generic provider-key path rejects common personal GitHub token formats; Settings explains the intended App installation and distinguishes it from interim Device Flow. The server-side broker is still not implemented/deployed, so do not remove the only usable interim connection prematurely. The agent pipeline now performs one explicit final repair/retest if visual-polish changes introduce QA errors. Next, continue with the real build–test–repair–retest acceptance slice and remaining snapshot edge cases. Use this audit, the roadmap ledger, and the latest PR checks as the durable cross-session handoff.
+PRs #155 and #156 are now **merged**: toolchain command parsing and project-level manifest detection are repaired, tool result status no longer treats common syntax/build/runtime/remote-check failures as success, and the existing workflow-run diagnostics are reachable through the agent tool set. These are reliability improvements, not proof of a complete cross-language build runner.
+
+**Active work:** [PR for durable IndexedDB writes](https://github.com/gtxnrg-ship-it/kuro-chan/pull/new/fix/durable-indexeddb-flush) is being prepared on branch `fix/durable-indexeddb-flush`. The implementation now awaits IndexedDB transaction completion, keeps dirty keys queued on failed writes, and uses per-key versions so an older in-flight write cannot clear a newer edit. The toast subscription is stable across state updates. CI/test verification is still pending; do not call this work complete until checks pass and the regression coverage is reviewed.
+
+Next after persistence: make `verify_project` evidence-backed for Rust/Go/C++/game-engine projects and put hard file-count/total-byte/request bounds on remote repository imports. An incomplete/truncated import must be explicit and must not be presented as a complete inspection. Continue to prioritize the real build–test–repair–retest acceptance slice and remaining immutable-snapshot edge cases.
 
 ### New engineering slice — run the published repository real CI
 
