@@ -1,3 +1,63 @@
+export type VerificationCheckState = "passed" | "failed" | "running" | "skipped" | "unavailable" | "missing";
+export type VerificationOverallState = "passed" | "failed" | "running" | "blocked" | "incomplete";
+export interface VerificationCheck { name: string; state: VerificationCheckState; detail?: string; url?: string }
+export interface VerificationSummary {
+  state: VerificationOverallState; ready: boolean; checks: VerificationCheck[];
+  passed: number; failed: number; running: number; skipped: number; unavailable: number; missing: number;
+  summary: string; limitations: string[];
+}
+export interface ObservedVerificationCheck { name?: unknown; status?: unknown; conclusion?: unknown; details_url?: unknown; html_url?: unknown }
+
+const normalizeCheckName = (name: string) => name.trim().replace(/\\s+/g, " ").toLowerCase();
+
+/** Never treats an absent or inconclusive conclusion as a pass. */
+export function normalizeVerificationCheck(status: unknown, conclusion: unknown): VerificationCheckState {
+  const s = typeof status === "string" ? status.toLowerCase() : "";
+  const c = typeof conclusion === "string" ? conclusion.toLowerCase() : "";
+  if (s !== "completed" && !c) return "running";
+  if (["failure", "timed_out", "action_required", "startup_failure"].includes(c)) return "failed";
+  if (["success", "neutral"].includes(c)) return "passed";
+  if (["skipped", "cancelled", "stale"].includes(c)) return "skipped";
+  if (s === "completed" || c) return "unavailable";
+  return "running";
+}
+
+/** Build a report against explicit required checks for one exact commit. */
+export function buildVerificationSummary(requiredNames: string[], observed: ObservedVerificationCheck[], sourceAvailable = true): VerificationSummary {
+  const grouped = new Map<string, ObservedVerificationCheck[]>();
+  for (const item of observed) if (typeof item.name === "string" && item.name.trim()) {
+    const key = normalizeCheckName(item.name); grouped.set(key, [...(grouped.get(key) || []), item]);
+  }
+  const checks = requiredNames.map((name): VerificationCheck => {
+    const found = grouped.get(normalizeCheckName(name)) || [];
+    if (!sourceAvailable) return { name, state: "unavailable", detail: "Provider check list could not be retrieved." };
+    if (!found.length) return { name, state: "missing", detail: "No matching check was found for this commit." };
+    const states = found.map((item) => normalizeVerificationCheck(item.status, item.conclusion));
+    const priority: VerificationCheckState[] = ["failed", "running", "unavailable", "missing", "skipped", "passed"];
+    const state = priority.find((candidate) => states.includes(candidate)) || "unavailable";
+    const chosen = found.find((item) => normalizeVerificationCheck(item.status, item.conclusion) === state) || found[0];
+    const url = typeof chosen.html_url === "string" ? chosen.html_url : typeof chosen.details_url === "string" ? chosen.details_url : undefined;
+    return { name, state, ...(found.length > 1 ? { detail: "Duplicate records found; the most conservative result is shown." } : {}), ...(url ? { url } : {}) };
+  });
+  const count = (state: VerificationCheckState) => checks.filter((check) => check.state === state).length;
+  const passed = count("passed"), failed = count("failed"), running = count("running"), skipped = count("skipped"), unavailable = count("unavailable"), missing = count("missing");
+  const state: VerificationOverallState = failed ? "failed" : running ? "running" : unavailable || missing ? "blocked" : skipped ? "incomplete" : "passed";
+  const ready = state === "passed" && checks.length > 0;
+  const summary = ready ? `All ${checks.length} required verification checks passed.`
+    : failed ? `${failed} required check(s) failed. This change is not verified.`
+    : running ? `${running} required check(s) are still running. Verification is not complete.`
+    : unavailable || missing ? `${missing + unavailable} required check(s) are missing or unavailable. Verification cannot be confirmed.`
+    : skipped ? `${skipped} required check(s) were skipped or cancelled. Verification is incomplete.`
+    : "No required checks were configured. Verification cannot be declared successful.";
+  const limitations: string[] = [];
+  if (!checks.length) limitations.push("No required checks were supplied; an empty list is never considered a pass.");
+  if (missing) limitations.push("A missing check is not proof that it passed; confirm workflow configuration and commit identity.");
+  if (unavailable) limitations.push("Provider data was unavailable or inconclusive for one or more required checks.");
+  if (skipped) limitations.push("Skipped or cancelled checks require a rerun or documented exception.");
+  if (running) limitations.push("Recheck after in-progress checks have completed.");
+  return { state, ready, checks, passed, failed, running, skipped, unavailable, missing, summary, limitations };
+}
+
 export interface WorkflowApiResponse { status: number; json: any }
 export interface WorkflowClient {
   req(method: string, path: string, body?: unknown): Promise<WorkflowApiResponse>;
