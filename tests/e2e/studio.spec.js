@@ -136,6 +136,67 @@ test.describe("Kuro-chan studio", () => {
     expect(requests).toBe(1);
   });
 
+  test("handles two natural turns in one conversation without dropping or duplicating messages", async ({ page }) => {
+    let requests = 0;
+    const payloads = [];
+    const replies = [
+      "Ooh, a tiny garden planner. Let's keep the first version simple and lovely.",
+      "Nice, then we'll add sunlight reminders as the next small feature.",
+    ];
+
+    await page.route("https://text.pollinations.ai/openai/chat/completions", async (route) => {
+      if (route.request().method() === "OPTIONS") {
+        await route.fulfill({
+          status: 204,
+          headers: {
+            "access-control-allow-origin": "*",
+            "access-control-allow-methods": "POST, OPTIONS",
+            "access-control-allow-headers": "authorization, content-type",
+          },
+        });
+        return;
+      }
+
+      payloads.push(route.request().postDataJSON());
+      const index = requests++;
+      const reply = replies[index] ?? "I received the extra turn.";
+      await route.fulfill({
+        status: 200,
+        headers: {
+          "access-control-allow-origin": "*",
+          "content-type": "text/event-stream; charset=utf-8",
+          "cache-control": "no-cache",
+        },
+        body: [
+          `data: ${JSON.stringify({ choices: [{ delta: { content: reply } }] })}`,
+          "",
+          "data: [DONE]",
+          "",
+        ].join("\n"),
+      });
+    });
+
+    await page.goto("/studio", { waitUntil: "domcontentloaded" });
+    const composer = page.getByTestId("input-message");
+
+    await composer.fill("I'm thinking of a tiny garden planner.");
+    await page.getByTestId("button-send").click();
+    await expect(page.getByText(replies[0], { exact: true })).toBeVisible({ timeout: 10_000 });
+
+    await composer.fill("Could we add sunlight reminders later?");
+    await page.getByTestId("button-send").click();
+    await expect(page.getByText(replies[1], { exact: true })).toBeVisible({ timeout: 10_000 });
+
+    await expect(page.getByText("I'm thinking of a tiny garden planner.", { exact: true })).toHaveCount(1);
+    await expect(page.getByText("Could we add sunlight reminders later?", { exact: true })).toHaveCount(1);
+    await expect(page.getByText(replies[0], { exact: true })).toHaveCount(1);
+    await expect(page.getByText(replies[1], { exact: true })).toHaveCount(1);
+    expect(requests).toBe(2);
+    const secondTurnMessages = payloads[1]?.messages ?? [];
+    expect(secondTurnMessages.some((message) => message.role === "user" && String(message.content).includes("tiny garden planner"))).toBe(true);
+    expect(secondTurnMessages.some((message) => message.role === "assistant" && String(message.content).includes("first version simple and lovely"))).toBe(true);
+  });
+
   test("shows a provider error instead of pretending a reply succeeded", async ({ page }) => {
     await page.route("https://text.pollinations.ai/openai/chat/completions", async (route) => {
       if (route.request().method() === "OPTIONS") {
