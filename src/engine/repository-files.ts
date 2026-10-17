@@ -44,7 +44,7 @@ function pathScore(path: string, terms: string[]): number {
   return score;
 }
 
-/** Read a real file body from the linked repo's default branch. Never falls back to guesses. */
+/** Read a real file body from the linked repo's default branch or an explicit ref. Never falls back to guesses. */
 export async function readRepositoryFile(client: RepositoryFileClient, input: string, pathInput: unknown, branchInput?: unknown): Promise<RepositoryFileResult> {
   const repo = parseRepo(input), path = cleanPath(pathInput), branch = cleanBranch(branchInput);
   const refQuery = branch ? `?ref=${encodeURIComponent(branch)}` : "";
