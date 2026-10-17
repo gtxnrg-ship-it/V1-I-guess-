@@ -138,11 +138,11 @@ The former 13/142 (9.2%) is a literal checklist count only, not an overall produ
 
 ### Capability discovery
 - PR #149 is merged but its initial main-branch Check and APK workflows failed; CodeQL passed. Do not treat that merge as successful verification.
-- PR #150 repairs the R test-command syntax, passes manifest contents into the combined project report, tests Bevy and JavaScript game-engine dependencies, and updates this checklist. The source/test head `8ae75f4136e181aa8f3f71a9b03c6b5dd79cf658` had Check and CodeQL green; APK was pending. The current docs changes will trigger fresh checks.
+- PR #150 repairs the R test-command syntax, passes manifest contents into the combined project report, tests Bevy and JavaScript game-engine dependencies, and updates this checklist. At code head `1f9bb1b0c93663e7130397559cbe10551a37f4aa`, Check, APK build, and CodeQL all passed. This verification is SHA-specific; any new commit must be checked again.
 - The discovery layer recognizes 26 language families and 10 engine families. It reports evidence, toolchain prerequisites, and candidate commands. It does not install or execute compilers, runtimes, dependencies, model weights, or engines.
 
 ### Next required capability slice
-1. Recheck all PR #150 workflows on the latest head; fix failures and do not merge while any required check is red or pending.
+1. PR #150's Check, APK build, and CodeQL are green on code head `1f9bb1b0c93663e7130397559cbe10551a37f4aa`. Recheck all workflows on the current head before merge; fix any failures and do not merge while a required check is red or pending.
 2. Implement a permissioned isolated runner with explicit command allowlists, time/memory/output limits, cancellation, controlled filesystem/network access, and auditable command/exit-code/log results.
 3. Use actual project manifests/scripts/lockfiles/version pins to choose commands; don't run generic suggestions blindly.
 4. Prove one scientific/statistical project using known-answer numerical tests, provenance/assumptions, reproducibility and uncertainty checks.

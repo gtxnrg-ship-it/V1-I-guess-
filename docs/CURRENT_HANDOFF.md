@@ -36,7 +36,7 @@ Existing foundations include agent roles, provider routing, project memory/check
 - Branch: `fix/capability-detection-ci-and-manifests`
 - Last observed PR head: `1fe679b772c92c8ce3ba2bd7ad946c584ce0a50f` (re-fetch before relying on this; commits may advance).
 - Fixes the R test-command syntax, passes supplied manifest contents through the combined capability report, and tests Bevy, Phaser, Three.js, and Babylon.js manifest signals.
-- Check workflow at that head had completed `npm test` successfully and was running the design-intent test; TypeScript, production build, and E2E were still pending. CodeQL was still running; APK build was pending. This is not yet an all-green verified PR. Recheck all required workflows against the latest head before merge.
+- At code head `1f9bb1b0c93663e7130397559cbe10551a37f4aa`, the Check workflow passed (including `npm test`, the design-intent test, TypeScript, production build, and browser E2E), APK build passed, and CodeQL passed. This is verified only for that exact SHA; recheck all required workflows against the current head before merge.
 - Some docs were added to this branch during the session; verify PR head and changed-file list because a branch update may have triggered a fresh run.
 
 ### PR #148 — repository source-coverage reporting
@@ -53,7 +53,7 @@ Existing foundations include agent roles, provider routing, project memory/check
 
 ## Immediate next actions (in order)
 
-1. Refresh PR #150 and identify its exact latest head SHA. Wait for Check, APK, and CodeQL. If any fail, inspect the failing step/log, fix the cause on the same branch, and re-run. Do not merge while checks are pending or red.
+1. PR #150 passed Check, APK build, and CodeQL at `1f9bb1b0c93663e7130397559cbe10551a37f4aa`. Re-fetch the latest head and all three statuses before merge. If any new run fails, inspect its failing step/log, fix the cause on the same branch, and rerun. Do not merge while checks are pending or red.
 2. Run the repository's actual test pipeline: `npm test`, `npx tsc --noEmit`, `npm run build`, and `npm run e2e` (CI installs browser dependencies for E2E). Ensure the new detector is in the test chain; `package.json` currently includes `src/engine/language-toolchains.test.ts`.
 3. Once PR #150 is fully green, proceed to the real execution layer—not more detection labels. Design a permissioned isolated runner with command allowlists, time/memory/output limits, cancellation, controlled filesystem/network access, and auditable exact command/exit-code/log evidence. Inspect scripts/lockfiles/version pins before selecting commands.
 4. Prove the runner using one real scientific/statistical fixture (known-answer numerical tests, assumptions, data provenance, reproducibility, uncertainty reporting) and one game-engine vertical slice (asset import, engine/headless check, target build/export, gameplay smoke test, performance check).
