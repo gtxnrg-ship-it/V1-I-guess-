@@ -5,12 +5,14 @@ const python = detectScientificCapabilities(
   ["requirements.txt", "pyproject.toml", "src/analysis.py"],
   {
     "requirements.txt": "numpy>=1.26\npandas==2.2.0\nscikit-learn[extra]>=1.4\n# torch is intentionally not installed here\n",
-    "pyproject.toml": "[project]\nname = 'example'\n",
+    "pyproject.toml": "[project]\nname = 'example'\ndependencies = [\"scipy>=1.12\", \"statsmodels\"]",
   },
 );
 assert(python.some((item) => item.id === "numpy" && item.evidence.some((e) => e.includes("requirements.txt"))), "NumPy should be detected from requirements.txt");
 assert(python.some((item) => item.id === "pandas"), "pandas should be detected from requirements.txt");
 assert(python.some((item) => item.id === "scikit-learn"), "extras and version specifiers should be parsed");
+assert(python.some((item) => item.id === "scipy"), "inline pyproject dependency arrays should be parsed");
+assert(python.some((item) => item.id === "statsmodels"), "unversioned pyproject dependency entries should be parsed");
 assert(!python.some((item) => item.id === "pytorch"), "comments must not be interpreted as installed dependencies");
 assert(python.every((item) => item.validation.length > 0), "every scientific stack should include validation guidance");
 
