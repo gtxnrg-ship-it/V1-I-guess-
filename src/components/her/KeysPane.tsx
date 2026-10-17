@@ -180,9 +180,11 @@ export function KeysPane() {
               </div>
               {githubSession ? (
                 <button onClick={disconnectGithub} className="shrink-0 rounded-lg border border-border px-3 py-2 text-[12px] hover:bg-muted">Disconnect</button>
+              ) : githubBusy ? (
+                <button type="button" onClick={() => { githubAbort.current?.abort(); setGithubFlow(null); setGithubNote("Sign-in cancelled."); }} className="shrink-0 rounded-lg border border-border px-3 py-2 text-[12px] hover:bg-muted">Cancel</button>
               ) : (
-                <button data-testid="button-github-device-signin" disabled={githubBusy} onClick={connectGithub} className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-[12px] font-medium text-primary-foreground disabled:opacity-50">
-                  {githubBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <SiGithub className="h-3.5 w-3.5" />} {githubBusy ? "Waiting…" : "Sign in"}
+                <button data-testid="button-github-device-signin" onClick={connectGithub} className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-[12px] font-medium text-primary-foreground">
+                  <SiGithub className="h-3.5 w-3.5" /> Sign in
                 </button>
               )}
             </div>
