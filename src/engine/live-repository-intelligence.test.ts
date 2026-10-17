@@ -31,6 +31,7 @@ async function run() {
   assert(report.repository === "acme/app", "normalizes repository URLs");
   assert(report.defaultBranch === "trunk" && report.baselineSha === "abc123", "captures actual branch and baseline");
   assert(report.fileCount === 3 && report.treeComplete, "uses actual complete tree evidence");
+  assert(report.treeEntries.length === 3, "returns the exact tree entries so source context can reuse this inspection snapshot");
   assert(report.diagnosis.condition === "likely-broken", "reports failing Actions as a diagnostic signal");
   assert(!report.diagnosis.safeToInitialize, "never initializes a non-empty repo");
 
