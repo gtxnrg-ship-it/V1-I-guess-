@@ -230,7 +230,6 @@ test.describe("Kuro-chan studio", () => {
 
   test("exposes the local voice option and makes offline preference functional", async ({ page }) => {
     await page.goto("/studio", { waitUntil: "domcontentloaded" });
-    await page.getByTestId("button-open-sidebar").click();
     await page.getByTestId("sidebar-settings").click();
     await page.getByRole("button", { name: /Voice & speech/i }).click();
 
