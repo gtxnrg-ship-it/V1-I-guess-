@@ -46,6 +46,18 @@ These gates describe the intended Kuro-chan experience. A catalogue, prompt, or 
 - [ ] Large projects are delivered as tested vertical slices with architecture notes, subsystem boundaries, performance budgets, and release evidence.
 - [ ] README, roadmap, and release notes separate implemented, partial, planned, and device-unverified features.
 
+## Public feedback and model evolution — release gates
+
+- [ ] Add a public general-feedback path alongside bug reports and feature requests, with clear warnings that public posts are visible.
+- [ ] Define feedback triage labels/states, duplicate linking, severity, impact, and a public close-the-loop process.
+- [ ] Ensure feedback is explicitly submitted by the user; diagnostics are previewable, optional, redacted, and content-free by default.
+- [ ] Configure a private security reporting path before public launch; never ask users to disclose vulnerabilities in public issues.
+- [ ] Keep a versioned model registry with immutable revisions, exact verified artifacts, license/access requirements, runtime compatibility, and device-fit metadata.
+- [ ] Add a fixed regression/evaluation suite before promoting a newer model; measure task quality, tool reliability, latency, peak memory, thermal behavior, and battery impact.
+- [ ] Stage model changes only when rollout controls exist, preserve a known-good version, and document a rollback path.
+- [ ] Make model updates user-controlled, preserve project data, and never execute downloaded model files as extension code.
+- [ ] Publish release notes and model changes with exact versions, limitations, and verification evidence.
+
 ## P0 — trustworthy engineering and safety
 
 - [ ] Make every significant change reviewable with a clear summary and file diff.

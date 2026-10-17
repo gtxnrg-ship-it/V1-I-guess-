@@ -183,13 +183,16 @@ Use the scripts defined by the current repository version; not every environment
 
 ## 🤝 Contributing
 
-Issues, bug reports, and thoughtful contributions are welcome.
+Issues, bug reports, general feedback, and thoughtful contributions are welcome.
 
 1. Search existing issues before opening a duplicate.
-2. Include device/browser details and clear reproduction steps for bugs.
-3. Never include secrets, access tokens, or private code in public issues.
-4. Keep pull requests focused and include tests for behavior changes where practical.
-5. Do not describe planned functionality as implemented unless the code and verification support that claim.
+2. Use the [general feedback form](https://github.com/gtxnrg-ship-it/kuro-chan/issues/new?template=feedback.yml), [feature request form](https://github.com/gtxnrg-ship-it/kuro-chan/issues/new?template=feature_request.yml), or [bug report form](https://github.com/gtxnrg-ship-it/kuro-chan/issues/new?template=bug_report.yml).
+3. Public issues are visible to everyone. Never include secrets, access tokens, private code, private repository URLs, chat transcripts, or personal data.
+4. Only attach diagnostics after reviewing and redacting them. Kuro-chan must not upload prompts or source code as telemetry by default.
+5. Keep pull requests focused and include tests for behavior changes where practical.
+6. Do not describe planned functionality as implemented unless the code and verification support that claim.
+
+See [Feedback and model evolution](docs/FEEDBACK_AND_MODEL_EVOLUTION.md) for privacy, triage, model review, and release principles.
 
 Useful links: [Contributing guide](CONTRIBUTING.md) · [Code of Conduct](CODE_OF_CONDUCT.md) · [Security policy](SECURITY.md) · [GitHub Issues](https://github.com/gtxnrg-ship-it/kuro-chan/issues)
 

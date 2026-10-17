@@ -1,0 +1,56 @@
+name: General feedback
+description: Share usability feedback, confusing moments, accessibility needs, or a small suggestion
+title: "[Feedback]: "
+labels: ["feedback"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping improve Kuro-chan. Please do not include API keys, access tokens, private source code, private repository links, chat transcripts, or personal data. This issue will be public.
+  - type: dropdown
+    id: area
+    attributes:
+      label: Which part is this about?
+      options:
+        - Conversation / personality
+        - Agents / building projects
+        - Models / local AI
+        - Voice
+        - GitHub connection
+        - Android / installation
+        - UI / accessibility
+        - Documentation / onboarding
+        - Performance / reliability
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: experience
+    attributes:
+      label: What was your experience?
+      description: What felt confusing, slow, unreliable, delightful, or missing?
+      placeholder: I was trying to… I expected… Instead…
+    validations:
+      required: true
+  - type: textarea
+    id: impact
+    attributes:
+      label: Who does this affect and how often?
+      description: For example, first-time users, mobile users, a specific workflow, or every session.
+  - type: textarea
+    id: improvement
+    attributes:
+      label: What would make it better?
+      description: Optional. A rough idea is enough; you do not need to design the solution.
+  - type: input
+    id: version
+    attributes:
+      label: Kuro-chan version or commit (optional)
+      description: Share only non-sensitive build information.
+  - type: checkboxes
+    id: consent
+    attributes:
+      label: Privacy confirmation
+      options:
+        - label: I checked this post and removed secrets, private code, private links, and personal information.
+          required: true
