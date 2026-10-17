@@ -165,7 +165,7 @@ See [SECURITY.md](SECURITY.md) for responsible vulnerability reporting.
 
 ```bash
 git clone https://github.com/gtxnrg-ship-it/kuro-chan.git
-cd V1-I-guess-
+cd kuro-chan
 npm ci
 npm run dev
 ```

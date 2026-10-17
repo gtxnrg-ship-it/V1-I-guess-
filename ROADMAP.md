@@ -108,7 +108,7 @@ This is the living plan for Kuro-chan: a chat-first AI coding companion that can
 - [ ] Provide text alternatives and usable controls when audio is unavailable.
 - [ ] Test voice behavior under poor connectivity, app backgrounding, and device audio interruptions.
 - [ ] Refine Kuro-chan's warm, playful, situational personality without forcing jokes or pretending to be human.
-- [ ] Let users control the degree of playfulness, verbosity, and personalization.
+- [x] Let users control the degree of playfulness, verbosity, and personalization through saved settings. Regression coverage verifies the preferences survive navigation. (PR #96)
 
 ## P1 — UI, accessibility, and device support
 
