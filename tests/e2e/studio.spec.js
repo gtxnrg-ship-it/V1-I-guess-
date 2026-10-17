@@ -137,6 +137,51 @@ test.describe("Kuro-chan studio", () => {
   });
 
 
+
+  test("stops active device voice output and clears the speaking state", async ({ page }) => {
+    await page.addInitScript(() => {
+      window.__kuroSpeechCancelCalls = 0;
+      window.__kuroSpeechSpeakCalls = 0;
+      if (window.speechSynthesis) {
+        window.speechSynthesis.cancel = () => { window.__kuroSpeechCancelCalls += 1; };
+        window.speechSynthesis.speak = (utterance) => {
+          window.__kuroSpeechSpeakCalls += 1;
+          utterance.onstart?.();
+        };
+      }
+    });
+
+    await page.route("https://text.pollinations.ai/openai/chat/completions", async (route) => {
+      if (route.request().method() === "OPTIONS") {
+        await route.fulfill({ status: 204, headers: { "access-control-allow-origin": "*", "access-control-allow-methods": "POST, OPTIONS", "access-control-allow-headers": "authorization, content-type" } });
+        return;
+      }
+      await route.fulfill({
+        status: 200,
+        headers: { "access-control-allow-origin": "*", "content-type": "text/event-stream; charset=utf-8", "cache-control": "no-cache" },
+        body: [
+          "data: " + JSON.stringify({ choices: [{ delta: { content: "This reply should remain interruptible while voice output is active." } }] }),
+          "",
+          "data: [DONE]",
+          "",
+        ].join("\n"),
+      });
+    });
+
+    await page.goto("/studio", { waitUntil: "domcontentloaded" });
+    await page.getByTestId("input-message").fill("Please answer so I can test stopping voice playback.");
+    await page.getByTestId("button-send").click();
+    await expect(page.getByText("This reply should remain interruptible while voice output is active.")).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByTestId("button-stop-speaking")).toBeVisible({ timeout: 10_000 });
+    await expect.poll(() => page.evaluate(() => window.__kuroSpeechSpeakCalls)).toBeGreaterThan(0);
+
+    const cancellationsBeforeStop = await page.evaluate(() => window.__kuroSpeechCancelCalls);
+    await page.getByTestId("button-stop-speaking").click();
+    await expect.poll(() => page.evaluate(() => window.__kuroSpeechCancelCalls)).toBeGreaterThan(cancellationsBeforeStop);
+    await expect(page.getByTestId("button-stop-speaking")).toHaveCount(0);
+    await expect(page.getByLabel("Kuro-chan is speaking")).toHaveCount(0);
+  });
+
   test("persists a new project's conversation across an app reload", async ({ page }) => {
     const userMessage = "Persistence acceptance check: keep this garden plan after reload.";
     const assistantReply = "Saved in this project workspace; we can continue the garden plan.";
