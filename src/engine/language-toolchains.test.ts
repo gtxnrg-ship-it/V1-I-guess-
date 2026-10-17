@@ -62,4 +62,13 @@ assert(
   "PowerShell command must preserve nested quotes and remain valid TypeScript",
 );
 
+const manifestEngine = detectProjectToolchains(
+  ["package.json"],
+  { "package.json": JSON.stringify({ dependencies: { phaser: "^3.80.0" } }) },
+);
+assert(
+  manifestEngine.gameEngines.some((x) => x.id === "phaser" && x.evidence.includes("package.json dependency")),
+  "project-level detection must use supplied manifests to identify engines",
+);
+
 console.log("Language and game-engine capability detection tests passed");
