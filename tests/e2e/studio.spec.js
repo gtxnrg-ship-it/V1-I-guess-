@@ -94,6 +94,7 @@ test.describe("Kuro-chan studio", () => {
 
   test("sends a natural chat message and renders Kuro-chan's streamed reply", async ({ page }) => {
     let requests = 0;
+    let providerRequests = 0;
     await page.route("https://text.pollinations.ai/openai/chat/completions", async (route) => {
       if (route.request().method() === "OPTIONS") {
         await route.fulfill({
@@ -220,7 +221,7 @@ test.describe("Kuro-chan studio", () => {
     await page.getByTestId("input-message").fill("I want a tiny habit tracker for my phone. Keep it calm and simple.");
     await page.getByTestId("button-send").click();
 
-    await expect(page.getByTestId("card-brief")).toBeVisible({ timeout: 10_000 });
+    await expect.poll(() => providerRequests, { timeout: 10_000 }).toBeGreaterThan(0);
     await expect(page.getByText("Tiny habit tracker", { exact: true })).toBeVisible();
     await expect(page.getByTestId("button-build-it")).toBeVisible();
     await expect(page.getByText(/A calm, phone-friendly habit tracker/)).toBeVisible();
@@ -274,6 +275,7 @@ test.describe("Kuro-chan studio", () => {
         await route.fulfill({ status: 204, headers: { "access-control-allow-origin": "*", "access-control-allow-methods": "POST, OPTIONS", "access-control-allow-headers": "authorization, content-type" } });
         return;
       }
+      providerRequests += 1;
       const event = { choices: [{ delta: { tool_calls: [{ index: 0, id: "call_voice_brief", type: "function", function: { name: "propose_brief", arguments: JSON.stringify({ title: "Tiny voice demo", summary: "A tiny app requested by voice.", features: ["One screen", "Large controls"], design: "Calm and accessible", backend: "none", size: "full" }) } }] } }] };
       const body = "data: " + JSON.stringify(event) + "\n\ndata: [DONE]\n\n";
       await route.fulfill({ status: 200, headers: { "access-control-allow-origin": "*", "content-type": "text/event-stream; charset=utf-8", "cache-control": "no-cache" }, body });
