@@ -9,6 +9,15 @@ function parseRepo(input: string): { owner: string; name: string; fullName: stri
   if (parts.length !== 2 || !parts.every((part) => /^[a-zA-Z0-9_.-]+$/.test(part))) throw new Error("The linked repository must be owner/repository.");
   return { owner: parts[0], name: parts[1], fullName: parts.join("/") };
 }
+function cleanBranch(input: unknown): string | undefined {
+  if (input === undefined || input === null || String(input).trim() === "") return undefined;
+  const branch = String(input).trim();
+  if (branch.length > 255 || branch.startsWith("-") || branch.includes("..") || /[\u0000-\u001f~^:?*\[\]\\]/.test(branch)) {
+    throw new Error("Enter a valid Git branch, tag, or commit ref.");
+  }
+  return branch;
+}
+function sourceBranch(ref?: string): string { return ref ? ref.split("/").map(encodeURIComponent).join("/") : "HEAD"; }
 function decodeBase64(value: string): string {
   const binary = atob(value.replace(/\s/g, ""));
   const bytes = new Uint8Array(binary.length);
@@ -36,10 +45,11 @@ function pathScore(path: string, terms: string[]): number {
 }
 
 /** Read a real file body from the linked repo's default branch. Never falls back to guesses. */
-export async function readRepositoryFile(client: RepositoryFileClient, input: string, pathInput: unknown): Promise<RepositoryFileResult> {
-  const repo = parseRepo(input), path = cleanPath(pathInput);
-  const response = await client.req("GET", `/repos/${repo.owner}/${repo.name}/contents/${encodePath(path)}`);
-  if (response.status === 404) return { result: `GitHub could not find ${repo.fullName}/${path} on its default branch, or this account cannot read it. No file contents were inferred.` };
+export async function readRepositoryFile(client: RepositoryFileClient, input: string, pathInput: unknown, branchInput?: unknown): Promise<RepositoryFileResult> {
+  const repo = parseRepo(input), path = cleanPath(pathInput), branch = cleanBranch(branchInput);
+  const refQuery = branch ? `?ref=${encodeURIComponent(branch)}` : "";
+  const response = await client.req("GET", `/repos/${repo.owner}/${repo.name}/contents/${encodePath(path)}${refQuery}`);
+  if (response.status === 404) return { result: `GitHub could not find ${repo.fullName}/${path} on ${branch ? `ref "${branch}"` : "its default branch"}, or this account cannot read it. No file contents were inferred.` };
   if (response.status >= 300) throw new Error(`GitHub could not read ${path} (HTTP ${response.status}): ${response.json?.message || "request failed"}`);
   if (Array.isArray(response.json)) {
     const names = response.json.slice(0, 100).map((item: any) => `${item.type === "dir" ? "[dir]" : "[file]"} ${item.path}`).join("\n");
@@ -50,7 +60,7 @@ export async function readRepositoryFile(client: RepositoryFileClient, input: st
   }
   const body = decodeBase64(response.json.content);
   const clipped = body.length > 24000 ? body.slice(0, 24000) + `\n…[truncated ${body.length - 24000} characters; read a narrower file or use a focused search]` : body;
-  return { result: `Repository: ${repo.fullName} (default branch)\nFile: ${path}\nActual contents fetched from GitHub:\n\n${clipped}`, stat: `${body.split("\n").length} lines`, sources: [{ title: `${repo.fullName}/${path}`, url: `https://github.com/${repo.fullName}/blob/HEAD/${encodePath(path)}` }] };
+  return { result: `Repository: ${repo.fullName} (${branch ? `ref: ${branch}` : "default branch"})\nFile: ${path}\nActual contents fetched from GitHub:\n\n${clipped}`, stat: `${body.split("\n").length} lines`, sources: [{ title: `${repo.fullName}/${path}${branch ? ` @ ${branch}` : ""}`, url: `https://github.com/${repo.fullName}/blob/${sourceBranch(branch)}/${encodePath(path)}` }] };
 }
 
 /**
