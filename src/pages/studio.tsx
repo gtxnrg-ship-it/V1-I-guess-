@@ -401,6 +401,8 @@ function PublishDialog({ open, onOpenChange, onOpenKeys }: { open: boolean; onOp
   const createTemp = () => {
     const suffix = Math.random().toString(36).slice(2, 8);
     const temporaryName = `${slug || "my-app"}-${suffix}`;
+    // Changing the destination invalidates consent for the previous repository.
+    setConfirmedPublish(false);
     setRepo(temporaryName);
     setSessionOnly(true);
     toast({ title: "Temporary repository name created", description: `Using ${temporaryName} for this publish only.` });
