@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Moon, Sun, Github, Code2, KeyRound, MessageCircle, Loader2, Rocket, ExternalLink, ChevronDown, Check, Plus, Pencil, Trash2, Download, Globe, FolderKanban, Activity, Menu, X, MoreHorizontal, PanelLeftClose, Archive, Palette, RefreshCw, Eye, Brain } from "lucide-react";
+import { Github, Code2, KeyRound, MessageCircle, Loader2, Rocket, ExternalLink, ChevronDown, Check, Plus, Pencil, Trash2, Download, Globe, FolderKanban, Activity, Menu, X, MoreHorizontal, PanelLeftClose, Archive, Palette, RefreshCw, Eye, Brain } from "lucide-react";
 import { downloadZip } from "@/lib/zip";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -7,7 +7,6 @@ import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { HerOrb } from "@/components/her/Logo";
 import { GalaxyBackdrop } from "@/components/her/GalaxyBackdrop";
-import { useTheme } from "@/components/her/theme";
 import { ChatPanel } from "@/components/her/ChatPanel";
 import { CodeBrowser } from "@/components/her/CodePane";
 import { SettingsHub } from "@/components/her/SettingsHub";
@@ -36,7 +35,6 @@ const TABS: { id: Tab; label: string; icon: any }[] = [
 ];
 
 export default function Studio() {
-  const { theme, toggle } = useTheme();
   const st = db.useKuro();
   const p = db.project();
   const [activeView, setActiveView] = useState<"chat" | Tab>("chat");
@@ -117,7 +115,6 @@ export default function Studio() {
             <div className="hidden truncate text-[10px] text-muted-foreground sm:block">{activeView === "chat" ? p.repo || "Your AI coding companion" : "Kuro-chan workspace"}</div>
           </div>
           {running && <span className="hidden items-center gap-1.5 text-[11px] text-muted-foreground sm:inline-flex"><Loader2 className="h-3 w-3 animate-spin" /> Working</span>}
-          <button data-testid="button-theme" aria-label="Toggle theme" onClick={toggle} className="grid h-9 w-9 place-items-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground">{theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}</button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild><button data-testid="button-more-menu" aria-label="More options" className="grid h-9 w-9 place-items-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground"><MoreHorizontal className="h-5 w-5" /></button></DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
