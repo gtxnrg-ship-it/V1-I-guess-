@@ -56,3 +56,8 @@ Source of truth: [ROADMAP.md](../ROADMAP.md). This ledger separates **roadmap ch
 3. Run unit tests, TypeScript, production build, E2E, CodeQL, and Android build where applicable. If any required check fails, repair the cause and rerun the affected checks before calling the PR verified.
 4. A merged PR is evidence of merged code, not proof every roadmap acceptance criterion is complete.
 5. Update the overall percentage from the current roadmap checkbox counts rather than estimating from PR count or lines of code.
+
+
+## Original-vision alignment audit (2026-10-17)
+
+The repository has a useful engineering-agent foundation, but the intended product is broader than the verified runtime. The GPT-OSS 20B entry routes through a remote Pollinations-compatible endpoint; the local chat-model catalogue has no download/load path; Kokoro TTS and native speech integrations exist, but physical-device voice acceptance is incomplete. The GitHub API client exists, but installation-based GitHub App authentication requires a server-side token broker that is not present in this repository. These are explicit gaps, not completed features. See [Original vision and implementation map](ORIGINAL_VISION.md).
