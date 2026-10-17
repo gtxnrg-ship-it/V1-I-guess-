@@ -17,7 +17,7 @@ export interface Workspace {
   write(p: string, c: string): void;
   remove(p: string): void;
   env(): Record<string, string>;
-  remoteRepository?(): { repository: string; token: string } | null;
+  remoteRepository?(): { repository: string; token: string; branch?: string } | null;
 }
 export const appWorkspace = (projectId = project().id): Workspace => {
   const target = () => {
@@ -35,7 +35,7 @@ export const appWorkspace = (projectId = project().id): Workspace => {
     remoteRepository: () => {
       const repository = target().repo;
       const credential = keyOf("github");
-      return repository && credential?.secret ? { repository, token: credential.secret } : null;
+      return repository && credential?.secret ? { repository, token: credential.secret, branch: target().repoBranch } : null;
     },
   };
 };
@@ -75,8 +75,8 @@ export const TOOLS: Record<string, Def> = {
   list_files: { name: "list_files", description: "List every file in the project with sizes.", parameters: obj({}), title: () => "Listed files" },
   read_file: { name: "read_file", description: "Read a file.", parameters: obj({ path: str("File path, e.g. src/App.tsx") }, ["path"]), title: (a) => `Read ${a.path}` },
   search_code: { name: "search_code", description: "Find which files contain some text (case-insensitive). Returns file:line matches.", parameters: obj({ text: str("Text to look for") }, ["text"]), title: (a) => `Searched the code for “${String(a.text).slice(0, 40)}”` },
-  read_repository_file: { name: "read_repository_file", description: "Read actual contents of a path from the linked GitHub repository. Defaults to the default branch; pass branch when the user asks about a specific branch, tag, or commit. Read-only.", parameters: obj({ path: str("Repository-relative file path, e.g. src/engine/router.ts"), branch: str("Optional exact branch, tag, or commit ref; omit for the default branch") }, ["path"]), title: (a) => "Read GitHub file " + String(a.path).slice(0, 45) + (a.branch ? " @ " + String(a.branch).slice(0, 30) : "") },
-  search_repository_code: { name: "search_repository_code", description: "Search the linked GitHub repository code index for a distinctive symbol or phrase. Returns matching paths and GitHub links; then read relevant files with read_repository_file.", parameters: obj({ query: str("Distinctive code symbol or phrase to search for") }, ["query"]), title: (a) => "Searched GitHub code for “" + String(a.query).slice(0, 40) + "”" },
+  read_repository_file: { name: "read_repository_file", description: "Read actual contents of a path from the linked GitHub repository. Uses this project’s selected source ref when configured; otherwise defaults to the repository default branch. Pass branch to override with an exact branch, tag, or commit. Read-only.", parameters: obj({ path: str("Repository-relative file path, e.g. src/engine/router.ts"), branch: str("Optional exact branch, tag, or commit ref; omit for the default branch") }, ["path"]), title: (a) => "Read GitHub file " + String(a.path).slice(0, 45) + (a.branch ? " @ " + String(a.branch).slice(0, 30) : "") },
+  search_repository_code: { name: "search_repository_code", description: "Search the linked GitHub repository for a distinctive symbol or phrase. Uses the project-selected source ref when configured and reports bounded scan coverage; then read relevant files with read_repository_file.", parameters: obj({ query: str("Distinctive code symbol or phrase to search for") }, ["query"]), title: (a) => "Searched GitHub code for “" + String(a.query).slice(0, 40) + "”" },
   write_file: { name: "write_file", description: "Create or fully overwrite a file. Always write the complete content.", parameters: obj({ path: str("File path"), content: str("Full file content") }, ["path", "content"]), title: (a) => `Wrote ${a.path}` },
   edit_file: { name: "edit_file", description: "Replace an exact snippet in a file (find must match exactly once). Best for small changes.", parameters: obj({ path: str("File path"), find: str("Exact existing text"), replace: str("Replacement text") }, ["path", "find", "replace"]), title: (a) => `Edited ${a.path}` },
   delete_file: { name: "delete_file", description: "Delete a file.", parameters: obj({ path: str("File path") }, ["path"]), title: (a) => `Deleted ${a.path}` },
@@ -147,12 +147,12 @@ export async function runTool(ws: Workspace, name: string, a: any): Promise<Tool
     case "read_repository_file": {
       const remote = ws.remoteRepository?.();
       if (!remote) return { result: "No linked GitHub repository or GitHub connection is available for this project. Connect GitHub and select a repository first." };
-      return readRepositoryFile(new GH(remote.token), remote.repository, a.path, a.branch);
+      return readRepositoryFile(new GH(remote.token), remote.repository, a.path, a.branch || remote.branch);
     }
     case "search_repository_code": {
       const remote = ws.remoteRepository?.();
       if (!remote) return { result: "No linked GitHub repository or GitHub connection is available for this project. Connect GitHub and select a repository first." };
-      return searchRepositoryCode(new GH(remote.token), remote.repository, a.query);
+      return searchRepositoryCode(new GH(remote.token), remote.repository, a.query, remote.branch);
     }
     case "write_file": {
       const p = norm(a.path);
