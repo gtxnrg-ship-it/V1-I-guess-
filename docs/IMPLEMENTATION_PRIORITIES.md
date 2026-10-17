@@ -113,8 +113,13 @@ This document answers two practical questions at the start of every work session
 
 ## Current next action
 
-PR #139 is merged, and PRs #141–#143 are now merged as well: destination-head write guards, snapshot reuse, and the first GitHub App migration boundary are in place. The generic provider-key path rejects common personal GitHub token formats; Settings explains the intended App installation and distinguishes it from interim Device Flow. The server-side broker is still not implemented/deployed, so do not remove the only usable interim connection prematurely. The agent pipeline now performs one explicit final repair/retest if visual-polish changes introduce QA errors. Next, continue with the real build–test–repair–retest acceptance slice and remaining snapshot edge cases. Use this audit, the roadmap ledger, and the latest PR checks as the durable cross-session handoff.
+PRs [#155](https://github.com/gtxnrg-ship-it/kuro-chan/pull/155) and [#156](https://github.com/gtxnrg-ship-it/kuro-chan/pull/156) are merged. They repair toolchain command parsing and project-level manifest detection, make common syntax/build/runtime/remote-check failures visible as failures, and expose existing workflow-run diagnostics as an agent tool. They do **not** provide a native build runner for every language.
 
+**Open PR #157 — durable IndexedDB writes:** [review PR](https://github.com/gtxnrg-ship-it/kuro-chan/pull/157). The first Check run failed because the newly added persistence test had a syntax error. That test was corrected and a follow-up flush-race fix was pushed; the latest full checks must be re-read before merge. CodeQL passed on an earlier head; APK and Check must pass on the final head.
+
+**Open PR #158 — honest verification and bounded imports:** [review PR](https://github.com/gtxnrg-ship-it/kuro-chan/pull/158). Native projects without a supported browser entry point now return UNVERIFIED rather than a false clean result. GitHub tree import has file-count, aggregate-byte, per-file, and concurrency limits, and Studio refuses incomplete imports. Regression tests cover native verification and bounded import. CI is pending on the latest head; do not merge until Check, npm test, APK build, and CodeQL pass.
+
+Next: inspect final CI results and address every failure before merge. After these reliability fixes, resume the end-to-end build–test–seeded-failure–repair–retest acceptance slice and the remaining repository snapshot/rate-limit edge cases.
 ### New engineering slice — run the published repository real CI
 
 - [x] Add a fixed-workflow dispatcher for the repository existing `check.yml`.
