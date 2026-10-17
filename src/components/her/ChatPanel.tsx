@@ -262,7 +262,7 @@ export function ChatPanel({ scope = "app", onOpenKeys, draft, setDraft, onSent }
         (message) => {
           if (voiceProvider === "kokoro" && !localVoiceFallbackShown.current) {
             localVoiceFallbackShown.current = true;
-            toast({ title: "Using device voice instead", description: "Local Kokoro voice could not start. " + message.slice(0, 160) });
+            toast({ title: speechAvailable ? "Using device voice instead" : "Local voice unavailable", description: (speechAvailable ? "Local Kokoro voice could not start; falling back to device speech. " : "Local Kokoro voice could not start, and this device has no available speech fallback. ") + message.slice(0, 160) });
           }
         },
       );
