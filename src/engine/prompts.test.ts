@@ -8,5 +8,5 @@ assert.match(PERSONA, /rich chat elements/);
 assert.match(PERSONA, /inspect → make a focused change → run relevant tests\/build/);
 assert.match(PERSONA, /Do not pretend to be a human/);
 assert.match(TALKER, /GitHub repository URL/);
-assert.match(TALKER, /do not force a scripted greeting/i);
+assert.match(TALKER, /respond to what the user actually says instead of forcing a scripted greeting/i);
 console.log("Conversational capability standard: passed");
