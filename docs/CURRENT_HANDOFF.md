@@ -43,7 +43,7 @@ Existing foundations include agent roles, provider routing, project memory/check
 
 - Link: https://github.com/gtxnrg-ship-it/kuro-chan/pull/152
 - Base branch: `fix/capability-detection-ci-and-manifests`; this PR is intentionally stacked on PR #150.
-- Code head `15e6cc8c4944421519f75e560c0719d4893b7bfb` passed `npm test`, TypeScript, production build, and browser E2E in the Check workflow.
+- Code head `15e6cc8c4944421519f75e560c0719d4893b7bfb` passed `npm test`, TypeScript, production build, and browser E2E in the Check workflow; current docs-only head `adaa0e810af59b2a460c22a608dc25df15414621` also passed Check.
 - It detects declared scientific/statistical dependencies from Python, R, Julia, JavaScript, Rust, and dbt project manifests and reports evidence plus validation cautions.
 - After PR #150 is merged, retarget PR #152 to `main` and re-run Check, APK build, and CodeQL on its latest head. Do not merge it before that full verification.
 
@@ -62,7 +62,7 @@ Existing foundations include agent roles, provider routing, project memory/check
 ## Immediate next actions (in order)
 
 1. PR #150 passed Check, APK build, and CodeQL at `a8c97966680d98f8c578c34e314123233d45d3a1`. Merge it only after reviewing the PR. Then retarget stacked PR #152 to `main` and re-run Check/APK/CodeQL on the latest head before merging #152.
-2. Scientific stack discovery has passed `npm test`, TypeScript, production build, and browser E2E on code head `15e6cc8c4944421519f75e560c0719d4893b7bfb`; after PR #150 lands, re-run the complete pipeline on PR #152's new base.
+2. Scientific stack discovery passed `npm test`, TypeScript, production build, and browser E2E on code head `15e6cc8c4944421519f75e560c0719d4893b7bfb`; docs-only head `adaa0e810af59b2a460c22a608dc25df15414621` also passed Check. After PR #150 lands, retarget PR #152 to `main` and re-run Check/APK/CodeQL on the new head.
 3. Once PR #150 is fully green, proceed to the real execution layer—not more detection labels. Design a permissioned isolated runner with command allowlists, time/memory/output limits, cancellation, controlled filesystem/network access, and auditable exact command/exit-code/log evidence. Inspect scripts/lockfiles/version pins before selecting commands.
 4. Prove the runner using one real scientific/statistical fixture (known-answer numerical tests, assumptions, data provenance, reproducibility, uncertainty reporting) and one game-engine vertical slice (asset import, engine/headless check, target build/export, gameplay smoke test, performance check).
 5. Demonstrate a seeded failure, diagnosis, repair, and a fresh successful retest through that runner.

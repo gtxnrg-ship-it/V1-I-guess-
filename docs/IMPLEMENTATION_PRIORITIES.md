@@ -8,11 +8,11 @@ This document answers two practical questions at the start of every work session
 
 ## Current handoff — capability-first delivery (2026-10-17)
 
-Read [the current handoff](CURRENT_HANDOFF.md) before starting work. PR #150 has Check, APK build, and CodeQL green on code head `a8c97966680d98f8c578c34e314123233d45d3a1`. PR #152 adds scientific/statistical stack detection and its Check suite passed on code head `15e6cc8c4944421519f75e560c0719d4893b7bfb`; it is stacked on PR #150. Merge #150 first, retarget #152 to `main`, and re-run Check/APK/CodeQL before merging #152.
+Read [the current handoff](CURRENT_HANDOFF.md) before starting work. PR #150 has Check, APK build, and CodeQL green on code head `a8c97966680d98f8c578c34e314123233d45d3a1`. PR #152 adds scientific/statistical stack detection. Its full Check suite passed on code head `15e6cc8c4944421519f75e560c0719d4893b7bfb`, and the current docs-only head `adaa0e810af59b2a460c22a608dc25df15414621` also passed Check; it is stacked on PR #150. Merge #150 first, retarget #152 to `main`, and re-run Check/APK/CodeQL before merging #152.
 
 After PR #150 and the stacked PR #152 are integrated, the highest-value implementation is the **permissioned isolated execution runner**—not more language labels and not front-end polish. It must enforce command allowlists, resource/time/output limits, cancellation, controlled filesystem/network access, and preserve exact command, exit code, logs, and observed project SHA. Then validate one scientific/statistical fixture and one game-engine vertical slice, each with a seeded failure and a clean successful retest.
 
-The 15/150 roadmap checkbox count is a literal checklist metric, not a total capability score. The detector recognizes 26 language families and 10 engine families but does not install or run those toolchains.
+The 16/151 roadmap checkbox count is a literal checklist metric, not a total capability score. Detection recognizes 26 language families, 10 engine families, and supported scientific/statistical dependency stacks, but does not install or run those toolchains.
 
 ## Priority order
 
