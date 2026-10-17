@@ -9,7 +9,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "check": "tsc --noEmit",
-    "test": "npx --yes tsx@4.20.6 src/lib/kuro.test.ts && npx --yes tsx@4.20.6 src/lib/local-models.test.ts && npx --yes tsx@4.20.6 src/engine/github-auth.test.ts && npx --yes tsx@4.20.6 src/engine/github-repositories.test.ts && npx --yes tsx@4.20.6 src/engine/github-session.test.ts && npx --yes tsx@4.20.6 src/engine/repository-diagnosis.test.ts && npx --yes tsx@4.20.6 src/engine/project-memory.test.ts && npx --yes tsx@4.20.6 src/engine/live-repository-intelligence.test.ts && npx --yes tsx@4.20.6 src/engine/platform.test.ts && npx --yes tsx@4.20.6 src/engine/db.test.ts && npx --yes tsx@4.20.6 src/engine/language-toolchains.test.ts && npx --yes tsx@4.20.6 src/engine/workflow-failure-diagnostics.test.ts",
+    "test": "npx --yes tsx@4.20.6 src/lib/kuro.test.ts && npx --yes tsx@4.20.6 src/lib/local-models.test.ts && npx --yes tsx@4.20.6 src/engine/github-auth.test.ts && npx --yes tsx@4.20.6 src/engine/github-repositories.test.ts && npx --yes tsx@4.20.6 src/engine/github-session.test.ts && npx --yes tsx@4.20.6 src/engine/repository-diagnosis.test.ts && npx --yes tsx@4.20.6 src/engine/project-memory.test.ts && npx --yes tsx@4.20.6 src/engine/live-repository-intelligence.test.ts && npx --yes tsx@4.20.6 src/engine/platform.test.ts && npx --yes tsx@4.20.6 src/engine/db.test.ts && npx --yes tsx@4.20.6 src/engine/language-toolchains.test.ts && npx --yes tsx@4.20.6 src/engine/workflow-failure-diagnostics.test.ts && npx --yes tsx@4.20.6 src/engine/local-voice.test.ts",
     "e2e": "playwright test"
   },
   "dependencies": {
@@ -23,6 +23,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "esbuild-wasm": "0.25.0",
+    "kokoro-js": "^1.2.1",
     "lucide-react": "^0.453.0",
     "modern-screenshot": "^4.6.0",
     "react": "^18.3.1",
@@ -34,6 +35,7 @@
     "tailwindcss-animate": "^1.0.7"
   },
   "devDependencies": {
+    "@playwright/test": "1.64.1",
     "@tailwindcss/typography": "^0.5.20",
     "@types/node": "20.19.27",
     "@types/react": "^18.3.11",
@@ -43,7 +45,6 @@
     "postcss": "^8.4.47",
     "tailwindcss": "^3.4.17",
     "typescript": "5.6.3",
-    "vite": "^7.3.0",
-    "@playwright/test": "1.64.1"
+    "vite": "^7.3.0"
   }
 }

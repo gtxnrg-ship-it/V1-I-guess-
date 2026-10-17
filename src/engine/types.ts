@@ -122,7 +122,7 @@ export interface Settings {
   freeStarter: boolean;
   roleOverrides: Partial<Record<Role, string>>; // "keyId::modelId"
   usage: Record<string, Record<string, UsageDay>>; // day -> keyId -> usage
-  voiceProvider?: "browser" | "openai";
+  voiceProvider?: "browser" | "openai" | "kokoro";
   voiceModel?: string;
   voiceName?: string;
   voiceAutoSpeak?: boolean;

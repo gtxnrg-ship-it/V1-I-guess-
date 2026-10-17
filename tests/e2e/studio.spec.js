@@ -227,4 +227,23 @@ test.describe("Kuro-chan studio", () => {
     // This test intentionally does not approve the brief: the user remains in control of code generation.
     await expect(page.getByTestId("button-stop")).toHaveCount(0);
   });
+
+  test("exposes the local voice option and makes offline preference functional", async ({ page }) => {
+    await page.goto("/studio", { waitUntil: "domcontentloaded" });
+    await page.getByTestId("sidebar-settings").click();
+    await page.getByRole("button", { name: /Voice & speech/i }).click();
+
+    const provider = page.getByLabel("Voice output provider");
+    await expect(provider.locator("option[value='kokoro']")).toHaveText("Local Kokoro voice");
+    await provider.selectOption("kokoro");
+    await expect(page.getByLabel("Kokoro voice")).toHaveValue("af_heart");
+    await page.getByLabel("Kokoro voice").selectOption("af_bella");
+    await expect(page.getByLabel("Kokoro voice")).toHaveValue("af_bella");
+
+    const offline = page.getByRole("switch", { name: "Prefer offline voice" });
+    await expect(offline).toHaveAttribute("aria-checked", "true");
+    await offline.click();
+    await expect(provider).toHaveValue("browser");
+    await expect(offline).toHaveAttribute("aria-checked", "false");
+  });
 });
