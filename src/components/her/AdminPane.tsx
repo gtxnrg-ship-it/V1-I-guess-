@@ -32,7 +32,7 @@ export function AdminPane({ onOpenKeys }: { onOpenKeys: () => void }) {
       </div>
     );
   }
-  const gh = st.keys.find((k) => k.provider === "github");
+  const gh = db.keyOf("github");
   return (
     <div className="flex h-full min-h-0 flex-col">
       <AdminHeader hasToken={!!gh} onOpenKeys={onOpenKeys} />
