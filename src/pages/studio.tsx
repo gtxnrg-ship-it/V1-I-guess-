@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Moon, Sun, Github, Code2, KeyRound, MessageCircle, Loader2, Rocket, ExternalLink, ChevronDown, Check, Plus, Pencil, Trash2, Download, Globe, FolderKanban, Activity, Menu, X, MoreHorizontal, PanelLeftClose, Archive, Palette } from "lucide-react";
+import { Moon, Sun, Github, Code2, KeyRound, MessageCircle, Loader2, Rocket, ExternalLink, ChevronDown, Check, Plus, Pencil, Trash2, Download, Globe, FolderKanban, Activity, Menu, X, MoreHorizontal, PanelLeftClose, Archive, Palette, RefreshCw } from "lucide-react";
 import { downloadZip } from "@/lib/zip";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
