@@ -49,4 +49,26 @@ const unknown = detectProjectToolchains(["README.md", "assets/logo.png"]);
 assert(unknown.languages.length === 0 && unknown.gameEngines.length === 0 && unknown.confidence === "none", "documentation-only repos should not be assigned a language or game engine");
 assert(unknown.note.includes("not proof"), "the detector must not claim commands were run");
 
+const rProject = detectLanguageCapabilities(["analysis/model.R"]);
+const rCommands = rProject.find((x) => x.id === "r")?.testCommands || [];
+assert(
+  rCommands.includes("Rscript -e 'testthat::test_dir(\"tests/testthat\")'"),
+  "R test command must preserve its nested quotes and remain valid TypeScript",
+);
+
+const powershell = detectLanguageCapabilities(["scripts/verify.ps1"]).find((x) => x.id === "powershell");
+assert(
+  powershell?.buildCommands.includes("pwsh -NoProfile -Command '$ErrorActionPreference=\"Stop\"; Get-ChildItem -Recurse -Filter *.ps1'"),
+  "PowerShell command must preserve nested quotes and remain valid TypeScript",
+);
+
+const manifestEngine = detectProjectToolchains(
+  ["package.json"],
+  { "package.json": JSON.stringify({ dependencies: { phaser: "^3.80.0" } }) },
+);
+assert(
+  manifestEngine.gameEngines.some((x) => x.id === "phaser" && x.evidence.includes("package.json dependency")),
+  "project-level detection must use supplied manifests to identify engines",
+);
+
 console.log("Language and game-engine capability detection tests passed");
