@@ -1,4 +1,4 @@
-import { detectGameEngineCapabilities, detectLanguageCapabilities, detectProjectToolchains } from "./language-toolchains";
+import { detectGameEngineCapabilities, detectLanguageCapabilities, detectProjectToolchains, inspectProjectExecutionEvidence } from "./language-toolchains";
 
 function assert(value: unknown, message: string): asserts value {
   if (!value) throw new Error(message);
@@ -71,5 +71,35 @@ assert(reportWithManifest.note.includes("manifest contents"), "project report sh
 const unknown = detectProjectToolchains(["README.md", "assets/logo.png"]);
 assert(unknown.languages.length === 0 && unknown.gameEngines.length === 0 && unknown.confidence === "none", "documentation-only repos should not be assigned a language or game engine");
 assert(unknown.note.includes("not proof"), "the detector must not claim commands were run");
+
+
+const executionEvidence = inspectProjectExecutionEvidence(
+  [
+    "package.json", "pnpm-lock.yaml", ".nvmrc", "pyproject.toml",
+    "Cargo.toml", "Cargo.lock", "go.mod", "ProjectSettings/ProjectVersion.txt",
+    "README.md",
+  ],
+  {
+    "package.json": JSON.stringify({
+      packageManager: "pnpm@9.12.0",
+      engines: { node: ">=20 <23" },
+      scripts: { build: "vite build", test: "vitest run", "test:e2e": "playwright test" },
+    }),
+    ".nvmrc": "22.4.1\n",
+    "pyproject.toml": '[project]\nrequires-python = ">=3.11,<3.13"',
+    "Cargo.toml": '[package]\nname = "demo"\nversion = "0.1.0"',
+    "go.mod": "module example.com/demo\ngo 1.23\ntoolchain go1.23.2",
+    "ProjectSettings/ProjectVersion.txt": "m_EditorVersion: 6000.0.23f1\n",
+  },
+);
+assert(executionEvidence.packageScripts.some((x) => x.name === "build" && x.command === "vite build" && x.manifest === "package.json"), "actual package scripts should be surfaced with their source manifest");
+assert(executionEvidence.packageScripts.some((x) => x.name === "test:e2e" && x.command === "playwright test"), "custom E2E scripts should be surfaced, not replaced with guessed commands");
+assert(executionEvidence.packageManagers.includes("pnpm"), "explicit packageManager should take precedence over inferred manager signals");
+assert(executionEvidence.lockfiles.includes("pnpm-lock.yaml") && executionEvidence.lockfiles.includes("Cargo.lock"), "lockfiles should be listed as reproducibility evidence");
+assert(executionEvidence.runtimePins.some((x) => x.includes("Node.js pin: 22.4.1")), "Node runtime pin should be read from .nvmrc");
+assert(executionEvidence.runtimePins.some((x) => x.includes("Python requirement: >=3.11,<3.13")), "Python version constraints should be read from pyproject.toml");
+assert(executionEvidence.runtimePins.some((x) => x.includes("Go toolchain pin: go1.23.2")), "Go toolchain pins should be surfaced");
+assert(executionEvidence.runtimePins.some((x) => x.includes("Unity Editor version: 6000.0.23f1")), "Unity editor pins should be surfaced");
+assert(!executionEvidence.packageScripts.some((x) => x.command.includes("README")), "the report must not invent scripts from non-manifest files");
 
 console.log("Language and game-engine capability detection tests passed");

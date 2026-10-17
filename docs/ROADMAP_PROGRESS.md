@@ -5,9 +5,9 @@ Source of truth: [ROADMAP.md](../ROADMAP.md). This ledger separates **roadmap ch
 
 ## Overall checklist progress
 
-- **15 of 150 roadmap checkboxes complete: 10.0%.**
+- **16 of 151 roadmap checkboxes complete: 10.6%.**
 - Calculation: checked boxes divided by all checklist items currently in `ROADMAP.md`, rounded to one decimal place. The latest reconciliation includes merged checkpoint-recovery, project-memory, personality-preference, and local-model-advisor work, 11 original-vision acceptance gates, and 9 public-feedback/model-evolution gates.
-- This is a strict checklist percentage, not a claim that only 8.2% of the product code exists. Several merged changes are not yet represented by checked roadmap items, and partial features do not count as complete.
+- This is a strict checklist percentage, not a claim that only 10.6% of the product code exists. Several merged changes are not yet represented by checked roadmap items, and partial features do not count as complete.
 - Reconcile this ledger whenever roadmap items are added, removed, or verified. Only check a roadmap item when its acceptance criteria are implemented and verified; record evidence below.
 
 ## Progress by roadmap section
@@ -20,7 +20,7 @@ Source of truth: [ROADMAP.md](../ROADMAP.md). This ledger separates **roadmap ch
 | P1 — GitHub connection and repository workflow | 0 | 12 |
 | P1 — project understanding and task memory | 1 | 8 |
 | P1 — specialist agents and autonomous work | 0 | 9 |
-| P1 — multi-language, scientific, and game-engine capabilities | 2 | 8 |
+| P1 — multi-language, scientific, and game-engine capabilities | 3 | 9 |
 | P1 — models, routing, and cost transparency | 0 | 11 |
 | P1 — voice and natural conversation | 2 | 9 |
 | P1 — UI, accessibility, and device support | 0 | 9 |
@@ -30,7 +30,7 @@ Source of truth: [ROADMAP.md](../ROADMAP.md). This ledger separates **roadmap ch
 | P3 — longer-term experiments | 0 | 6 |
 | Original-vision alignment | 0 | 11 |
 | Public feedback and model evolution | 0 | 9 |
-| **Total** | **15** | **150** |
+| **Total** | **16** | **151** |
 
 ## Shipped capability evidence
 
@@ -47,6 +47,8 @@ Source of truth: [ROADMAP.md](../ROADMAP.md). This ledger separates **roadmap ch
 | GitHub App Device Flow and credential storage boundary | In this branch; not yet merged | Uses the public App client ID, validates the returned token through GitHub's `/user` endpoint, excludes GitHub tokens from IndexedDB persistence, and removes legacy stored GitHub tokens on startup. |
 | Persistent GitHub session | Not complete | This branch deliberately keeps the token in memory only. Users reconnect after restart. A native secure-storage adapter and Android end-to-end coverage are still required before persistent sessions can be claimed. |
 | GitHub App registration/configuration | External setup required | A GitHub App must be registered, Device Flow enabled, and `VITE_GITHUB_APP_CLIENT_ID` configured in the build environment. No client secret belongs in the browser or APK. |
+| Project-specific execution evidence | Code head `ff083f0a774e5a64825e7b9cd1cc6d3eb30e0e16` passed Check; documentation-only head recheck pending | PR #152 reports actual package.json script bodies, lockfiles/package-manager signals, and runtime pins/constraints without executing anything. Regression tests cover custom E2E scripts, pnpm precedence, and Node/Python/Go/Unity version evidence. |
+| Scientific/statistical stack inspection | the full Check suite passed on code head `15e6cc8c4944421519f75e560c0719d4893b7bfb`; the current docs-only head `adaa0e810af59b2a460c22a608dc25df15414621` also passed Check. Full APK/CodeQL acceptance remains pending until PR #150 is merged and PR #152 is retargeted to `main` | [PR #152](https://github.com/gtxnrg-ship-it/kuro-chan/pull/152) detects declared numerical, dataframe, statistics, Bayesian, ML, optimization, and matrix libraries from supported manifests and gives validation cautions. This is dependency discovery, not package execution or proof of scientific correctness. |
 | Visual region selection and live preview | Not complete | Explicitly remains outside PR #83/#86 scope. |
 
 | Native Android speech input bridge | Pushed to `main` | Commit [`b118fbf`](https://github.com/gtxnrg-ship-it/kuro-chan/commit/b118fbf19601a756524b908e5275bef03c40c254); native Capacitor speech-recognition path, permission checks, partial results, explicit stop, listener cleanup, and web fallback. Check, CodeQL, and APK build passed on follow-up commit [`289232c`](https://github.com/gtxnrg-ship-it/kuro-chan/commit/289232cafbf691d243d2bc04cca021466198d2f8). Physical Android microphone behavior remains unverified. |
@@ -71,8 +73,8 @@ The repository has a useful engineering-agent foundation, but the intended produ
 - **PR #137 — voice settings persistence: merged.** Check, CodeQL, and Android APK build passed. Browser E2E covers provider selection, speech speed, auto-speak/auto-send, and reload persistence.
 - **PR #138 — voice output interruption: merged.** Check, CodeQL, and Android APK build passed. Browser E2E verifies cancellation and UI lifecycle for mocked browser speech; native/remote audio still needs physical-device acceptance.
 - **PR #139 — repository snapshot consistency: merged.** The source-context builder accepts the exact inspected commit SHA, reads the recursive tree from that immutable SHA, and the agent passes the diagnosis baseline into context loading. Regression tests cover immutable-SHA reads and continuing with the known SHA if a redundant moving-ref lookup is unavailable. The remaining edge cases (branch movement, truncated trees, large files, permission/rate-limit failures, target-branch concurrency) remain open; see [Verified feature audit](FEATURE_AUDIT.md).
-- The strict roadmap count remains **13/142 = 9.2%** until a roadmap acceptance item is fully met. Recent merged work does not automatically change the checkbox count.
-- Use [Implementation priorities](IMPLEMENTATION_PRIORITIES.md) as the ranked next-work queue. The next work is remaining repository evidence/write-safety edge cases, then a real build/test/repair/retest proof, then secure GitHub installation flow. Local inference, physical-device acceptance, Visual Intent Studio and secondary polish follow. The strict checklist is **13/142 = 9.2%**; a whole-product capability percentage is not yet measured.
+- At the earlier snapshot, the strict roadmap count was **13/142 = 9.2%**. The current reconciled count is **16/151 = 10.6%**; recent work changes the count only when a stated acceptance item is verified.
+- Use [Implementation priorities](IMPLEMENTATION_PRIORITIES.md) as the ranked next-work queue. The next work is remaining repository evidence/write-safety edge cases, then a real build/test/repair/retest proof, then secure GitHub installation flow. Local inference, physical-device acceptance, Visual Intent Studio and secondary polish follow. The strict checklist is **16/151 = 10.6%**; a whole-product capability percentage is not yet measured.
 
 
 ## Latest work (2026-10-17, continuing session)
@@ -82,7 +84,7 @@ The repository has a useful engineering-agent foundation, but the intended produ
 - **PR #142 — snapshot reuse: merged.** Reuses the immutable repository tree observed during inspection rather than refetching it for context construction.
 - **PR #143 — GitHub App migration boundary: merged.** Check, CodeQL, TypeScript analysis, and APK packaging all passed. Generic AI-provider setup no longer advertises PATs, common GitHub PAT formats are rejected, and Settings explains App installation vs interim Device Flow. This is not a deployed App token broker.
 - **Current change under review:** final post-review QA can now trigger one bounded Builder repair and a second QA run. This guards against errors introduced by visual polish after the original fix loop. Production package builds, full external test suites, and physical-device acceptance are still not proven by the in-browser QA harness.
-- **At this historical audit snapshot the count was 13/142 = 9.2%.** The current reconciled count is 15/150 = 10.0% after adding eight explicit multi-language/game-engine gates and verifying the two discovery gates. Do not inflate it from changes that have not met their acceptance criteria.
+- **At this historical audit snapshot the count was 13/142 = 9.2%.** The current reconciled count is 16/151 = 10.6% after adding eight explicit multi-language/game-engine gates, verifying the language/engine discovery gates, and verifying the scientific-stack discovery gate. Do not inflate it from changes that have not met their acceptance criteria.
 
 - **PR #145 — guarded GitHub Actions verification runner: CI passed, merge pending conflict resolution.** The tool dispatches the fixed `check.yml`, compares the run SHA with the pre-dispatch branch SHA, and returns a direct run URL plus passed/failed/running/blocked status. Automated tests cover common outcomes. A live dispatch is still pending App broker/permission setup; the tool checks published remote contents, not unsaved workspace files.
 
@@ -95,7 +97,7 @@ The repository has a useful engineering-agent foundation, but the intended produ
 
 ## Checklist percentage correction
 
-The earlier **13/142 = 9.2%** was mechanically correct only for the boxes checked at that moment; it was not a measurement of code shipped or actual product capability. Multiple merged PRs added code and tests without reconciling the corresponding roadmap acceptance gates. We will update individual boxes only where the complete stated acceptance criteria are met and will report the literal checkbox count separately from the capability audit. No unsupported overall percentage should be inferred from 9.2%.
+The earlier **13/142 = 9.2%** was mechanically correct only for the boxes checked at that moment; it was not a measurement of code shipped or actual product capability. Multiple merged PRs added code and tests without reconciling the corresponding roadmap acceptance gates. We will update individual boxes only where the complete stated acceptance criteria are met and will report the literal checkbox count separately from the capability audit. No unsupported overall capability percentage should be inferred from the checklist count.
 
 
 ## Capability work and current cross-chat handoff (2026-10-17)

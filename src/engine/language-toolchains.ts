@@ -145,6 +145,130 @@ export function detectGameEngineCapabilities(paths: Iterable<string>, fileConten
   });
 }
 
+export interface ProjectExecutionEvidence {
+  /** Actual scripts declared by package.json; never claims that they were run. */
+  packageScripts: Array<{ name: string; command: string; manifest: string }>;
+  /** Lockfiles present in the inventory, useful for reproducible installs. */
+  lockfiles: string[];
+  /** Runtime/toolchain constraints explicitly declared by project files. */
+  runtimePins: string[];
+  /** Package manager evidence declared by package.json or lockfiles. */
+  packageManagers: string[];
+}
+
+const LOCKFILE_NAMES: Record<string, string> = {
+  "package-lock.json": "npm",
+  "npm-shrinkwrap.json": "npm",
+  "pnpm-lock.yaml": "pnpm",
+  "yarn.lock": "yarn",
+  "bun.lock": "bun",
+  "bun.lockb": "bun",
+  "poetry.lock": "Poetry",
+  "uv.lock": "uv",
+  "pdm.lock": "PDM",
+  "pipfile.lock": "Pipenv",
+  "pipfile": "Pipenv",
+  "cargo.lock": "Cargo",
+  "composer.lock": "Composer",
+  "gemfile.lock": "Bundler",
+  "mix.lock": "Mix",
+  "go.sum": "Go modules",
+  "packages.lock.json": ".NET NuGet",
+};
+
+function readJson(content: string): Record<string, any> | null {
+  try {
+    const parsed = JSON.parse(content);
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : null;
+  } catch { return null; }
+}
+
+/**
+ * Extract reproducibility evidence without running project scripts or installing dependencies.
+ * Only declared scripts/pins are returned; missing evidence is left unknown rather than guessed.
+ */
+export function inspectProjectExecutionEvidence(paths: Iterable<string>, fileContents: Record<string, string> = {}): ProjectExecutionEvidence {
+  const files = [...new Set([...paths].map(normalize).filter(Boolean))];
+  const contents = new Map(Object.entries(fileContents).map(([path, content]) => [normalize(path), content]));
+  const packageScripts: ProjectExecutionEvidence["packageScripts"] = [];
+  const lockfiles: string[] = [];
+  const packageManagers = new Set<string>();
+  const runtimePins: string[] = [];
+  const addPin = (label: string, value: string) => {
+    const normalized = value.trim();
+    if (normalized && normalized.length <= 180) runtimePins.push(`${label}: ${normalized}`);
+  };
+
+  for (const path of files) {
+    const name = (path.split("/").pop() || path).toLowerCase();
+    const content = contents.get(path);
+    const manager = LOCKFILE_NAMES[name];
+    if (manager && name !== "pipfile") {
+      lockfiles.push(path);
+      if (manager !== ".NET NuGet") packageManagers.add(manager);
+    }
+    if (content == null) continue;
+
+    if (name === "package.json") {
+      const manifest = readJson(content);
+      if (manifest) {
+        if (typeof manifest.packageManager === "string") {
+          const declared = manifest.packageManager.trim();
+          addPin("package.json packageManager", declared);
+          const match = declared.match(/^(npm|pnpm|yarn|bun)@/i);
+          if (match) packageManagers.add(match[1].toLowerCase());
+        }
+        if (typeof manifest.engines?.node === "string") addPin("Node.js engine constraint", manifest.engines.node);
+        if (manifest.scripts && typeof manifest.scripts === "object" && !Array.isArray(manifest.scripts)) {
+          for (const [scriptName, command] of Object.entries(manifest.scripts)) {
+            if (typeof command === "string" && scriptName.trim() && command.trim()) {
+              packageScripts.push({ name: scriptName, command: command.trim().slice(0, 500), manifest: path });
+            }
+          }
+        }
+      }
+    } else if ([".nvmrc", ".node-version", ".python-version", ".ruby-version", ".java-version"].includes(name)) {
+      const label = name === ".nvmrc" || name === ".node-version" ? "Node.js pin"
+        : name === ".python-version" ? "Python pin"
+        : name === ".ruby-version" ? "Ruby pin" : "Java pin";
+      addPin(label, content.split(/\r?\n/)[0]);
+    } else if (name === "rust-toolchain" || name === "rust-toolchain.toml") {
+      const channel = content.match(/^\s*channel\s*=\s*["']([^"']+)["']/m)?.[1] || (name === "rust-toolchain" ? content.trim().split(/\r?\n/)[0] : "");
+      addPin("Rust toolchain", channel);
+    } else if (name === "global.json") {
+      const version = readJson(content)?.sdk?.version;
+      if (typeof version === "string") addPin(".NET SDK pin", version);
+    } else if (name === "go.mod") {
+      const version = content.match(/^\s*go\s+(\S+)/m)?.[1];
+      const toolchain = content.match(/^\s*toolchain\s+(\S+)/m)?.[1];
+      if (version) addPin("Go language version", version);
+      if (toolchain) addPin("Go toolchain pin", toolchain);
+    } else if (name === "pyproject.toml") {
+      const python = content.match(/^\s*requires-python\s*=\s*["']([^"']+)["']/m)?.[1];
+      if (python) addPin("Python requirement", python);
+    } else if (name === "projectversion.txt" && /(^|\/)projectsettings\/projectversion\.txt$/i.test(path)) {
+      const version = content.match(/\d+\.\d+\.\d+[abfp]?\d*/)?.[0];
+      if (version) addPin("Unity Editor version", version);
+    } else if (name === "package.swift") {
+      const version = content.match(/^\s*\/\/\s* swift-tools-version:\s*([^\s]+)/m)?.[1];
+      if (version) addPin("Swift tools version", version);
+    } else if (name === ".tool-versions") {
+      for (const line of content.split(/\r?\n/)) {
+        const match = line.trim().match(/^(nodejs|python|ruby|golang|rust|java|elixir|erlang)\s+(\S+)/);
+        if (match) addPin(`${match[1]} version-manager pin`, match[2]);
+      }
+    }
+  }
+
+  // Preserve all ecosystems' package-manager evidence; a monorepo may legitimately contain more than one.
+  return {
+    packageScripts: packageScripts.sort((a, b) => a.name.localeCompare(b.name)),
+    lockfiles: [...new Set(lockfiles)].sort(),
+    runtimePins: [...new Set(runtimePins)].sort(),
+    packageManagers: [...packageManagers].sort(),
+  };
+}
+
 export function detectProjectToolchains(paths: Iterable<string>, fileContents: Record<string, string> = {}) {
   const files = [...new Set([...paths].map(normalize).filter(Boolean))];
   const languages = detectLanguageCapabilities(files);

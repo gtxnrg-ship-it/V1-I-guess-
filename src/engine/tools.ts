@@ -9,7 +9,8 @@ import { GH } from "./github";
 import { readRepositoryFile, searchRepositoryCode } from "./repository-files";
 import { credentialGuardMessage } from "./secrets";
 import { runGitHubChecks } from "./github-check-runner";
-import { detectProjectToolchains } from "./language-toolchains";
+import { detectProjectToolchains, inspectProjectExecutionEvidence } from "./language-toolchains";
+import { detectScientificCapabilities } from "./scientific-capabilities";
 
 /** Files an agent can work on: the user's app, or (admin only) Kuro-chan's own source. */
 export interface Workspace {
@@ -135,6 +136,8 @@ export async function runTool(ws: Workspace, name: string, a: any): Promise<Tool
   switch (name) {
     case "inspect_project_capabilities": {
       const report = detectProjectToolchains(Object.keys(files), files);
+      const scientific = detectScientificCapabilities(Object.keys(files), files);
+      const execution = inspectProjectExecutionEvidence(Object.keys(files), files);
       const languageText = report.languages.length ? report.languages.map((item) => [
         `- ${item.label} (evidence: ${item.evidence.join(", ")})`,
         `  Toolchain: ${item.toolchain}`,
@@ -148,6 +151,11 @@ export async function runTool(ws: Workspace, name: string, a: any): Promise<Tool
         `  Candidate tests: ${item.testCommands.join(" OR ")}`,
         `  Boundary: ${item.notes}`,
       ].join("\n")).join("\n") : "- No specific game engine detected from the current file inventory.";
+      const scientificText = scientific.length ? scientific.map((item) => [
+        `- ${item.label} [${item.ecosystem}] (evidence: ${item.evidence.join(", ")})`,
+        `  Likely focus: ${item.focus}`,
+        `  Validation gate: ${item.validation}`,
+      ].join("\n")).join("\n") : "- No scientific/statistical framework dependencies detected in the supplied manifests.";
       const result = [
         `Workspace: ${ws.name}`,
         `Files inventoried: ${Object.keys(files).length}`,
@@ -155,10 +163,17 @@ export async function runTool(ws: Workspace, name: string, a: any): Promise<Tool
         languageText,
         `Detected game engines: ${report.gameEngines.length}`,
         engineText,
+        `Scientific/statistical stacks detected: ${scientific.length}`,
+        scientificText,
         `Build manifests: ${report.buildFiles.join(", ") || "none detected"}`,
+        `Declared package managers: ${execution.packageManagers.join(", ") || "not identified from lockfiles/package.json"}`,
+        `Lockfiles present: ${execution.lockfiles.join(", ") || "none detected"}`,
+        `Declared runtime pins/constraints: ${execution.runtimePins.join("; ") || "none detected; versions remain unknown"}`,
+        `Actual package.json scripts (declared, not run): ${execution.packageScripts.length ? execution.packageScripts.map((item) => `${item.name} = ${item.command} [${item.manifest}]`).join(" | ") : "none detected"}`,
         `Important: ${report.note}`,
+        "Scientific stack detection is dependency evidence only; it does not prove packages are installed or numerical results are correct.",
       ].join("\n\n");
-      return { result, stat: `${report.languages.length} languages / ${report.gameEngines.length} game engines`, detail: result.slice(0, 2000) };
+      return { result, stat: `${report.languages.length} languages / ${report.gameEngines.length} game engines / ${scientific.length} scientific stacks`, detail: result.slice(0, 2000) };
     }
     case "list_files": {
       const list = Object.keys(files).sort().map((p) => `${p} (${files[p].length}b)`);
