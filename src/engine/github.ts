@@ -117,16 +117,23 @@ export class GH {
     const parent = await this.seedIfEmpty(owner, name, opts.fromBranch || branch);
     if (!parent) throw new Error("Couldn't find a starting commit on the branch.");
     const parentCommit = await this.ok("GET", `/repos/${owner}/${name}/git/commits/${parent}`);
+    // Capture the destination branch head before preparing the tree/commit. When publishing
+    // from a separate source branch, guarding only the source SHA is insufficient: the target
+    // branch may move while this commit is being assembled.
+    const targetHeadAtStart = await this.headSha(owner, name, branch);
+    if (!opts.fromBranch && targetHeadAtStart !== parent) {
+      throw new Error("The repository changed before this publish could start. Nothing was pushed. Refresh the project from GitHub and review the changes before trying again.");
+    }
     const tree = await this.ok("POST", `/repos/${owner}/${name}/git/trees`, {
       ...(opts.full ? {} : { base_tree: parentCommit.tree.sha }),
       tree: files.map((f) => (f.content === null ? { path: f.path, mode: "100644", type: "blob", sha: null } : { path: f.path, mode: "100644", type: "blob", content: f.content })),
     });
     const commit = await this.ok("POST", `/repos/${owner}/${name}/git/commits`, { message, tree: tree.sha, parents: [parent] });
     const exists = await this.headSha(owner, name, branch);
-    // Do not move a branch if someone pushed after we read its parent commit.
-    // This is a compare-and-swap guard against accidentally overwriting newer work.
-    if (!opts.fromBranch && exists !== parent) {
-      throw new Error("The repository changed while preparing this publish. Nothing was pushed. Refresh the project from GitHub and review the changes before trying again.");
+    // Always guard the destination, including when the commit is based on another branch.
+    // A missing destination must stay missing; an existing destination must not move.
+    if (exists !== targetHeadAtStart) {
+      throw new Error("The destination branch changed while preparing this publish. Nothing was pushed. Refresh the project from GitHub and review the changes before trying again.");
     }
     if (exists) await this.ok("PATCH", `/repos/${owner}/${name}/git/refs/heads/${branch}`, { sha: commit.sha, force: false });
     else await this.ok("POST", `/repos/${owner}/${name}/git/refs`, { ref: `refs/heads/${branch}`, sha: commit.sha });
