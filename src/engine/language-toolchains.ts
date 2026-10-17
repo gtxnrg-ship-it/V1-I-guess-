@@ -145,10 +145,10 @@ export function detectGameEngineCapabilities(paths: Iterable<string>, fileConten
   });
 }
 
-export function detectProjectToolchains(paths: Iterable<string>) {
+export function detectProjectToolchains(paths: Iterable<string>, fileContents: Record<string, string> = {}) {
   const files = [...new Set([...paths].map(normalize).filter(Boolean))];
   const languages = detectLanguageCapabilities(files);
-  const gameEngines = detectGameEngineCapabilities(files);
+  const gameEngines = detectGameEngineCapabilities(files, fileContents);
   const buildFiles = files.filter((p) => /(^|\/)(CMakeLists\.txt|Makefile|meson\.build|Cargo\.toml|go\.mod|pom\.xml|build\.gradle(?:\.kts)?|\.csproj|Package\.swift|pubspec\.yaml|pyproject\.toml|package\.json|mix\.exs|build\.sbt|cabal\.project|foundry\.toml)$/i.test(p));
   return {
     languages,
