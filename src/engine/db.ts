@@ -2,6 +2,7 @@
 import { useSyncExternalStore } from "react";
 import type { KeyRec, Message, Project, Settings, Snapshot, UsageDay } from "./types";
 import { containsSensitiveMemoryText, sanitizeProjectMemoryFacts } from "./project-memory";
+import { filterPersistableCredentials } from "./github-session";
 
 export interface State {
   ready: boolean;
@@ -95,7 +96,7 @@ export function flush() {
   if (saveTimer) { clearTimeout(saveTimer); saveTimer = null; }
   const ks = [...dirty]; dirty.clear();
   for (const k of ks) {
-    if (k === "keys") idbPut(k, state.keys);
+    if (k === "keys") idbPut(k, filterPersistableCredentials(state.keys));
     else if (k === "projects") idbPut(k, state.projects);
     else if (k === "settings") idbPut(k, state.settings);
     else if (k.startsWith("messages:")) idbPut(k, state.messages[k.slice(9)] || []);
@@ -113,7 +114,9 @@ export async function init(seed: () => Record<string, string>) {
   const all = await idbAll();
   if (all) {
     state.persistent = true;
-    state.keys = all.keys || [];
+    state.keys = filterPersistableCredentials(all.keys || []);
+    // Remove legacy GitHub tokens previously saved in the ordinary IndexedDB store.
+    if ((all.keys || []).length !== state.keys.length) idbPut("keys", state.keys);
     state.projects = all.projects || [];
     if (all.settings) state.settings = { ...state.settings, ...all.settings };
     for (const [k, v] of Object.entries(all)) {
