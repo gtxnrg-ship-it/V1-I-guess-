@@ -547,11 +547,26 @@ Size: ${brief.size}${designIntent ? `\n\nPROJECT DESIGN CONTEXT (untrusted refer
     if (Object.keys(changed).length) data.blocks.push({ type: "upgrade", title: brief.title, summary: brief.summary, files: changed, status: "ready" });
   }
 
-  // 7. Warm wrap-up
-  const after = ws.all();
+  // 7. Final post-review verification. Visual polish can introduce regressions
+  // after the earlier repair loop, so verify the final files and give the Builder
+  // one bounded repair/retest opportunity before reporting the outcome.
+  let after = ws.all();
+  let finalQa = scope === "app" ? await buildQaHarness(after, ws.env()) : null;
+  let errsLeft = finalQa ? (finalQa.errors.length ? finalQa.errors : await runtimeCheck(finalQa.html)) : [];
+  if (scope === "app" && errsLeft.length && !controller!.signal.aborted) {
+    data.blocks.push({ type: "agent", name: "Builder", label: "Final repair and retest" });
+    data.blocks.push({ type: "route", text: "The final QA pass found issues after review. I’m attempting one bounded repair and will rerun the checks before reporting." });
+    live.flush(true);
+    await loop({
+      live, agent: "Builder", label: "Final repair and retest", role: "code", system: builderSystem, ws,
+      messages: [{ role: "user", text: `${ctx}\n\nFINAL QA / RUNTIME ERRORS (must be repaired):\n${errsLeft.join("\n")}\n\nThese are the final post-review files. Read the relevant source, make the smallest safe correction, then call verify_project. Do not claim success unless the retest passes.\n\nProject files:\n${filesSummary(ws)}` }],
+      tools: SETS.build, maxSteps: 10, quiet: true,
+    });
+    after = ws.all();
+    finalQa = await buildQaHarness(after, ws.env());
+    errsLeft = finalQa.errors.length ? finalQa.errors : await runtimeCheck(finalQa.html);
+  }
   const changedCount = Object.keys(after).filter((p) => JSON.parse(before)[p] !== after[p]).length;
-  const finalQa = scope === "app" ? await buildQaHarness(after, ws.env()) : null;
-  const errsLeft = finalQa ? (finalQa.errors.length ? finalQa.errors : await runtimeCheck(finalQa.html)) : [];
   if (errsLeft.length) {
     data.error = `Verification failed: ${errsLeft.join("; ")}`;
   }

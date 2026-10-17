@@ -42,6 +42,7 @@ This document answers two practical questions at the start of every work session
 - Map each claimed tool to a real implementation, permission boundary, timeout, cancellation path, and actionable error state.
 - Test a real generated project through plan, file writes, production package build, tests, a seeded failure, repair, and a second successful run.
 - Keep mocked provider/browser tests clearly separated from live-provider and native-device acceptance.
+- Re-run final QA after visual-polish edits; if those edits introduce errors, make one bounded repair attempt and rerun QA before reporting. Persistent errors must remain a failed/incomplete outcome.
 - Preserve truthful outcome labels: a QA-harness smoke check must not be called a production build or full test suite.
 - Store per-run evidence: exact source revision, commands executed, exit codes, artifacts, and failures.
 
@@ -112,4 +113,4 @@ This document answers two practical questions at the start of every work session
 
 ## Current next action
 
-[PR #139](https://github.com/gtxnrg-ship-it/kuro-chan/pull/139) is merged: immutable-SHA repository snapshot reads are in place. Continue by closing the remaining P0 snapshot/write-guard gaps—shared snapshot object, moving-ref/truncated-tree/large-file/permission/rate-limit tests, target-head revalidation, conflict-safe writes and evidence reporting. Then move directly to the P1 real build–test–repair–retest acceptance run. Use the [verified feature audit](FEATURE_AUDIT.md) as the workstream checklist and cross-conversation handoff. Do not restart local-model UI or rewrite the GitHub client merely because those areas are unfinished; inspect their current call paths first.
+PR #139 is merged, and PRs #141–#143 are now merged as well: destination-head write guards, snapshot reuse, and the first GitHub App migration boundary are in place. The generic provider-key path rejects common personal GitHub token formats; Settings explains the intended App installation and distinguishes it from interim Device Flow. The server-side broker is still not implemented/deployed, so do not remove the only usable interim connection prematurely. The agent pipeline now performs one explicit final repair/retest if visual-polish changes introduce QA errors. Next, continue with the real build–test–repair–retest acceptance slice and remaining snapshot edge cases. Use this audit, the roadmap ledger, and the latest PR checks as the durable cross-session handoff.

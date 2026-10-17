@@ -72,3 +72,13 @@ The repository has a useful engineering-agent foundation, but the intended produ
 - **PR #139 — repository snapshot consistency: merged.** The source-context builder accepts the exact inspected commit SHA, reads the recursive tree from that immutable SHA, and the agent passes the diagnosis baseline into context loading. Regression tests cover immutable-SHA reads and continuing with the known SHA if a redundant moving-ref lookup is unavailable. The remaining edge cases (branch movement, truncated trees, large files, permission/rate-limit failures, target-branch concurrency) remain open; see [Verified feature audit](FEATURE_AUDIT.md).
 - The strict roadmap count remains **13/142 = 9.2%** until a roadmap acceptance item is fully met. Recent merged work does not automatically change the checkbox count.
 - Use [Implementation priorities](IMPLEMENTATION_PRIORITIES.md) as the ranked next-work queue. The next work is remaining repository evidence/write-safety edge cases, then a real build/test/repair/retest proof, then secure GitHub installation flow. Local inference, physical-device acceptance, Visual Intent Studio and secondary polish follow. The strict checklist is **13/142 = 9.2%**; a whole-product capability percentage is not yet measured.
+
+
+## Latest work (2026-10-17, continuing session)
+
+- **PR #140 — durable feature audit/handoff: merged.** Adds the evidence-based workstream audit and strict distinction between checklist percentage and overall capability.
+- **PR #141 — destination-head guard: merged.** Revalidates the target branch head before updating a ref; regression coverage protects against concurrent pushes.
+- **PR #142 — snapshot reuse: merged.** Reuses the immutable repository tree observed during inspection rather than refetching it for context construction.
+- **PR #143 — GitHub App migration boundary: merged.** Check, CodeQL, TypeScript analysis, and APK packaging all passed. Generic AI-provider setup no longer advertises PATs, common GitHub PAT formats are rejected, and Settings explains App installation vs interim Device Flow. This is not a deployed App token broker.
+- **Current change under review:** final post-review QA can now trigger one bounded Builder repair and a second QA run. This guards against errors introduced by visual polish after the original fix loop. Production package builds, full external test suites, and physical-device acceptance are still not proven by the in-browser QA harness.
+- **Strict roadmap count remains 13/142 = 9.2%.** Do not inflate it from merged changes that have not met and been checked against roadmap acceptance gates.
