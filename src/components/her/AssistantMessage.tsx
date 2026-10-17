@@ -91,19 +91,19 @@ function ToolRow({ b }: { b: ToolB }) {
 }
 
 function ToolGroup({ tools, live }: { tools: ToolB[]; live: boolean }) {
-  const running = tools.some((t) => t.status === "running");
-  const [open, setOpen] = useState(live || tools.some((t) => t.thumbs?.length));
-  const edits = tools.filter((t) => t.name === "write_file" || t.name === "edit_file").length;
-  const searches = tools.filter((t) => ["web_search", "read_url", "search_npm", "search_github", "get_docs"].includes(t.name)).length;
+  const [open, setOpen] = useState(live || tools.some((tool) => tool.thumbs?.length));
+  const running = tools.some((tool) => tool.status === "running");
+  const edits = tools.filter((tool) => tool.name === "write_file" || tool.name === "edit_file").length;
+  const searches = tools.filter((tool) => ["web_search", "read_url", "search_npm", "search_github", "get_docs"].includes(tool.name)).length;
   return (
-    <div className="her-rise overflow-hidden rounded-xl border border-border bg-card shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
-      <button data-testid="button-toolgroup" onClick={() => setOpen((o) => !o)} className="flex w-full items-center gap-2 px-3 py-2 text-[12px] text-muted-foreground hover:text-foreground">
+    <div className="her-rise py-1" data-testid="tool-activity">
+      <button data-testid="button-toolgroup" type="button" onClick={() => setOpen((value) => !value)} className="inline-flex max-w-full items-center gap-1.5 text-left text-[12px] text-muted-foreground transition-colors hover:text-foreground">
         {running ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
-        <span className="font-medium">{running ? "Working" : "Worked"}</span>
-        <span className="truncate">· {tools.length} {tools.length === 1 ? "action" : "actions"}{edits ? ` · ${edits} ${edits === 1 ? "edit" : "edits"}` : ""}{searches ? ` · ${searches} lookups` : ""}</span>
-        <ChevronRight className={`ml-auto h-3.5 w-3.5 shrink-0 transition-transform ${open ? "rotate-90" : ""}`} />
+        <span>{running ? "I'm working through this" : "What I did"}</span>
+        <span className="truncate">· {tools.length} {tools.length === 1 ? "action" : "actions"}{edits ? ` · ${edits} edits` : ""}{searches ? ` · ${searches} lookups` : ""}</span>
+        <ChevronRight className={`h-3 w-3 shrink-0 transition-transform ${open ? "rotate-90" : ""}`} />
       </button>
-      {open && <div className="border-t border-border/70">{tools.map((t) => <ToolRow key={t.id} b={t} />)}</div>}
+      {open && <div className="mt-2 ml-1 border-l border-border pl-3">{tools.map((tool) => <ToolRow key={tool.id} b={tool} />)}</div>}
     </div>
   );
 }
