@@ -151,7 +151,51 @@ function ProjectMenu({ busy, onSwitched }: { busy: boolean; onSwitched: () => vo
   const [oauthCode, setOauthCode] = useState("");
   const [oauthUrl, setOauthUrl] = useState("https://github.com/login/device");
   const [oauthMessage, setOauthMessage] = useState("");
+  const [repositories, setRepositories] = useState<{ id: number; full_name: string; description: string | null; private: boolean; default_branch: string; updated_at: string }[]>([]);
+  const [repositoriesLoading, setRepositoriesLoading] = useState(false);
+  const [repositoryError, setRepositoryError] = useState("");
+  const [repositoryFilter, setRepositoryFilter] = useState("");
   const current = db.project();
+
+  useEffect(() => {
+    const token = st.keys.find((key) => key.provider === "github")?.secret;
+    if (dialog !== "import" || !token) {
+      setRepositories([]);
+      setRepositoryError("");
+      return;
+    }
+    let cancelled = false;
+    setRepositoriesLoading(true);
+    setRepositoryError("");
+    const load = async () => {
+      try {
+        const response = await new GH(token).req("GET", "/user/repos?sort=updated&per_page=100&affiliation=owner,collaborator,organization_member");
+        if (response.status >= 300) {
+          const message = response.json?.message || `GitHub returned ${response.status}`;
+          throw new Error(response.status === 403
+            ? "GitHub denied repository listing. Check the GitHub App's repository permissions and your account access."
+            : message);
+        }
+        if (!Array.isArray(response.json)) throw new Error("GitHub returned an unexpected repository list.");
+        if (!cancelled) setRepositories(response.json.filter((repo: any) => repo && typeof repo.full_name === "string" && typeof repo.id === "number")
+          .map((repo: any) => ({ id: repo.id, full_name: repo.full_name, description: typeof repo.description === "string" ? repo.description : null, private: Boolean(repo.private), default_branch: repo.default_branch || "main", updated_at: repo.updated_at || "" })));
+      } catch (error) {
+        if (!cancelled) {
+          setRepositories([]);
+          setRepositoryError(errMsg(error));
+        }
+      } finally {
+        if (!cancelled) setRepositoriesLoading(false);
+      }
+    };
+    void load();
+    return () => { cancelled = true; };
+  }, [dialog, st.keys]);
+
+  const visibleRepositories = repositories.filter((repo) => {
+    const needle = repositoryFilter.trim().toLowerCase();
+    return !needle || repo.full_name.toLowerCase().includes(needle) || (repo.description || "").toLowerCase().includes(needle);
+  }).slice(0, 50);
 
   const connectGitHub = async () => {
     const clientId = import.meta.env.VITE_GITHUB_APP_CLIENT_ID?.trim();
@@ -233,7 +277,7 @@ function ProjectMenu({ busy, onSwitched }: { busy: boolean; onSwitched: () => vo
     setImporting(true);
     try {
       const gh = new GH(tok.secret);
-      const info = await gh.ensureRepo(spec);
+      const info = await gh.getExistingRepo(spec);
       const inspection = await inspectGitHubRepository(gh, `${info.owner}/${info.name}`);
       if (inspection.diagnosis.condition === "unknown" || (!inspection.treeComplete && inspection.diagnosis.condition !== "empty")) {
         throw new Error(`I couldn't safely classify ${info.owner}/${info.name}. ${inspection.diagnosis.summary} I stopped before importing or initializing it so I don't mistake an incomplete inspection for an empty repository.`);
@@ -321,6 +365,28 @@ function ProjectMenu({ busy, onSwitched }: { busy: boolean; onSwitched: () => vo
                 {oauthBusy ? "Waiting for GitHub approval…" : oauthCode ? "Restart GitHub sign-in" : "Connect GitHub"}
               </button>
               {oauthMessage && <p role="status" className="mt-2 text-xs leading-relaxed text-muted-foreground">{oauthMessage}</p>}
+            </div>
+          )}
+          {dialog === "import" && db.keyOf("github") && (
+            <div className="space-y-3 rounded-xl border border-border bg-muted/20 p-3">
+              <div className="flex items-center justify-between gap-2">
+                <div><div className="text-sm font-medium">Your GitHub repositories</div><p className="mt-0.5 text-xs text-muted-foreground">Choose an existing repository or enter its owner/name below. Import is read-only until you explicitly publish changes.</p></div>
+                <button type="button" aria-label="Refresh repositories" disabled={repositoriesLoading} onClick={() => { setDialog(null); window.setTimeout(() => setDialog("import"), 0); }} className="shrink-0 rounded-lg border border-border px-2.5 py-2 text-xs hover:bg-muted disabled:opacity-50"><RefreshCw className={`h-3.5 w-3.5 ${repositoriesLoading ? "animate-spin" : ""}`} /></button>
+              </div>
+              <input aria-label="Filter repositories" value={repositoryFilter} onChange={(event) => setRepositoryFilter(event.target.value)} placeholder="Filter by repository or description…" className="h-9 w-full rounded-lg border border-border bg-background px-3 text-xs outline-none focus:border-primary/60" />
+              {repositoriesLoading && <p role="status" className="text-xs text-muted-foreground">Loading repositories you can access…</p>}
+              {repositoryError && <div role="alert" className="rounded-lg border border-destructive/30 bg-destructive/5 p-2.5 text-xs text-destructive">{repositoryError}</div>}
+              {!repositoriesLoading && !repositoryError && repositories.length === 0 && <p className="text-xs text-muted-foreground">No repositories were returned for this account. You can still paste a repository URL below.</p>}
+              {visibleRepositories.length > 0 && <div className="max-h-56 space-y-1 overflow-y-auto" aria-label="Available repositories">
+                {visibleRepositories.map((repository) => (
+                  <button key={repository.id} type="button" onClick={() => setName(repository.full_name)} className={`w-full rounded-lg border px-3 py-2 text-left transition-colors ${name.trim().replace(/^https?:\\/\\/github\\.com\\//, "").replace(/\\.git$/, "") === repository.full_name ? "border-primary bg-primary/5" : "border-transparent hover:border-border hover:bg-background"}`}>
+                    <span className="flex items-center gap-2"><Github className="h-3.5 w-3.5 shrink-0 text-muted-foreground" /><span className="min-w-0 flex-1 truncate text-xs font-medium">{repository.full_name}</span><span className="shrink-0 rounded-full border border-border px-1.5 py-0.5 text-[9px] text-muted-foreground">{repository.private ? "Private" : "Public"}</span></span>
+                    {repository.description && <span className="mt-1 block line-clamp-2 pl-5 text-[11px] text-muted-foreground">{repository.description}</span>}
+                    <span className="mt-1 block pl-5 text-[10px] text-muted-foreground">Default branch: {repository.default_branch}</span>
+                  </button>
+                ))}
+              </div>}
+              {repositories.length > 50 && <p className="text-[10px] text-muted-foreground">Showing up to 50 matches from the 100 most recently updated repositories GitHub returned. Use the filter to narrow the list.</p>}
             </div>
           )}
           <input data-testid="input-project-name" autoFocus value={name} onChange={(e) => setName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && save()} placeholder={dialog === "import" ? "github.com/you/your-repo" : "e.g. Habit Tracker"}
