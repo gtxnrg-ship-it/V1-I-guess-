@@ -380,6 +380,25 @@ test.describe("Kuro-chan studio", () => {
     await offline.click();
     await expect(provider).toHaveValue("browser");
     await expect(offline).toHaveAttribute("aria-checked", "false");
+
+    // Exercise the actual settings surface and verify the preferences survive a full reload.
+    await provider.selectOption("openai");
+    await page.getByLabel("Speech speed").fill("1.15");
+    const autoSpeak = page.getByRole("switch", { name: "Speak completed replies" });
+    await autoSpeak.click();
+    const autoSend = page.getByRole("switch", { name: "Auto-send recognized voice turns" });
+    await autoSend.click();
+    await expect(autoSpeak).toHaveAttribute("aria-checked", "false");
+    await expect(autoSend).toHaveAttribute("aria-checked", "true");
+
+    await page.reload({ waitUntil: "domcontentloaded" });
+    await page.getByTestId("sidebar-settings").click();
+    await page.getByRole("button", { name: /Voice & speech/i }).click();
+    await expect(page.getByLabel("Voice output provider")).toHaveValue("openai");
+    await expect(page.getByLabel("Speech speed")).toHaveValue("1.15");
+    await expect(page.getByRole("switch", { name: "Speak completed replies" })).toHaveAttribute("aria-checked", "false");
+    await expect(page.getByRole("switch", { name: "Auto-send recognized voice turns" })).toHaveAttribute("aria-checked", "true");
+    await expect(page.getByLabel("Kokoro voice")).toHaveCount(0);
   });
 
   test("auto-sends a spoken turn when browser speech recognition ends", async ({ page }) => {
