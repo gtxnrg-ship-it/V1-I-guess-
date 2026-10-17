@@ -27,8 +27,8 @@ assert(db.snapshots(second.id).length === 0, "snapshots must not leak into a new
 // creates a recovery checkpoint of the current state before applying the restore.
 db.switchProject(first.id);
 db.writeFile("src/temporary.ts", "temporary change");
-db.deleteFile("src/main.ts");
 const restoreTarget = db.takeSnapshot("known-good");
+db.deleteFile("src/main.ts");
 db.writeFile("src/main.ts", "corrupted change");
 db.writeFile("src/new-file.ts", "should disappear after restore");
 const restored = db.restoreSnapshot(restoreTarget.id, first.id);
@@ -48,6 +48,8 @@ assert(db.restoreSnapshot(restoreTarget.id, second.id).ok === false,
   "a checkpoint must not be restorable into a different project");
 assert(JSON.stringify(db.getState().projects.find((p) => p.id === second.id)?.files) === JSON.stringify(beforeCrossProjectAttempt),
   "a cross-project restore attempt must leave the target project unchanged");
+// Return to the second workspace for the existing active-project edit tests.
+db.switchProject(second.id);
 
 assert(db.getState().projects.find((p) => p.id === first.id)?.memory?.facts[0]?.text === "First workspace fact",
   "the original workspace memory must remain attached to its project");
