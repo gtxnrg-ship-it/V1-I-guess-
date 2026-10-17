@@ -155,6 +155,7 @@ function ProjectMenu({ busy, onSwitched }: { busy: boolean; onSwitched: () => vo
   const [repositoriesLoading, setRepositoriesLoading] = useState(false);
   const [repositoryError, setRepositoryError] = useState("");
   const [repositoryFilter, setRepositoryFilter] = useState("");
+  const [repositoryRefreshVersion, setRepositoryRefreshVersion] = useState(0);
   const current = db.project();
 
   useEffect(() => {
@@ -190,7 +191,7 @@ function ProjectMenu({ busy, onSwitched }: { busy: boolean; onSwitched: () => vo
     };
     void load();
     return () => { cancelled = true; };
-  }, [dialog, st.keys]);
+  }, [dialog, st.keys, repositoryRefreshVersion]);
 
   const visibleRepositories = repositories.filter((repo) => {
     const needle = repositoryFilter.trim().toLowerCase();
@@ -371,7 +372,7 @@ function ProjectMenu({ busy, onSwitched }: { busy: boolean; onSwitched: () => vo
             <div className="space-y-3 rounded-xl border border-border bg-muted/20 p-3">
               <div className="flex items-center justify-between gap-2">
                 <div><div className="text-sm font-medium">Your GitHub repositories</div><p className="mt-0.5 text-xs text-muted-foreground">Choose an existing repository or enter its owner/name below. Import is read-only until you explicitly publish changes.</p></div>
-                <button type="button" aria-label="Refresh repositories" disabled={repositoriesLoading} onClick={() => { setDialog(null); window.setTimeout(() => setDialog("import"), 0); }} className="shrink-0 rounded-lg border border-border px-2.5 py-2 text-xs hover:bg-muted disabled:opacity-50"><RefreshCw className={`h-3.5 w-3.5 ${repositoriesLoading ? "animate-spin" : ""}`} /></button>
+                <button type="button" aria-label="Refresh repositories" disabled={repositoriesLoading} onClick={() => setRepositoryRefreshVersion((version) => version + 1)} className="shrink-0 rounded-lg border border-border px-2.5 py-2 text-xs hover:bg-muted disabled:opacity-50"><RefreshCw className={`h-3.5 w-3.5 ${repositoriesLoading ? "animate-spin" : ""}`} /></button>
               </div>
               <input aria-label="Filter repositories" value={repositoryFilter} onChange={(event) => setRepositoryFilter(event.target.value)} placeholder="Filter by repository or description…" className="h-9 w-full rounded-lg border border-border bg-background px-3 text-xs outline-none focus:border-primary/60" />
               {repositoriesLoading && <p role="status" className="text-xs text-muted-foreground">Loading repositories you can access…</p>}
