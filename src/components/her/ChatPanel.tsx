@@ -236,7 +236,14 @@ export function ChatPanel({ scope = "app", onOpenKeys, draft, setDraft, onSent }
   const voiceProvider = st.settings.voiceProvider === "kokoro" || (!st.settings.voiceProvider && st.settings.preferOfflineVoice) ? "kokoro" : st.settings.voiceProvider === "openai" && premiumVoiceReady ? "openai" : "browser";
   const voiceOutputAvailable = speechAvailable || premiumVoiceReady || voiceProvider === "kokoro";
   const fileRef = useRef<HTMLInputElement>(null);
-  const dict = useDictation(draft, setDraft, (m) => { haptic("error"); toast({ title: "Voice input", description: m }); });
+  const sendRef = useRef<(text?: string) => Promise<void>>(async () => {});
+  const dict = useDictation(
+    draft,
+    setDraft,
+    (m) => { haptic("error"); toast({ title: "Voice input", description: m }); },
+    st.settings.voiceConversationMode === true,
+    (transcript) => { void sendRef.current(transcript); },
+  );
 
   useEffect(() => {
     if (prevRunning.current && !running && messages.length) {
@@ -307,6 +314,7 @@ export function ChatPanel({ scope = "app", onOpenKeys, draft, setDraft, onSent }
     setDraft(""); setImages([]); onSent?.();
     agents.send(text || "Here's an image.", { images, scope });
   };
+  sendRef.current = send;
   const isEmpty = !messages.length;
   const lastId = messages[messages.length - 1]?.id;
   const project = db.project();
@@ -453,7 +461,7 @@ export function ChatPanel({ scope = "app", onOpenKeys, draft, setDraft, onSent }
                 className={`grid h-8 w-8 place-items-center rounded-full transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${autoVoice ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}>
                 {autoVoice ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
               </button>
-              <button data-testid="button-mic" aria-label={dict.listening ? "Stop listening" : "Speak"} title="Speak instead of typing" onClick={dict.toggle}
+              <button data-testid="button-mic" aria-label={dict.listening ? st.settings.voiceConversationMode ? "Stop listening and send transcript" : "Stop listening" : st.settings.voiceConversationMode ? "Speak and send when finished" : "Speak"} title={st.settings.voiceConversationMode ? "Tap to speak; the transcript sends when recognition ends" : "Speak instead of typing"} onClick={dict.toggle}
                 className={`relative grid h-8 w-8 place-items-center rounded-full transition-colors ${dict.listening ? "bg-[hsl(var(--ember))] text-white" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}>
                 {dict.listening && <span className="absolute inset-0 animate-ping rounded-full bg-[hsl(var(--ember))]/40" />}
                 <Mic className="relative h-4 w-4" />
@@ -490,7 +498,13 @@ function UserBubble({ m }: { m: Message }) {
 
 /** Browser speech-to-text. Android browsers may end recognition after silence, so
  * state is tied to the actual recognizer lifecycle rather than the button click. */
-function useDictation(draft: string, setDraft: (s: string) => void, onError: (m: string) => void) {
+function useDictation(
+  draft: string,
+  setDraft: (s: string) => void,
+  onError: (m: string) => void,
+  autoSend = false,
+  onFinal: (transcript: string) => void = () => {},
+) {
   const [listening, setListening] = useState(false);
   const listeningRef = useRef(false);
   const rec = useRef<any>(null);
@@ -498,7 +512,15 @@ function useDictation(draft: string, setDraft: (s: string) => void, onError: (m:
   const base = useRef("");
   const draftRef = useRef(draft);
   const stoppedByUser = useRef(false);
+  const lastFinalized = useRef("");
   draftRef.current = draft;
+  const updateDraft = (value: string) => { draftRef.current = value; setDraft(value); };
+  const finalize = () => {
+    const transcript = draftRef.current.trim();
+    if (!autoSend || !transcript || transcript === base.current.trim() || transcript === lastFinalized.current) return;
+    lastFinalized.current = transcript;
+    onFinal(transcript);
+  };
   const resetBase = () => { base.current = ""; };
   const releaseNativeListeners = async () => {
     const handles = nativeListeners.current;
@@ -508,6 +530,7 @@ function useDictation(draft: string, setDraft: (s: string) => void, onError: (m:
     }));
   };
   const stop = () => {
+    const wasActive = listeningRef.current || !!rec.current;
     stoppedByUser.current = true;
     listeningRef.current = false;
     setListening(false);
@@ -518,11 +541,13 @@ function useDictation(draft: string, setDraft: (s: string) => void, onError: (m:
       void SpeechRecognition.stop().catch(() => {});
       void releaseNativeListeners();
     }
+    if (wasActive && autoSend) finalize();
     resetBase();
   };
   const start = async () => {
     if (listeningRef.current || rec.current) return;
     stoppedByUser.current = false;
+    lastFinalized.current = "";
     base.current = draftRef.current ? draftRef.current.replace(/\\s*$/, " ") : "";
     // Android WebViews do not consistently implement browser SpeechRecognition.
     // Use the maintained Capacitor native bridge first; web keeps the browser API.
@@ -542,16 +567,18 @@ function useDictation(draft: string, setDraft: (s: string) => void, onError: (m:
         nativeListeners.current.push(await SpeechRecognition.addListener("partialResults", (event) => {
           if (rec.current !== sentinel || stoppedByUser.current) return;
           const transcript = (event.matches || []).join(" ").trim();
-          if (transcript) setDraft((base.current + transcript).replace(/\\s+/g, " ").trimStart());
+          if (transcript) updateDraft((base.current + transcript).replace(/\\s+/g, " ").trimStart());
         }));
         nativeListeners.current.push(await SpeechRecognition.addListener("listeningState", (event) => {
           if (rec.current !== sentinel) return;
           if (event.status === "stopped") {
+            const endedNaturally = !stoppedByUser.current;
             rec.current = null;
             listeningRef.current = false;
             setListening(false);
             void releaseNativeListeners();
-            if (!stoppedByUser.current) resetBase();
+            if (endedNaturally && autoSend) finalize();
+            else if (!autoSend || !endedNaturally) resetBase();
           }
         }));
         if (rec.current !== sentinel || stoppedByUser.current) {
@@ -582,7 +609,7 @@ function useDictation(draft: string, setDraft: (s: string) => void, onError: (m:
     const r = new SR();
     rec.current = r;
     r.lang = navigator.language || "en-US";
-    r.continuous = true;
+    r.continuous = !autoSend;
     r.interimResults = true;
     r.maxAlternatives = 1;
     r.onstart = () => {
@@ -606,10 +633,12 @@ function useDictation(draft: string, setDraft: (s: string) => void, onError: (m:
     };
     r.onend = () => {
       if (rec.current !== r) return;
+      const endedNaturally = !stoppedByUser.current;
       rec.current = null;
       listeningRef.current = false;
       setListening(false);
-      if (!stoppedByUser.current) resetBase();
+      if (endedNaturally && autoSend) finalize();
+      else if (!autoSend || !endedNaturally) resetBase();
     };
     try { r.start(); }
     catch {
