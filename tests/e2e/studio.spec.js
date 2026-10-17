@@ -246,4 +246,56 @@ test.describe("Kuro-chan studio", () => {
     await expect(provider).toHaveValue("browser");
     await expect(offline).toHaveAttribute("aria-checked", "false");
   });
+
+  test("auto-sends a spoken turn when browser speech recognition ends", async ({ page }) => {
+    await page.addInitScript(() => {
+      class MockRecognition {
+        onstart = null;
+        onresult = null;
+        onend = null;
+        onerror = null;
+        lang = "en-US";
+        continuous = true;
+        interimResults = true;
+        maxAlternatives = 1;
+        start() { window.__kuroMockRecognition = this; this.onstart?.(); }
+        stop() { this.onend?.(); }
+        abort() { this.onend?.(); }
+        emitTranscript(text) { this.onresult?.({ results: [{ 0: { transcript: text }, length: 1 }] }); }
+        finish() { this.onend?.(); }
+      }
+      window.SpeechRecognition = MockRecognition;
+      window.webkitSpeechRecognition = MockRecognition;
+      const synthesis = window.speechSynthesis;
+      if (synthesis) synthesis.speak = (utterance) => { utterance.onstart?.(); utterance.onend?.(); };
+    });
+    let providerRequests = 0;
+    await page.route("https://text.pollinations.ai/openai/chat/completions", async (route) => {
+      if (route.request().method() === "OPTIONS") {
+        await route.fulfill({ status: 204, headers: { "access-control-allow-origin": "*", "access-control-allow-methods": "POST, OPTIONS", "access-control-allow-headers": "authorization, content-type" } });
+        return;
+      }
+      providerRequests += 1;
+      const event = { choices: [{ delta: { tool_calls: [{ index: 0, id: "call_voice_brief", type: "function", function: { name: "propose_brief", arguments: JSON.stringify({ title: "Tiny voice demo", summary: "A tiny app requested by voice.", features: ["One screen", "Large controls"], design: "Calm and accessible", backend: "none", size: "full" }) } }] } }] };
+      const body = "data: " + JSON.stringify(event) + "\n\ndata: [DONE]\n\n";
+      await route.fulfill({ status: 200, headers: { "access-control-allow-origin": "*", "content-type": "text/event-stream; charset=utf-8", "cache-control": "no-cache" }, body });
+    });
+
+    await page.goto("/studio", { waitUntil: "domcontentloaded" });
+    await page.getByTestId("sidebar-settings").click();
+    await page.getByRole("button", { name: /Voice & speech/i }).click();
+    await page.getByRole("switch", { name: "Auto-send recognized voice turns" }).click();
+    await page.getByTestId("button-open-sidebar").click();
+    await page.getByTestId(/^sidebar-project-/).first().click();
+    await expect(page.getByTestId("button-mic")).toHaveAttribute("aria-label", "Speak and send when finished");
+
+    await page.getByTestId("button-mic").click();
+    await page.evaluate(() => window.__kuroMockRecognition.emitTranscript("I want a tiny voice demo app"));
+    await expect(page.getByText("I want a tiny voice demo app")).toBeVisible({ timeout: 10_000 });
+    // End the turn through the same mic-stop path a phone user can tap.
+    await page.getByTestId("button-mic").click();
+
+    await expect(page.getByText("I want a tiny voice demo app")).toBeVisible({ timeout: 10_000 });
+    await expect.poll(() => providerRequests, { timeout: 10_000 }).toBeGreaterThan(0);
+  });
 });

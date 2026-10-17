@@ -126,6 +126,7 @@ export interface Settings {
   voiceModel?: string;
   voiceName?: string;
   voiceAutoSpeak?: boolean;
+  voiceConversationMode?: boolean;
   voiceSpeed?: number;
   preferOfflineVoice?: boolean;
   reduceMotion?: boolean;
