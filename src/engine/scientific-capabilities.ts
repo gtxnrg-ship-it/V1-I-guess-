@@ -78,15 +78,15 @@ function parsePackageJson(content: string): string[] {
 }
 
 function parseRDescription(content: string): string[] {
-  const lines = content.split(/\\r?\\n/);
+  const lines = content.split(/\r?\n/);
   const names: string[] = [];
   let active = false;
   for (const line of lines) {
     if (/^(Imports|Suggests|Depends|LinkingTo|Enhances):/.test(line)) {
       active = true;
-      names.push(...line.slice(line.indexOf(":") + 1).split(",").map((x) => x.trim().split(/\\s*\\(/)[0]).filter(Boolean));
-    } else if (/^\\S[^:]*:/.test(line)) active = false;
-    else if (active && /^\\s+/.test(line)) names.push(...line.trim().split(",").map((x) => x.trim().split(/\\s*\\(/)[0]).filter(Boolean));
+      names.push(...line.slice(line.indexOf(":") + 1).split(",").map((x) => x.trim().split(/\s*\(/)[0]).filter(Boolean));
+    } else if (/^\S[^:]*:/.test(line)) active = false;
+    else if (active && /^\s+/.test(line)) names.push(...line.trim().split(",").map((x) => x.trim().split(/\s*\(/)[0]).filter(Boolean));
   }
   return names;
 }
@@ -99,38 +99,38 @@ function parseManifestNames(path: string, content: string): { ecosystem: string;
   }
   if (file === "description") return { ecosystem: "r", names: parseRDescription(content) };
   if (file === "project.toml" || file === "manifest.toml") {
-    const juliaNames = [...content.matchAll(/^\\s*\\[\\[deps\\.([^\\]]+)\\]\\]/gm)].map((m) => m[1]);
+    const juliaNames = [...content.matchAll(/^\s*\[\[deps\.([^\]]+)\]\]/gm)].map((m) => m[1]);
     const sectionNames: string[] = [];
     let inDeps = false;
-    for (const line of content.split(/\\r?\\n/)) {
-      const section = line.match(/^\\s*\\[([^\\]]+)\\]\\s*$/);
+    for (const line of content.split(/\r?\n/)) {
+      const section = line.match(/^\s*\[([^\]]+)\]\s*$/);
       if (section) { inDeps = /^(deps|weakdeps|extras)$/.test(section[1].trim()); continue; }
-      if (inDeps) { const match = line.match(/^\\s*([A-Za-z][A-Za-z0-9_]*)\\s*=/); if (match) sectionNames.push(match[1]); }
+      if (inDeps) { const match = line.match(/^\s*([A-Za-z][A-Za-z0-9_]*)\s*=/); if (match) sectionNames.push(match[1]); }
     }
     return { ecosystem: "julia", names: [...juliaNames, ...sectionNames] };
   }
   if (file === "cargo.toml") {
     const names: string[] = [];
     let inDependencySection = false;
-    for (const line of content.split(/\\r?\\n/)) {
-      const section = line.match(/^\\s*\\[([^\\]]+)\\]\\s*$/);
-      if (section) { inDependencySection = /(?:^|\\.)dependencies$/.test(section[1].trim()) || /^(dev-dependencies|build-dependencies)$/.test(section[1].trim()); continue; }
-      if (inDependencySection) { const match = line.match(/^\\s*([A-Za-z0-9_-]+)\\s*=/); if (match) names.push(match[1]); }
+    for (const line of content.split(/\r?\n/)) {
+      const section = line.match(/^\s*\[([^\]]+)\]\s*$/);
+      if (section) { inDependencySection = /(?:^|\.)dependencies$/.test(section[1].trim()) || /^(dev-dependencies|build-dependencies)$/.test(section[1].trim()); continue; }
+      if (inDependencySection) { const match = line.match(/^\s*([A-Za-z0-9_-]+)\s*=/); if (match) names.push(match[1]); }
     }
     return { ecosystem: "rust", names };
   }
-  if (["requirements.txt", "requirements-dev.txt", "pyproject.toml", "pipfile", "poetry.lock", "uv.lock", "environment.yml", "environment.yaml"].includes(file) || /requirements[^/]*\\.txt$/.test(file)) {
+  if (["requirements.txt", "requirements-dev.txt", "pyproject.toml", "pipfile", "poetry.lock", "uv.lock", "environment.yml", "environment.yaml"].includes(file) || /requirements[^/]*\.txt$/.test(file)) {
     const names: string[] = [];
-    for (const line of content.split(/\\r?\\n/)) {
+    for (const line of content.split(/\r?\n/)) {
       const trimmed = line.trim();
       if (!trimmed || trimmed.startsWith("#") || trimmed.startsWith("-")) continue;
       if (/^(name|version|python|channels|dependencies):/.test(trimmed)) continue;
-      const poetry = trimmed.match(/^name\\s*=\\s*["']([^"']+)["']/);
+      const poetry = trimmed.match(/^name\s*=\s*["']([^"']+)["']/);
       if (poetry && ["poetry.lock", "uv.lock"].includes(file)) { names.push(poetry[1]); continue; }
-      const match = trimmed.match(/^["']?([A-Za-z][A-Za-z0-9_.-]*)["']?\\s*(?:\\[[^\\]]+\\])?\\s*(?:===|==|>=|<=|~=|!=|>|<|=|;|$)/);
+      const match = trimmed.match(/^["']?([A-Za-z][A-Za-z0-9_.-]*)["']?\s*(?:\[[^\]]+\])?\s*(?:===|==|>=|<=|~=|!=|>|<|=|;|$)/);
       if (match) names.push(match[1]);
       else {
-        const yaml = trimmed.match(/^-\\s*([A-Za-z][A-Za-z0-9_.-]*)\\s*(?:=|$)/);
+        const yaml = trimmed.match(/^-\s*([A-Za-z][A-Za-z0-9_.-]*)\s*(?:=|$)/);
         if (yaml) names.push(yaml[1]);
       }
     }
@@ -140,7 +140,7 @@ function parseManifestNames(path: string, content: string): { ecosystem: string;
 }
 
 export function detectScientificCapabilities(paths: Iterable<string>, fileContents: Record<string, string>): ScientificCapability[] {
-  const fileSet = new Set([...paths].map((path) => path.replace(/\\\\/g, "/")));
+  const fileSet = new Set([...paths].map((path) => path.replace(/\\/g, "/")));
   const packages = new Map<string, Set<string>>();
   const evidenceByEcosystem = new Map<string, Map<string, string[]>>();
   for (const [path, content] of Object.entries(fileContents)) {
