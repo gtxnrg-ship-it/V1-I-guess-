@@ -56,6 +56,14 @@ assert(db.getState().projects.find((p) => p.id === first.id)?.memory?.facts[0]?.
 assert(!db.getState().projects.find((p) => p.id === second.id)?.memory,
   "a new workspace must not inherit another project's memory");
 
+// A task that started in one project may finish after the user has switched to
+// another. Its completion summary must still be written to the original project.
+db.saveProjectMemory({ recentSummary: "Completed first workspace task" }, first.id);
+assert(db.getState().projects.find((p) => p.id === first.id)?.memory?.recentSummary === "Completed first workspace task",
+  "an explicit project ID must target that project's summary even when it is not active");
+assert(!db.getState().projects.find((p) => p.id === second.id)?.memory,
+  "saving a summary for a non-active project must not create memory in the active project");
+
 // File edits must target the active project, not the project opened previously.
 db.writeFile("src/main.cpp", "int main() { return 7; }");
 assert(db.getState().projects.find((p) => p.id === second.id)?.files["src/main.cpp"] === "int main() { return 7; }",
