@@ -5,6 +5,7 @@ import { buildQaHarness } from "./qa-harness";
 import { runtimeCheck, look } from "./eyes";
 import * as R from "./research";
 import { getState, project, writeFile, deleteFile, set } from "./db";
+import { credentialGuardMessage } from "./secrets";
 
 /** Files an agent can work on: the user's app, or (admin only) Kuro-chan's own source. */
 export interface Workspace {
@@ -129,6 +130,8 @@ export async function runTool(ws: Workspace, name: string, a: any): Promise<Tool
     case "write_file": {
       const p = norm(a.path);
       if (!p || typeof a.content !== "string") return { result: "ERROR: path and content are required." };
+      const credentialError = credentialGuardMessage(p, a.content, "write");
+      if (credentialError) return { result: credentialError };
       const d = lineDiff(files[p], a.content);
       ws.write(p, a.content);
       return { result: `Wrote ${p} (${a.content.split("\n").length} lines).`, stat: `+${d.added} -${d.removed}` };
@@ -148,6 +151,8 @@ export async function runTool(ws: Workspace, name: string, a: any): Promise<Tool
         if (m && c.split(m[0]).length === 2) { next = c.replace(m[0], () => String(a.replace ?? "")); n = 1; }
       }
       if (next == null) return { result: n === 0 ? `ERROR: "find" text not found in ${p}. Read the file again and copy the exact text, or use write_file.` : `ERROR: "find" matches ${n} places in ${p}; include more surrounding text.` };
+      const credentialError = credentialGuardMessage(p, next, "edit");
+      if (credentialError) return { result: credentialError };
       const d = lineDiff(c, next);
       ws.write(p, next);
       return { result: `Edited ${p}.`, stat: `+${d.added} -${d.removed}` };
