@@ -165,7 +165,7 @@ test.describe("Kuro-chan studio", () => {
           "",
           "data: [DONE]",
           "",
-        ].join("\\n"),
+        ].join("\n"),
       });
     });
 
