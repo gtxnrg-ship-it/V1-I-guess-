@@ -341,4 +341,23 @@ test.describe("Kuro-chan studio", () => {
     await expect(page.getByText("Before restore", { exact: true })).toBeVisible();
     await expect(page.getByText(/A safety checkpoint of the previous files was created first/)).toBeVisible();
   });
+
+  test("does not invent a RAM estimate when the browser hides device memory", async ({ page }) => {
+    await page.addInitScript(() => {
+      Object.defineProperty(navigator, "deviceMemory", { configurable: true, value: undefined });
+    });
+    await page.goto("/studio", { waitUntil: "domcontentloaded" });
+    await page.getByTestId("sidebar-settings").click();
+    await page.getByRole("button", { name: /AI & models/i }).click();
+
+    const ram = page.getByTestId("local-model-ram");
+    await expect(ram).toHaveValue("unknown");
+    await expect(page.getByTestId("local-model-recommendation")).toContainText("Memory information isn't exposed");
+    await ram.selectOption("4");
+    await expect(page.getByTestId("local-model-recommendation")).toContainText("Try tiny models first");
+
+    await page.getByRole("button", { name: "Red" }).click();
+    await expect(page.getByTestId("local-model-qwen3-4b")).toBeVisible();
+    await expect(page.getByTestId("local-model-qwen3-0.6b")).toHaveCount(0);
+  });
 });
