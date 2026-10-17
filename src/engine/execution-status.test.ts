@@ -17,4 +17,5 @@ assertEqual(toolResultFailed("Builds, but it crashed or logged errors while runn
 assertEqual(toolResultFailed("Workflow failed", "FAILED"), true, "failed remote checks must mark the tool block as failed");
 assertEqual(toolResultFailed("Builds and runs cleanly.", "clean"), false, "clean verification must remain successful");
 assertEqual(toolResultFailed("Read file contents"), false, "ordinary tool output must remain successful");
-\nconsole.log("Execution outcome regression tests passed");
+
+console.log("Execution outcome regression tests passed");
