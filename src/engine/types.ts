@@ -127,6 +127,9 @@ export interface Settings {
   voiceName?: string;
   voiceAutoSpeak?: boolean;
   voiceConversationMode?: boolean;
+  personalityPlayfulness?: number;
+  responseLength?: "concise" | "balanced" | "detailed";
+  conversationPersonalization?: boolean;
   voiceSpeed?: number;
   preferOfflineVoice?: boolean;
   reduceMotion?: boolean;

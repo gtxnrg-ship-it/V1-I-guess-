@@ -13,6 +13,7 @@ import { inspectGitHubRepository } from "./live-repository-intelligence";
 import type { AgentName, AssistantData, Block, Brief, Message, PlanStep, Role } from "./types";
 import { executionOutcome } from "./execution-status";
 import { buildDesignIntentContext } from "./design-intent";
+import { buildPersonaPreferencesPrompt } from "./persona-preferences";
 
 export type Scope = "app" | "self";
 export const SELF_PID = "__self";
@@ -184,7 +185,7 @@ let repositoryInspectionCache: { key: string; at: number; text: string } | null 
 async function talkerContext(scope: Scope): Promise<string> {
   const current = db.project();
   const env = Object.keys(current.env);
-  const projectMemory = scope === "app" ? buildProjectContextPack({
+  const projectMemory = scope === "app" && db.getState().settings.conversationPersonalization !== false ? buildProjectContextPack({
     projectName: current.name,
     repository: current.repo,
     baselineSha: current.repoBaseSha,
@@ -234,7 +235,8 @@ async function talkerContext(scope: Scope): Promise<string> {
 
 function talkerSystem(scope: Scope): string {
   // Keep system instructions static. Project/repository/design data is added only to user messages.
-  return `${P.TALKER}${scope === "self" ? `\n\n${SELF_STACK}\nYou are in the ADMIN panel talking to your creator about upgrading YOURSELF. Briefs here describe changes to your own code.` : ""}`;
+  const preferences = buildPersonaPreferencesPrompt(db.getState().settings);
+  return `${P.TALKER}\n\n${preferences}${scope === "self" ? `\n\n${SELF_STACK}\nYou are in the ADMIN panel talking to your creator about upgrading YOURSELF. Briefs here describe changes to your own code.` : ""}`;
 }
 
 // ───────────── public: talk ─────────────
