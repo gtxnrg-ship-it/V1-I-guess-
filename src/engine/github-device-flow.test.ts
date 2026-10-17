@@ -37,6 +37,38 @@ async function run() {
   let missingClientId = false;
   try { await beginGitHubDeviceFlow(""); } catch (error) { missingClientId = String(error).includes("VITE_GITHUB_APP_CLIENT_ID"); }
   assert(missingClientId, "explains how to configure the public client ID");
+
+  // Failure paths must not leave an authenticated session behind.
+  const beforeFailureFetch = globalThis.fetch;
+  try {
+    clearGitHubSession();
+    globalThis.fetch = (async () => new Response(JSON.stringify({ error: "access_denied" }), { status: 200, headers: { "Content-Type": "application/json" } })) as typeof fetch;
+    let denied = "";
+    try {
+      await completeGitHubDeviceFlow({ deviceCode: "denied-device", userCode: "ABCD", verificationUri: "https://github.com/login/device", expiresAt: Date.now() + 10_000, intervalSeconds: 0 }, "public-client-id");
+    } catch (error) { denied = error instanceof Error ? error.message : String(error); }
+    assert(denied.includes("was denied"), "explicit authorization denial should be explained");
+    assert(getGitHubSession() === null, "denied authorization must not create a session");
+
+    const controller = new AbortController();
+    controller.abort();
+    let cancelled = "";
+    try {
+      await completeGitHubDeviceFlow({ deviceCode: "cancelled-device", userCode: "ABCD", verificationUri: "https://github.com/login/device", expiresAt: Date.now() + 10_000, intervalSeconds: 1 }, "public-client-id", { signal: controller.signal });
+    } catch (error) { cancelled = error instanceof Error ? error.name : ""; }
+    assert(cancelled === "AbortError", "an already-cancelled sign-in should stop without polling");
+    assert(getGitHubSession() === null, "cancelled authorization must not create a session");
+
+    let expired = "";
+    try {
+      await completeGitHubDeviceFlow({ deviceCode: "expired-device", userCode: "ABCD", verificationUri: "https://github.com/login/device", expiresAt: Date.now() - 1, intervalSeconds: 1 }, "public-client-id");
+    } catch (error) { expired = error instanceof Error ? error.message : String(error); }
+    assert(expired.includes("expired"), "expired device code should ask the user to restart sign-in");
+    assert(getGitHubSession() === null, "expired authorization must not create a session");
+  } finally {
+    globalThis.fetch = beforeFailureFetch;
+    clearGitHubSession();
+  }
   console.log("GitHub device flow tests passed");
 }
 void run();
