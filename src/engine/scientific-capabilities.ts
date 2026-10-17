@@ -63,7 +63,7 @@ const RULES: Rule[] = [
 const normalizeName = (value: string) => value.toLowerCase().replace(/[-_.]+/g, "-");
 const basename = (path: string) => path.replace(/\\/g, "/").split("/").pop() || path;
 
-function addNames(target: Map<string, Set<string>>, ecosystem: string, path: string, names: Iterable<string>) {
+function addNames(target: Map<string, Set<string>>, ecosystem: string, names: Iterable<string>) {
   let found = target.get(ecosystem);
   if (!found) { found = new Set<string>(); target.set(ecosystem, found); }
   for (const name of names) found.add(normalizeName(name));
@@ -123,7 +123,10 @@ function parseManifestNames(path: string, content: string): { ecosystem: string;
     const names: string[] = [];
     for (const line of content.split(/\r?\n/)) {
       const trimmed = line.trim();
-      if (!trimmed || trimmed.startsWith("#") || trimmed.startsWith("-")) continue;
+      if (!trimmed || trimmed.startsWith("#")) continue;
+      const environmentPackage = trimmed.match(/^-\s*([A-Za-z][A-Za-z0-9_.-]*)\s*(?:=|$)/);
+      if (environmentPackage && ["environment.yml", "environment.yaml"].includes(file)) { names.push(environmentPackage[1]); continue; }
+      if (trimmed.startsWith("-")) continue;
       if (/^(name|version|python|channels|dependencies):/.test(trimmed)) continue;
       const poetry = trimmed.match(/^name\s*=\s*["']([^"']+)["']/);
       if (poetry && ["poetry.lock", "uv.lock"].includes(file)) { names.push(poetry[1]); continue; }
@@ -146,7 +149,7 @@ export function detectScientificCapabilities(paths: Iterable<string>, fileConten
   for (const [path, content] of Object.entries(fileContents)) {
     const parsed = parseManifestNames(path, content);
     if (!parsed) continue;
-    addNames(packages, parsed.ecosystem, path, parsed.names);
+    addNames(packages, parsed.ecosystem, parsed.names);
     const names = new Set(parsed.names.map(normalizeName));
     let evidence = evidenceByEcosystem.get(parsed.ecosystem);
     if (!evidence) { evidence = new Map(); evidenceByEcosystem.set(parsed.ecosystem, evidence); }
