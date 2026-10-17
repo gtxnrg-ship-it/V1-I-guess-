@@ -69,6 +69,16 @@ async function testAbortStopsPolling() {
   assert(cancelled, "aborting during the wait must stop the device flow");
   assert(mock.calls.length === 1, "do not poll GitHub after cancellation");
 }
+async function testHttpErrorCannotReturnAToken() {
+  const mock = mockFetch([
+    { device_code: "device", user_code: "ABCD", verification_uri: "https://github.com/login/device", interval: 5, expires_in: 300 },
+    response({ access_token: "must-not-be-accepted", error: "invalid_client" }, 401),
+  ]);
+  let failed = false;
+  try { await runGitHubDeviceFlow({ clientId: "client", fetchImpl: mock.fetchImpl, sleep: async () => {} }); }
+  catch (error) { failed = String((error as Error).message).includes("invalid_client"); }
+  assert(failed, "a token-shaped value in a failed HTTP response must never be accepted");
+}
 async function testMissingConfigurationFailsClosed() {
   let failed = false;
   try { await runGitHubDeviceFlow({ clientId: " " }); } catch (error) { failed = String(error).includes("client ID"); }
