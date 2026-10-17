@@ -168,7 +168,7 @@ function ProjectMenu({ busy, onSwitched }: { busy: boolean; onSwitched: () => vo
         headers: { Accept: "application/json", "Content-Type": "application/x-www-form-urlencoded" },
         body: new URLSearchParams({ client_id: clientId }),
       });
-      if (!deviceResponse.ok) throw new Error(`GitHub authorization setup failed (${deviceResponse.status}). Check the OAuth App's Device Flow setting and try again.`);
+      if (!deviceResponse.ok) throw new Error(`GitHub authorization setup failed (${deviceResponse.status}). Check the GitHub App's Device Flow setting and try again.`);
       const device = await deviceResponse.json();
       if (!device.device_code || !device.user_code || !device.verification_uri) {
         throw new Error(device.error_description || device.error || "GitHub did not return a device authorization code.");
