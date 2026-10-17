@@ -1,13 +1,16 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, type ReactNode } from "react";
 
-type Theme = "light" | "dark";
-const Ctx = createContext<{ theme: Theme; toggle: () => void }>({ theme: "light", toggle: () => {} });
+/** Kuro-chan uses one intentional dark galaxy theme. Keeping this provider stable
+ * prevents the system light preference from fighting the app's dark design tokens. */
+type Theme = "dark";
+const Ctx = createContext<{ theme: Theme; toggle: () => void }>({ theme: "dark", toggle: () => {} });
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setTheme] = useState<Theme>(() =>
-    typeof window !== "undefined" && window.matchMedia?.("(prefers-color-scheme: dark)").matches ? "dark" : "light",
-  );
-  useEffect(() => { document.documentElement.classList.toggle("dark", theme === "dark"); }, [theme]);
-  return <Ctx.Provider value={{ theme, toggle: () => setTheme((t) => (t === "dark" ? "light" : "dark")) }}>{children}</Ctx.Provider>;
+  useEffect(() => {
+    document.documentElement.classList.add("dark");
+    document.documentElement.style.colorScheme = "dark";
+    return () => { document.documentElement.style.colorScheme = ""; };
+  }, []);
+  return <Ctx.Provider value={{ theme: "dark", toggle: () => {} }}>{children}</Ctx.Provider>;
 }
 export const useTheme = () => useContext(Ctx);
