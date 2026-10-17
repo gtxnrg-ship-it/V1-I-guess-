@@ -16,7 +16,7 @@ export function executionOutcome(input: { aborted: boolean; error?: string | nul
  * their own established prefixes/status labels.
  */
 export function toolResultFailed(result: string, stat?: string): boolean {
-  if (/^(?:failed|failure|error\b)/i.test(stat?.trim() || "")) return true;
+  if (/^(?:failed|failure|error\b|blocked\b|unverified\b|not verified\b|not run\b)/i.test(stat?.trim() || "")) return true;
   if (/\b\d+\b.*\berrors?\b/i.test(stat || "")) return true;
   return /^(?:ERROR\b|No such\b|Unknown tool\b|BUILD ERRORS\s*:|Syntax errors\s*:|Builds, but it crashed or logged errors while running\s*:)/i.test(result.trim());
 }

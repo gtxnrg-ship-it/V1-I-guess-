@@ -285,7 +285,13 @@ function ProjectMenu({ busy, onSwitched }: { busy: boolean; onSwitched: () => vo
         throw new Error(`I couldn't safely classify ${info.owner}/${info.name}. ${inspection.diagnosis.summary} I stopped before importing or initializing it so I don't mistake an incomplete inspection for an empty repository.`);
       }
       const baseSha = inspection.baselineSha || await gh.headSha(info.owner, info.name, info.defaultBranch);
-      const files = inspection.diagnosis.condition === "empty" ? {} : await gh.readTree(info.owner, info.name, info.defaultBranch, (p) => !/^(node_modules|dist|build|android|ios|\.git)\//.test(p) && !/(^|\/)(package-lock\.json|yarn\.lock|pnpm-lock\.yaml)$/.test(p));
+      const imported = inspection.diagnosis.condition === "empty"
+        ? { files: [], complete: true, totalBytes: 0, skipped: 0 }
+        : await gh.readTreeBounded(info.owner, info.name, info.defaultBranch, (p) => !/^(node_modules|dist|build|android|ios|\.git)\//.test(p) && !/(^|\/)(package-lock\.json|yarn\.lock|pnpm-lock\.yaml)$/.test(p));
+      if (!imported.complete) {
+        throw new Error(`Import of ${info.owner}/${info.name} was incomplete (${imported.files.length} files, ${imported.totalBytes} bytes; ${imported.skipped} skipped). ${imported.reason || "Repository inspection was truncated."} No partial project was created; narrow the import or exclude generated/vendor files and retry.`);
+      }
+      const files = Object.fromEntries(imported.files.map((f) => [f.path, f.content]));
       if (inspection.diagnosis.condition !== "empty" && !Object.keys(files).length) {
         throw new Error(`GitHub reported an existing project but Kuro-chan could not read its files. No starter files were created. ${inspection.diagnosis.summary}`);
       }

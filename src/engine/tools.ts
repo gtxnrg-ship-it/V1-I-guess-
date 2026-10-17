@@ -10,6 +10,7 @@ import { readRepositoryFile, searchRepositoryCode } from "./repository-files";
 import { credentialGuardMessage } from "./secrets";
 import { runGitHubChecks } from "./github-check-runner";
 import { detectProjectToolchains } from "./language-toolchains";
+import { unsupportedVerification } from "./verification-honesty";
 import { detectScientificCapabilities } from "./scientific-capabilities";
 import { diagnoseWorkflowRun } from "./workflow-failure-diagnostics";
 
@@ -259,6 +260,8 @@ export async function runTool(ws: Workspace, name: string, a: any): Promise<Tool
         const errs = await syntaxCheck(files, (ws as any).changed || []);
         return { result: errs.length ? `Syntax errors:\n${errs.join("\n")}` : "All changed files parse cleanly. (The full type-check and build run on GitHub Actions.)", stat: errs.length ? `${errs.length} errors` : "clean" };
       }
+      const unavailable = unsupportedVerification(files);
+      if (unavailable) return unavailable;
       const b = await buildQaHarness(files, ws.env());
       if (b.errors.length) return { result: `BUILD ERRORS:\n${b.errors.join("\n")}`, stat: `${b.errors.length} errors` };
       const rt = await runtimeCheck(b.html);

@@ -15,6 +15,8 @@ assertEqual(toolResultFailed("Syntax errors: src/App.tsx:1:4 Expected \";\""), t
 assertEqual(toolResultFailed("BUILD ERRORS:\nmissing module"), true, "build failures must mark the tool block as failed");
 assertEqual(toolResultFailed("Builds, but it crashed or logged errors while running:\nTypeError"), true, "runtime failures must mark the tool block as failed");
 assertEqual(toolResultFailed("Workflow failed", "FAILED"), true, "failed remote checks must mark the tool block as failed");
+assertEqual(toolResultFailed("NOT VERIFIED: no native runner", "UNVERIFIED"), true, "unverified projects must not look successful");
+assertEqual(toolResultFailed("No repository permission", "BLOCKED"), true, "blocked tools must not look successful");
 assertEqual(toolResultFailed("Builds and runs cleanly.", "clean"), false, "clean verification must remain successful");
 assertEqual(toolResultFailed("Read file contents"), false, "ordinary tool output must remain successful");
 
