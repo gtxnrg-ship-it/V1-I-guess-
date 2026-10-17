@@ -5,6 +5,12 @@
 **Baseline reviewed:** `main` at `d68c71d0106bc5f701906727d6cde4aee351f163`  
 **Purpose:** durable handoff and evidence-based implementation queue. Update this file whenever an acceptance gate materially changes.
 
+## Current status and resumption
+
+For the exact current PR state, user requirements, verified baseline, and ordered next steps, start with the [current engineering handoff](CURRENT_HANDOFF.md). The roadmap and checklist count are maintained separately in [ROADMAP.md](../ROADMAP.md) and [the progress ledger](ROADMAP_PROGRESS.md).
+
+The current checklist count is **15/150 (10.0%)**. This is not an overall capability score. The discovery layer recognizes 26 language families and 10 game-engine families, but real isolated execution and end-to-end scientific/game-engine acceptance remain incomplete.
+
 ## How to read this audit
 
 This is a repository-evidence audit, not a claim that every tracked file was manually reviewed line by line or that every feature has passed production acceptance. The audit covered the tracked repository inventory, product vision/roadmap/README, implementation priorities and progress ledger, core engineering modules, settings and feature screens, representative automated tests, and CI workflows.
