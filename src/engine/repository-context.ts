@@ -64,7 +64,17 @@ export async function buildRepositoryContext(
   ]);
   const defaultBranch = typeof metadata.default_branch === "string" && metadata.default_branch ? metadata.default_branch : "main";
   const branch = requestedBranch || defaultBranch;
-  const treeResponse = await client.req("GET", `/repos/${repository}/git/trees/${encodeURIComponent(branch)}?recursive=1`);
+  // Pin every subsequent read to the exact commit observed above. Reading a moving branch name
+  // here could mix files from a newer push with a baseline SHA captured before that push.
+  if (commits.status !== 200 && commits.status !== 409) {
+    throw new Error(`Could not establish the repository baseline commit (HTTP ${commits.status}); source context was not built.`);
+  }
+  if (commits.status === 200 && (!Array.isArray(commits.json) || !commits.json[0]?.sha)) {
+    throw new Error("GitHub returned an invalid commit response; source context was not built.");
+  }
+  const observedCommitSha: string | null = commits.status === 200 ? commits.json[0].sha : null;
+  const treeRef = observedCommitSha || branch;
+  const treeResponse = await client.req("GET", `/repos/${repository}/git/trees/${encodeURIComponent(treeRef)}?recursive=1`);
   // GitHub returns 409 for an empty commit list and 404 for its missing tree. Only that paired response is treated as a blank repository; auth and unrelated 404s still fail closed.
   if (commits.status === 409 && treeResponse.status === 404) {
     const warnings = ["This repository has no commits yet. There are no source files to inspect; create the initial project files before requesting code diagnosis."];
@@ -111,7 +121,7 @@ export async function buildRepositoryContext(
     }
     if (usedChars >= totalLimit) break;
   }
-  const commitSha = commits.status === 200 && Array.isArray(commits.json) ? commits.json[0]?.sha ?? null : null;
+  const commitSha = observedCommitSha;
   if (!treeComplete) warnings.push("GitHub marked the recursive tree as truncated; the inventory may be incomplete.");
   if (candidates.length > files.length) warnings.push(`Only ${files.length} of ${candidates.length} eligible text files were read; remaining source files were not loaded into this context pack.`);
   if (files.some((file) => file.truncated)) warnings.push("One or more file bodies were truncated to keep context bounded.");
