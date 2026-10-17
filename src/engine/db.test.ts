@@ -77,4 +77,33 @@ db.writeFile("src/only-second.txt", "second");
 assert(db.getState().projects.find((p) => p.id === first.id)?.files["src/only-second.txt"] === undefined,
   "files created in the second workspace must not appear in the first workspace");
 
-console.log("Workspace isolation regression tests passed");
+// Invalid/stale project IDs must not make project-scoped accessors crash.
+const activeBeforeInvalidSwitch = db.getState().settings.activeProject;
+assert(!db.switchProject("missing-project"), "switching to a missing project must be rejected");
+assert(db.getState().settings.activeProject === activeBeforeInvalidSwitch,
+  "a rejected switch must preserve the current active project");
+
+// Deleting a non-active project must clean its associated conversation and snapshots
+// without disturbing the active workspace.
+db.addMessage({ role: "user", content: "Delete with project" }, first.id);
+db.takeSnapshot("Delete with project", first.id);
+db.deleteProject(first.id);
+assert(!db.getState().projects.some((p) => p.id === first.id), "deleted workspace must be removed");
+assert(db.messages(first.id).length === 0, "deleted workspace conversation must be removed from memory");
+assert(db.snapshots(first.id).length === 0, "deleted workspace checkpoints must be removed from memory");
+assert(db.getState().settings.activeProject === second.id, "deleting another workspace must preserve the active workspace");
+
+// Deleting the final project must atomically leave the store in a usable state.
+db.deleteProject(second.id);
+const replacement = db.getState().projects[0];
+assert(!!replacement, "deleting the final workspace must create a replacement workspace");
+assert(replacement.name === "New chat" && Object.keys(replacement.files).length === 0,
+  "replacement workspace must be clean and clearly named");
+assert(db.getState().settings.activeProject === replacement.id,
+  "replacement workspace must become active immediately");
+assert(db.project().id === replacement.id, "project accessor must remain safe after final-project deletion");
+assert(db.files() === replacement.files, "file accessor must remain safe after final-project deletion");
+assert(db.switchProject(replacement.id), "replacement workspace must be switchable");
+assert(!db.switchProject(second.id), "deleted workspace must no longer be switchable");
+
+console.log("Workspace isolation and lifecycle regression tests passed");
