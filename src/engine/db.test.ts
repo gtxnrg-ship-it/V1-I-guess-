@@ -86,7 +86,7 @@ assert(db.getState().settings.activeProject === activeBeforeInvalidSwitch,
 // Deleting a non-active project must clean its associated conversation and snapshots
 // without disturbing the active workspace.
 db.addMessage({ role: "user", content: "Delete with project" }, first.id);
-db.takeSnapshot("Delete with project", first.id);
+// The first workspace already has a checkpoint from the isolation tests above.
 db.deleteProject(first.id);
 assert(!db.getState().projects.some((p) => p.id === first.id), "deleted workspace must be removed");
 assert(db.messages(first.id).length === 0, "deleted workspace conversation must be removed from memory");
