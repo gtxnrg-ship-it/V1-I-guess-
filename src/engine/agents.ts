@@ -470,8 +470,12 @@ Size: ${brief.size}`;
   // 7. Warm wrap-up
   const after = ws.all();
   const changedCount = Object.keys(after).filter((p) => JSON.parse(before)[p] !== after[p]).length;
-  const errsLeft = scope === "app" ? (await buildQaHarness(after, ws.env())).errors : [];
-  data.blocks.push({ type: "agent", name: "Talker", label: "Done" });
+  const finalQa = scope === "app" ? await buildQaHarness(after, ws.env()) : null;
+  const errsLeft = finalQa ? (finalQa.errors.length ? finalQa.errors : await runtimeCheck(finalQa.html)) : [];
+  if (errsLeft.length) {
+    data.error = `Verification failed: ${errsLeft.join("; ")}`;
+  }
+  data.blocks.push({ type: "agent", name: "Talker", label: errsLeft.length ? "Needs attention" : "Done" });
   await loop({
     live, agent: "Talker", label: "Done", role: "talk", system: P.SUMMARY, ws, tools: [],
     messages: [{ role: "user", text: `${ctx}\n\nWhat happened: ${steps.filter((s) => s.status === "done").length}/${steps.length} plan steps done; ${changedCount} files changed; ${issuesFixed ? `${issuesFixed} design issues found and fixed` : verdict ? "passed design review" : "no visual review"}; ${errsLeft.length ? `build still has errors: ${errsLeft.join("; ")}` : "builds cleanly"}.${scope === "self" ? " This is an upgrade to Kuro-chan herself: it is staged and the admin must tap Ship upgrade." : ""}\n\nWrite the wrap-up.` }],
@@ -511,6 +515,7 @@ async function run(live: Live, fn: () => Promise<void>) {
       if (b.type === "plan") b.steps.forEach((s) => { if (s.status === "doing") s.status = controller!.signal.aborted ? "todo" : "error"; });
     }
     if (controller.signal.aborted) live.data.blocks.push({ type: "route", text: "Stopped." });
+    live.data.outcome = controller.signal.aborted ? "stopped" : live.data.error ? "failed" : "completed";
     live.data.done = true;
     live.flush(true);
     db.set({ busy: false });
