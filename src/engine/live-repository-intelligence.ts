@@ -47,7 +47,7 @@ export async function inspectGitHubRepository(
   const metadata = await get(client, repoPath);
   const defaultBranch = typeof metadata.default_branch === "string" && metadata.default_branch ? metadata.default_branch : "main";
   const requestedRef = refInput?.trim();
-  if (requestedRef && (requestedRef.length > 255 || requestedRef.startsWith("-") || requestedRef.includes("..") || requestedRef.includes("\\\\") || /[\\u0000-\\u0020~^:?*\\[\\]]/.test(requestedRef))) {
+  if (requestedRef && (requestedRef.length > 255 || requestedRef.startsWith("-") || requestedRef.includes("..") || /[\u0000-\u0020~^:?*\[\]\\]/.test(requestedRef))) {
     throw new Error("The selected repository branch/ref is malformed.");
   }
   const inspectedRef = requestedRef || defaultBranch;
