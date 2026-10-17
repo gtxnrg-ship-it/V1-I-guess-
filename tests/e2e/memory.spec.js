@@ -56,6 +56,7 @@ test.describe("Kuro-chan project memory", () => {
     await page.getByTestId("memory-add-entry").click();
     await expect(page.getByTestId("memory-fact-0")).toBeVisible();
 
+    await page.getByTestId("button-open-sidebar").click();
     await page.getByTestId("button-new-chat").click();
     await page.getByTestId("button-open-sidebar").click();
     await page.getByTestId("sidebar-memory").click();
