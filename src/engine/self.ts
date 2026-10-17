@@ -5,7 +5,7 @@ import { getState, keyOf } from "./db";
 import { memoryWorkspace } from "./tools";
 import { webSearch } from "./research";
 
-import { DEFAULT_SELF_REPO, resolveSelfRepo } from "./self-repo";
+import { resolveSelfRepo } from "./self-repo";
 export { DEFAULT_SELF_REPO } from "./self-repo";
 export const selfRepo = () => resolveSelfRepo(getState().settings.selfRepo);
 
