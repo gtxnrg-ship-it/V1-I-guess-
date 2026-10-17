@@ -84,6 +84,8 @@ export interface Project {
   id: string;
   name: string;
   repo: string | null;
+  /** Optional repository branch/ref used for source inspection; omitted means the GitHub default branch. */
+  repoBranch?: string;
   /** Last remote commit observed when importing or successfully publishing this project. */
   repoBaseSha?: string;
   /** Project-scoped visual research and design decisions. */
