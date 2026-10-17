@@ -33,7 +33,7 @@ This is the living plan for Kuro-chan: a chat-first AI coding companion that can
 ## P0 — trustworthy engineering and safety
 
 - [ ] Make every significant change reviewable with a clear summary and file diff.
-- [ ] Add snapshots/checkpoints before risky edits and a way to restore a prior project state.
+- [x] Add snapshots/checkpoints before risky edits and a way to restore a prior project state. The studio exposes named checkpoints and creates a safety checkpoint before restoring files.
 - [ ] Prevent API keys, tokens, and other secrets from entering generated code, commits, logs, or public artifacts.
 - [ ] Require explicit confirmation for consequential actions such as publishing, overwriting, or changing repository permissions.
 - [ ] Show the exact checks that ran, their results, and what remains unverified.
@@ -62,7 +62,7 @@ This is the living plan for Kuro-chan: a chat-first AI coding companion that can
 ## P1 — project understanding and task memory
 
 - [ ] Keep useful conversation history and independent context for each project/session.
-- [ ] Make project memory inspectable, editable, and deletable by the user.
+- [x] Make project memory inspectable, editable, and deletable by the user. The Memory workspace manages facts, decisions, open questions, and the hand-off summary with credential filtering.
 - [ ] Remember important architecture choices, user constraints, and decisions without inventing facts.
 - [ ] Read repository instructions and existing conventions before planning edits.
 - [ ] Build a project map of key files, dependencies, entry points, tests, and architecture.
