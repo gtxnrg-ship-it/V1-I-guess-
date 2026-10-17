@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Moon, Sun, Github, Code2, KeyRound, MessageCircle, Loader2, Rocket, ExternalLink, ChevronDown, Check, Plus, Pencil, Trash2, Download, Globe, FolderKanban, Activity, Menu, X, MoreHorizontal, PanelLeftClose, Archive, Palette, RefreshCw, Eye } from "lucide-react";
+import { Moon, Sun, Github, Code2, KeyRound, MessageCircle, Loader2, Rocket, ExternalLink, ChevronDown, Check, Plus, Pencil, Trash2, Download, Globe, FolderKanban, Activity, Menu, X, MoreHorizontal, PanelLeftClose, Archive, Palette, RefreshCw, Eye, Brain } from "lucide-react";
 import { downloadZip } from "@/lib/zip";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -13,6 +13,7 @@ import { CodeBrowser } from "@/components/her/CodePane";
 import { SettingsHub } from "@/components/her/SettingsHub";
 import { ProjectsActivity } from "@/components/her/ProjectsActivity";
 import { CheckpointsPane } from "@/components/her/CheckpointsPane";
+import { ProjectMemoryPane } from "@/components/her/ProjectMemoryPane";
 import { VisualIntentStudio } from "@/components/her/VisualIntentStudio";
 import { PreviewPane } from "@/components/her/PreviewPane";
 import * as db from "@/engine/db";
@@ -22,13 +23,14 @@ import { shipFiles, syncDependencies } from "@/engine/ship";
 import { starterFiles, type StarterVariant } from "@/engine/template";
 import { errMsg } from "@/lib/kuro";
 
-type Tab = "projects" | "activity" | "code" | "preview" | "checkpoints" | "design" | "keys";
+type Tab = "projects" | "activity" | "code" | "preview" | "checkpoints" | "memory" | "design" | "keys";
 const TABS: { id: Tab; label: string; icon: any }[] = [
   { id: "projects", label: "Projects", icon: FolderKanban },
   { id: "activity", label: "Activity", icon: Activity },
   { id: "code", label: "Code", icon: Code2 },
   { id: "preview", label: "Preview", icon: Eye },
   { id: "checkpoints", label: "Checkpoints", icon: Archive },
+  { id: "memory", label: "Memory", icon: Brain },
   { id: "design", label: "Visual design", icon: Palette },
   { id: "keys", label: "Settings", icon: KeyRound },
 ];
@@ -47,7 +49,7 @@ export default function Studio() {
   const chat = <ChatPanel scope="app" onOpenKeys={() => openTab("keys")} draft={draft} setDraft={setDraft} />;
   const pane = (t: Tab) => t === "projects" || t === "activity"
     ? <ProjectsActivity view={t} onOpenChat={() => { setActiveView("chat"); setSidebarOpen(false); }} />
-    : t === "code" ? <CodeBrowser files={p.files} /> : t === "preview" ? <PreviewPane files={p.files} env={p.env} /> : t === "checkpoints" ? <CheckpointsPane /> : t === "design" ? <VisualIntentStudio /> : <SettingsHub />;
+    : t === "code" ? <CodeBrowser files={p.files} /> : t === "preview" ? <PreviewPane files={p.files} env={p.env} /> : t === "checkpoints" ? <CheckpointsPane /> : t === "memory" ? <ProjectMemoryPane /> : t === "design" ? <VisualIntentStudio /> : <SettingsHub />;
 
   const aiKeys = st.keys.filter((k) => k.kind === "ai").length;
   const navItems = [
