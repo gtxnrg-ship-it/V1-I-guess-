@@ -84,12 +84,12 @@ async function speakAssistantReply(text: string, voiceProvider: "browser" | "ope
         const audio = new Audio(url);
         activeAudioUrl = url;
         activeRemoteAudio = audio;
-        audio.onplay = () => onSpeaking(true);
+        audio.onplay = () => { if (isCurrentSpeech()) onSpeaking(true); };
         const release = () => {
           if (activeRemoteAudio === audio) activeRemoteAudio = null;
           if (activeAudioUrl === url) activeAudioUrl = null;
           URL.revokeObjectURL(url);
-          onSpeaking(false);
+          if (isCurrentSpeech()) onSpeaking(false);
         };
         audio.onended = release;
         audio.onerror = release;
@@ -148,9 +148,9 @@ async function speakAssistantReply(text: string, voiceProvider: "browser" | "ope
   }
   window.speechSynthesis.cancel();
   const ut = new SpeechSynthesisUtterance(safeText);
-  ut.onstart = () => onSpeaking(true);
-  ut.onend = () => onSpeaking(false);
-  ut.onerror = () => onSpeaking(false);
+  ut.onstart = () => { if (isCurrentSpeech()) onSpeaking(true); };
+  ut.onend = () => { if (isCurrentSpeech()) onSpeaking(false); };
+  ut.onerror = () => { if (isCurrentSpeech()) onSpeaking(false); };
   ut.rate = speed; ut.pitch = 1.05;
   const voices = window.speechSynthesis.getVoices();
   const preferredVoice = voices.find((v) => v.lang.startsWith("en") && (v.name.includes("Female") || v.name.includes("Samantha") || v.name.includes("Victoria") || v.name.includes("Zira") || v.name.includes("Google US English")));
