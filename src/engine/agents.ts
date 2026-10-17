@@ -136,10 +136,15 @@ function history(pid: string): HMsg[] {
     const d = m.data;
     if (!d) return;
     const notes: string[] = [];
-    for (const b of d.blocks) {
-      if (b.type === "questions") notes.push(`[You asked: ${b.items.map((q) => q.q).join(" | ")}]`);
-      if (b.type === "brief") notes.push(`[You proposed a brief "${b.brief.title}": ${b.brief.summary} Features: ${b.brief.features.join("; ")}. Status: ${b.status}]`);
-      if (b.type === "plan") notes.push(`[Build plan: ${b.steps.map((s) => `${s.title} (${s.status})`).join("; ")}]`);
+    // Only carry interactive/build state from the current exchange. Old cards remain
+    // visible in the transcript, but must not become live instructions in later turns.
+    const currentExchange = i >= rows.length - 2;
+    if (currentExchange) {
+      for (const b of d.blocks) {
+        if (b.type === "questions" && !b.answered) notes.push(`[Current unanswered questions: ${b.items.map((q) => q.q).join(" | ")}]`);
+        if (b.type === "brief" && b.status === "pending") notes.push(`[Current pending brief "${b.brief.title}": ${b.brief.summary} Features: ${b.brief.features.join("; ")}. Status: ${b.status}]`);
+        if (b.type === "plan") notes.push(`[Recent build plan: ${b.steps.map((s) => `${s.title} (${s.status})`).join("; ")}]`);
+      }
     }
     const t = [textOf(d), ...notes].filter(Boolean).join("\n");
     if (t) out.push({ role: "assistant", text: t });
