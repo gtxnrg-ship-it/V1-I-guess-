@@ -16,6 +16,7 @@ import { executionOutcome } from "./execution-status";
 import { buildDesignIntentContext } from "./design-intent";
 import { buildPersonaPreferencesPrompt } from "./persona-preferences";
 import { buildAdaptiveConversationStyle } from "./adaptive-conversation-style";
+import { parseBareGitHubRepositoryLink } from "./github-repo-url";
 
 export type Scope = "app" | "self";
 export const SELF_PID = "__self";
@@ -348,6 +349,15 @@ Don't ask a question — just orient them, then wait.`;
   try {
     localStorage.setItem(CATCHUP_KEY, String(now));
   } catch {}
+
+  // A bare repository URL is a clear inspect-this-project intent. Attach it before Talker context is assembled.
+  if (scope === "app" && !opts.images?.length && text.trim()) {
+    const current = db.getState().projects.find((project) => project.id === pid);
+    if (current && !current.repo) {
+      const reference = parseBareGitHubRepositoryLink(text);
+      if (reference) db.updateProject(pid, { repo: reference.repository, ...(reference.branch ? { repoBranch: reference.branch } : {}) });
+    }
+  }
 
   db.addMessage({ role: "user", content: text, images: opts.images?.length ? opts.images.slice(0, 4) : undefined }, pid);
   const live = startLive(pid);
