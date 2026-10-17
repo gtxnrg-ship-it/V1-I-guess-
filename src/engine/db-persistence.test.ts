@@ -1,49 +1,53 @@
-// Exercise the actual store persistence path with a small asynchronous IndexedDB fake.
+// Exercise the store persistence path with an asynchronous IndexedDB fake.
 const values = new Map<string, unknown>();
 let failWrites = false;
 const fakeDb: any = {
   createObjectStore: () => ({}),
   transaction: (_store: string, mode: string) => {
-    const tx: any = { mode, objectStore: () => ({
-      put: (value: unknown, key: string) => {
-        queueMicrotask(() => {
-          if (failWrites) {
-            tx.onerror?.(new Error("simulated quota/write failure"));
-            tx.onabort?.();
-          } else {
-            values.set(key, structuredClone(value));
-            tx.oncomplete?.();
-          }
-        });
-      },
-      delete: (key: string) => {
-        queueMicrotask(() => {
-          if (failWrites) {
-            tx.onerror?.(new Error("simulated quota/delete failure"));
-            tx.onabort?.();
-          } else {
-            values.delete(key);
-            tx.oncomplete?.();
-          }
-        });
-      },
-      openCursor: () => {
-        const request: any = {};
-        const entries = [...values.entries()];
-        let index = 0;
-        const advance = () => queueMicrotask(() => {
-          if (index >= entries.length) request.result = null;
-          else {
-            const [key, value] = entries[index++];
-            request.result = { key, value, continue: advance };
-          }
-          request.onsuccess?.();
-        });
-        advance();
-        return request;
-      },
-    }) },
-  };
+    const tx: any = {
+      mode,
+      objectStore: () => ({
+        put: (value: unknown, key: string) => {
+          queueMicrotask(() => {
+            if (failWrites) {
+              tx.onerror?.(new Error("simulated quota/write failure"));
+              tx.onabort?.();
+            } else {
+              values.set(key, structuredClone(value));
+              tx.oncomplete?.();
+            }
+          });
+        },
+        delete: (key: string) => {
+          queueMicrotask(() => {
+            if (failWrites) {
+              tx.onerror?.(new Error("simulated quota/delete failure"));
+              tx.onabort?.();
+            } else {
+              values.delete(key);
+              tx.oncomplete?.();
+            }
+          });
+        },
+        openCursor: () => {
+          const request: any = {};
+          const entries = [...values.entries()];
+          let index = 0;
+          const advance = () => queueMicrotask(() => {
+            if (index >= entries.length) request.result = null;
+            else {
+              const [key, value] = entries[index++];
+              request.result = { key, value, continue: advance };
+            }
+            request.onsuccess?.();
+          });
+          advance();
+          return request;
+        },
+      }),
+    };
+    return tx;
+  },
 };
 const fakeIndexedDB: any = {
   open: () => {
