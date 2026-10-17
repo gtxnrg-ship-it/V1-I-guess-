@@ -9,6 +9,7 @@ import { GH } from "./github";
 import { readRepositoryFile, searchRepositoryCode } from "./repository-files";
 import { credentialGuardMessage } from "./secrets";
 import { runGitHubChecks } from "./github-check-runner";
+import { detectProjectToolchains } from "./language-toolchains";
 
 /** Files an agent can work on: the user's app, or (admin only) Kuro-chan's own source. */
 export interface Workspace {
@@ -73,6 +74,7 @@ const arr = (items: any, description: string) => ({ type: "array", items, descri
 
 type Def = ToolDef & { title: (a: any) => string };
 export const TOOLS: Record<string, Def> = {
+  inspect_project_capabilities: { name: "inspect_project_capabilities", description: "Inspect the current workspace for programming languages and game-engine project markers. Returns evidence-backed toolchain and candidate build/test commands; it never executes those commands or claims tools are installed.", parameters: obj({}), title: () => "Inspected project capabilities" },
   list_files: { name: "list_files", description: "List every file in the project with sizes.", parameters: obj({}), title: () => "Listed files" },
   read_file: { name: "read_file", description: "Read a file.", parameters: obj({ path: str("File path, e.g. src/App.tsx") }, ["path"]), title: (a) => `Read ${a.path}` },
   search_code: { name: "search_code", description: "Find which files contain some text (case-insensitive). Returns file:line matches.", parameters: obj({ text: str("Text to look for") }, ["text"]), title: (a) => `Searched the code for “${String(a.text).slice(0, 40)}”` },
@@ -99,10 +101,10 @@ export const TOOLS: Record<string, Def> = {
 };
 
 export const SETS = {
-  talk: ["list_files", "read_file", "read_repository_file", "search_repository_code", "run_github_checks", "web_search", "ask_user", "propose_brief"],
-  research: ["web_search", "read_url", "search_npm", "search_github", "get_docs", "find_photos", "list_files", "read_file", "read_repository_file", "search_repository_code", "save_research"],
-  plan: ["list_files", "read_file", "search_code", "read_repository_file", "search_repository_code", "submit_plan"],
-  build: ["list_files", "read_file", "search_code", "read_repository_file", "search_repository_code", "write_file", "edit_file", "delete_file", "verify_project", "get_docs", "web_search", "find_photos", "generate_image", "share_sql"],
+  talk: ["inspect_project_capabilities", "list_files", "read_file", "read_repository_file", "search_repository_code", "run_github_checks", "web_search", "ask_user", "propose_brief"],
+  research: ["inspect_project_capabilities", "web_search", "read_url", "search_npm", "search_github", "get_docs", "find_photos", "list_files", "read_file", "read_repository_file", "search_repository_code", "save_research"],
+  plan: ["inspect_project_capabilities", "list_files", "read_file", "search_code", "read_repository_file", "search_repository_code", "submit_plan"],
+  build: ["inspect_project_capabilities", "list_files", "read_file", "search_code", "read_repository_file", "search_repository_code", "write_file", "edit_file", "delete_file", "verify_project", "get_docs", "web_search", "find_photos", "generate_image", "share_sql"],
   check: ["report_issues"],
 } as const;
 export const toolDefs = (names: readonly string[]): ToolDef[] => names.map((n) => { const { title, ...d } = TOOLS[n]; return d; });
@@ -131,6 +133,33 @@ async function syntaxCheck(files: Record<string, string>, changed: Iterable<stri
 export async function runTool(ws: Workspace, name: string, a: any): Promise<ToolOut> {
   const files = ws.all();
   switch (name) {
+    case "inspect_project_capabilities": {
+      const report = detectProjectToolchains(Object.keys(files));
+      const languageText = report.languages.length ? report.languages.map((item) => [
+        `- ${item.label} (evidence: ${item.evidence.join(", ")})`,
+        `  Toolchain: ${item.toolchain}`,
+        `  Candidate build: ${item.buildCommands.join(" OR ")}`,
+        `  Candidate tests: ${item.testCommands.join(" OR ")}`,
+      ].join("\n")).join("\n") : "- No language detected from the current file inventory.";
+      const engineText = report.gameEngines.length ? report.gameEngines.map((item) => [
+        `- ${item.label} (evidence: ${item.evidence.join(", ")})`,
+        `  Toolchain: ${item.toolchain}`,
+        `  Candidate build: ${item.buildCommands.join(" OR ")}`,
+        `  Candidate tests: ${item.testCommands.join(" OR ")}`,
+        `  Boundary: ${item.notes}`,
+      ].join("\n")).join("\n") : "- No specific game engine detected from the current file inventory.";
+      const result = [
+        `Workspace: ${ws.name}`,
+        `Files inventoried: ${Object.keys(files).length}`,
+        `Detected languages: ${report.languages.length}`,
+        languageText,
+        `Detected game engines: ${report.gameEngines.length}`,
+        engineText,
+        `Build manifests: ${report.buildFiles.join(", ") || "none detected"}`,
+        `Important: ${report.note}`,
+      ].join("\n\n");
+      return { result, stat: `${report.languages.length} languages / ${report.gameEngines.length} game engines`, detail: result.slice(0, 2000) };
+    }
     case "list_files": {
       const list = Object.keys(files).sort().map((p) => `${p} (${files[p].length}b)`);
       return { result: list.join("\n") || "(empty project)", stat: `${list.length} files` };
