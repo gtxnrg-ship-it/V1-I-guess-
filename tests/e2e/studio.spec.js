@@ -84,4 +84,81 @@ test.describe("Kuro-chan studio", () => {
     await expect(page.getByTestId("button-publish-open-keys")).toBeVisible();
   });
 
+
+  test("sends a natural chat message and renders Kuro-chan's streamed reply", async ({ page }) => {
+    let requests = 0;
+    await page.route("https://text.pollinations.ai/openai/chat/completions", async (route) => {
+      if (route.request().method() === "OPTIONS") {
+        await route.fulfill({
+          status: 204,
+          headers: {
+            "access-control-allow-origin": "*",
+            "access-control-allow-methods": "POST, OPTIONS",
+            "access-control-allow-headers": "authorization, content-type",
+          },
+        });
+        return;
+      }
+
+      requests += 1;
+      const body = [
+        'data: {"choices":[{"delta":{"content":"Hey there! ✨ Tell me what you\'re imagining and we\'ll turn it into something real."}}]}',
+        "",
+        "data: [DONE]",
+        "",
+      ].join("\\n");
+      await route.fulfill({
+        status: 200,
+        headers: {
+          "access-control-allow-origin": "*",
+          "content-type": "text/event-stream; charset=utf-8",
+          "cache-control": "no-cache",
+        },
+        body,
+      });
+    });
+
+    await page.goto("/studio", { waitUntil: "domcontentloaded" });
+    const composer = page.getByTestId("input-message");
+    await composer.fill("Hey Kuro-chan, I have an idea but I'm not sure where to start.");
+    await page.getByTestId("button-send").click();
+
+    await expect(page.getByText("Hey Kuro-chan, I have an idea but I'm not sure where to start.")).toBeVisible();
+    await expect(page.getByText(/Hey there!.*Tell me what you're imagining/)).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByTestId("button-stop")).toHaveCount(0);
+    expect(requests).toBe(1);
+  });
+
+  test("shows a provider error instead of pretending a reply succeeded", async ({ page }) => {
+    await page.route("https://text.pollinations.ai/openai/chat/completions", async (route) => {
+      if (route.request().method() === "OPTIONS") {
+        await route.fulfill({
+          status: 204,
+          headers: {
+            "access-control-allow-origin": "*",
+            "access-control-allow-methods": "POST, OPTIONS",
+            "access-control-allow-headers": "authorization, content-type",
+          },
+        });
+        return;
+      }
+
+      await route.fulfill({
+        status: 400,
+        headers: {
+          "access-control-allow-origin": "*",
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({ error: { message: "Test provider is temporarily unavailable." } }),
+      });
+    });
+
+    await page.goto("/studio", { waitUntil: "domcontentloaded" });
+    await page.getByTestId("input-message").fill("Can you help me make a tiny app?");
+    await page.getByTestId("button-send").click();
+
+    await expect(page.getByText(/Test provider is temporarily unavailable/)).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByText(/NO_KEYS/)).toHaveCount(0);
+    await expect(page.getByTestId("button-stop")).toHaveCount(0);
+  });
 });
