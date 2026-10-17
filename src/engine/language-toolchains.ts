@@ -108,7 +108,7 @@ const GAME_RULES: Array<Omit<GameEngineCapability, "evidence"> & { markers: stri
   { id: "unity", label: "Unity", markers: ["ProjectSettings/ProjectVersion.txt", "Packages/manifest.json", "*.unity", "*.asmdef"], buildCommands: ["Unity -batchmode -quit -projectPath . -buildTarget <target> -executeMethod <BuildMethod>"], testCommands: ["Unity -batchmode -quit -projectPath . -runTests -testPlatform EditMode -testResults test-results.xml"], toolchain: "Unity Editor/Unity Hub + project-specific scripting backend; licensed editor installation may be required", notes: "Build target, Unity version, scripting backend, and project build method must be confirmed before running." },
   { id: "unreal", label: "Unreal Engine", markers: ["*.uproject", "*.uplugin", "*.Build.cs"], buildCommands: ["UnrealBuildTool <Target> <Platform> <Configuration> -Project=<Project.uproject>"], testCommands: ["UnrealEditor-Cmd <Project.uproject> -ExecCmds=\"Automation RunTests\" -unattended -nop4"], toolchain: "Unreal Engine version + UnrealBuildTool; native projects may also require a compatible C++ toolchain", notes: "Requires the installed matching engine/toolchain and project-specific target names; source builds can be resource-intensive." },
   { id: "godot", label: "Godot", markers: ["project.godot", "*.tscn", "*.gd", "*.tres"], buildCommands: ["godot --headless --path . --editor --quit"], testCommands: ["godot --headless --path . --quit"], toolchain: "Godot version pinned by the project; export templates are needed for many release exports", notes: "A headless editor/import check is not the same as gameplay acceptance or an exported release build." },
-  { id: "bevy", label: "Bevy", markers: ["bevy.toml"], buildCommands: ["cargo build"], testCommands: ["cargo test"], toolchain: "Rust + Cargo + a Bevy-compatible graphics/audio system", notes: "Detection requires an explicit bevy.toml marker; ordinary Cargo projects are not assumed to use Bevy." },
+  { id: "bevy", label: "Bevy", markers: ["bevy.toml"], buildCommands: ["cargo build"], testCommands: ["cargo test"], toolchain: "Rust + Cargo + a Bevy-compatible graphics/audio system", notes: "Detection requires a bevy.toml marker or a Bevy dependency declared in Cargo.toml; ordinary Cargo projects are not assumed to use Bevy." },
   { id: "phaser", label: "Phaser", markers: ["phaser.config.js", "phaser.config.ts", "phaser.config.mjs"], buildCommands: ["npm run build"], testCommands: ["npm test"], toolchain: "Node.js + project package manager + Phaser-compatible browser bundler", notes: "The package manifest and scripts must confirm the actual build/test commands." },
   { id: "threejs", label: "Three.js", markers: ["three.config.js", "three.config.ts", "three.config.mjs"], buildCommands: ["npm run build"], testCommands: ["npm test"], toolchain: "JavaScript/TypeScript + WebGL/WebGPU-capable browser or runtime", notes: "A successful bundle does not verify rendering, GPU compatibility, or frame-time budgets." },
   { id: "babylonjs", label: "Babylon.js", markers: ["babylon.config.js", "babylon.config.ts", "babylon.config.mjs"], buildCommands: ["npm run build"], testCommands: ["npm test"], toolchain: "JavaScript/TypeScript + Babylon.js-compatible rendering runtime", notes: "A successful bundle does not verify rendering, GPU compatibility, or frame-time budgets." },
@@ -145,10 +145,10 @@ export function detectGameEngineCapabilities(paths: Iterable<string>, fileConten
   });
 }
 
-export function detectProjectToolchains(paths: Iterable<string>) {
+export function detectProjectToolchains(paths: Iterable<string>, fileContents: Record<string, string> = {}) {
   const files = [...new Set([...paths].map(normalize).filter(Boolean))];
   const languages = detectLanguageCapabilities(files);
-  const gameEngines = detectGameEngineCapabilities(files);
+  const gameEngines = detectGameEngineCapabilities(files, fileContents);
   const buildFiles = files.filter((p) => /(^|\/)(CMakeLists\.txt|Makefile|meson\.build|Cargo\.toml|go\.mod|pom\.xml|build\.gradle(?:\.kts)?|\.csproj|Package\.swift|pubspec\.yaml|pyproject\.toml|package\.json|mix\.exs|build\.sbt|cabal\.project|foundry\.toml)$/i.test(p));
   return {
     languages,
@@ -156,6 +156,6 @@ export function detectProjectToolchains(paths: Iterable<string>) {
     buildFiles,
     isPolyglot: languages.length > 1,
     confidence: languages.length === 0 && gameEngines.length === 0 ? "none" as const : "evidence-based" as const,
-    note: "Detected from repository filenames only. Candidate commands are guidance, not proof of installed tools or executed builds. Verify project scripts, runtime versions, credentials, target platforms, and command safety before execution.",
+    note: "Detected from repository paths and the supplied manifest contents. Candidate commands are guidance, not proof of installed tools or executed builds. Verify project scripts, runtime versions, credentials, target platforms, and command safety before execution.",
   };
 }
