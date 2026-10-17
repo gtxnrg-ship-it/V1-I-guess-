@@ -52,3 +52,9 @@ export function findCredentialLeaks(files: Array<{ path: string; content: string
 export function describeCredentialFindings(findings: CredentialFinding[]): string {
   return findings.map(({ path, line, kind }) => `${path}:${line} (${kind})`).join(", ");
 }
+
+export function credentialGuardMessage(path: string, content: string, action: "write" | "edit"): string | null {
+  const findings = findCredentialLeaks([{ path, content }]);
+  if (!findings.length) return null;
+  return `ERROR: I blocked this ${action} because it resembles a hard-coded credential at ${describeCredentialFindings(findings)}. I did not save the file. Use an environment variable or a clearly fake placeholder instead.`;
+}

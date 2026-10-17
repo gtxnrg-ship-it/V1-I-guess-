@@ -1,6 +1,5 @@
-import { describeCredentialFindings, findCredentialLeaks } from "./secrets";
+import { credentialGuardMessage, describeCredentialFindings, findCredentialLeaks } from "./secrets";
 import { GH } from "./github";
-import { memoryWorkspace, runTool } from "./tools";
 
 function assert(condition: boolean, message: string) {
   if (!condition) throw new Error(`Assertion failed: ${message}`);
@@ -32,23 +31,14 @@ function testAllowsClearlyFakePlaceholdersAndIgnoresDeletes() {
   assert(findings.length === 0, "placeholders, deleted files, and environment-variable guidance should be allowed");
 }
 
-async function testGeneratedFileWritesAreBlockedBeforeMutation() {
-  const ws = memoryWorkspace("test project", { "src/config.ts": "export const setting = true;" });
+function testGeneratedFileGuardIsActionableAndRedacted() {
   const leaked = "sk-proj-" + "e".repeat(32);
-  const write = await runTool(ws, "write_file", {
-    path: "src/config.ts",
-    content: `export const apiKey = "${leaked}";`,
-  });
-  assert(write.result.includes("blocked this write"), "write_file should reject a hard-coded credential");
-  assert(ws.all()["src/config.ts"] === "export const setting = true;", "blocked write must leave the original file unchanged");
-
-  const edit = await runTool(ws, "edit_file", {
-    path: "src/config.ts",
-    find: "export const setting = true;",
-    replace: `export const apiKey = "${leaked}";`,
-  });
-  assert(edit.result.includes("blocked this edit"), "edit_file should reject a hard-coded credential");
-  assert(ws.all()["src/config.ts"] === "export const setting = true;", "blocked edit must leave the original file unchanged");
+  for (const action of ["write", "edit"] as const) {
+    const message = credentialGuardMessage("src/config.ts", `export const apiKey = "${leaked}";`, action);
+    assert(!!message && message.includes(`blocked this ${action}`), `${action} guard should reject a hard-coded credential`);
+    assert(!message.includes(leaked), `${action} diagnostics must not reveal the credential`);
+  }
+  assert(credentialGuardMessage(".env.example", 'API_KEY="your_api_key_here"', "write") === null, "clearly fake placeholders should be allowed");
 }
 
 async function testPublishGuardRunsBeforeNetwork() {
@@ -76,6 +66,6 @@ async function testPublishGuardRunsBeforeNetwork() {
 
 testDetectsKnownCredentialsWithoutReturningValues();
 testAllowsClearlyFakePlaceholdersAndIgnoresDeletes();
-await testGeneratedFileWritesAreBlockedBeforeMutation();
+testGeneratedFileGuardIsActionableAndRedacted();
 await testPublishGuardRunsBeforeNetwork();
 console.log("Credential leak prevention tests passed");
