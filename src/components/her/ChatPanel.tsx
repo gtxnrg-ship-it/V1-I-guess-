@@ -485,13 +485,42 @@ export function ChatPanel({ scope = "app", onOpenKeys, draft, setDraft, onSent }
 }
 
 function UserBubble({ m }: { m: Message }) {
+  const [preview, setPreview] = useState<Img | null>(null);
+  useEffect(() => {
+    if (!preview) return;
+    const closeOnEscape = (event: KeyboardEvent) => { if (event.key === "Escape") setPreview(null); };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [preview]);
   return (
     <div className="her-rise flex flex-col items-end gap-1.5">
       {!!m.images?.length && (
-        <div className="flex max-w-[85%] flex-wrap justify-end gap-1.5">
-          {m.images.map((im, i) => <img key={i} src={imgSrc(im)} alt="Attached" className="h-24 max-w-[180px] rounded-xl border border-border object-cover" />)}
+        <div className="flex max-w-[92%] flex-wrap justify-end gap-2">
+          {m.images.map((im, i) => (
+            <button key={i} type="button" aria-label={`View attached reference image ${i + 1}`}
+              onClick={() => setPreview(im)}
+              className="group relative overflow-hidden rounded-xl border border-border/80 bg-card shadow-sm outline-none transition-transform hover:-translate-y-0.5 focus-visible:ring-2 focus-visible:ring-primary">
+              <img src={imgSrc(im)} alt={`Attached reference ${i + 1}`} loading="lazy"
+                className="max-h-40 max-w-[min(42vw,220px)] rounded-xl object-contain" />
+              <span className="absolute inset-x-0 bottom-0 bg-black/55 px-2 py-1 text-left text-[10px] text-white opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">View reference</span>
+            </button>
+          ))}
         </div>
-      )}      <div className="max-w-[85%] whitespace-pre-wrap break-words rounded-2xl rounded-br-md bg-muted px-4 py-2.5 text-[14.5px] leading-relaxed">{m.content}</div>
+      )}
+      {!!m.content.trim() && <div className="max-w-[88%] whitespace-pre-wrap break-words rounded-2xl rounded-br-md bg-muted px-4 py-2.5 text-[14.5px] leading-relaxed">{m.content}</div>}
+      {preview && (
+        <div role="dialog" aria-modal="true" aria-label="Reference image preview"
+          onClick={() => setPreview(null)}
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/85 p-3 backdrop-blur-sm">
+          <button type="button" aria-label="Close image preview" onClick={() => setPreview(null)}
+            className="absolute right-4 top-[max(1rem,env(safe-area-inset-top))] grid h-10 w-10 place-items-center rounded-full border border-white/20 bg-black/50 text-white">
+            <X className="h-5 w-5" />
+          </button>
+          <img src={imgSrc(preview)} alt="Full-size reference image" onClick={(event) => event.stopPropagation()}
+            className="max-h-[88dvh] max-w-full rounded-lg object-contain shadow-2xl" />
+          <span className="pointer-events-none absolute bottom-[max(1rem,env(safe-area-inset-bottom))] rounded-full border border-white/15 bg-black/55 px-3 py-1.5 text-xs text-white/80">Tap outside to close</span>
+        </div>
+      )}
     </div>
   );
 }
