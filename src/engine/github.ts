@@ -47,6 +47,32 @@ export class GH {
 
   async me(): Promise<string> { return (await this.ok("GET", "/user")).login; }
 
+  /** Resolve an existing repository without ever creating or initializing one. Use for import flows. */
+  async getExistingRepo(spec: string) {
+    const clean = spec.trim().replace(/^https?:\\/\\/github\\.com\\//, "").replace(/\\.git$/, "").replace(/\\/$/, "");
+    const parts = clean.split("/").filter(Boolean);
+    if (!clean || parts.length > 2 || parts.length === 0) {
+      throw new Error("Enter a repository name or a GitHub repository URL such as owner/repository. Branch, file, and extra path segments are not supported.");
+    }
+    const login = await this.me();
+    const [owner, name] = parts.length === 2 ? parts : [login, parts[0]];
+    const r = await this.req("GET", `/repos/${owner}/${name}`);
+    if (r.status === 404) {
+      throw new Error(`Repository ${owner}/${name} was not found or your account cannot access it. Import never creates repositories; check the name and GitHub permissions.`);
+    }
+    if (r.status >= 300) {
+      throw new Error(`Can't access ${owner}/${name}: ${r.json?.message || `GitHub returned ${r.status}`}`);
+    }
+    return {
+      owner,
+      name,
+      defaultBranch: r.json.default_branch || "main",
+      htmlUrl: r.json.html_url,
+      created: false,
+      private: Boolean(r.json.private),
+    };
+  }
+
   async ensureRepo(spec: string, opts: { private?: boolean; description?: string } = {}) {
     const clean = spec.trim().replace(/^https?:\/\/github\.com\//, "").replace(/\.git$/, "").replace(/\/$/, "");
     const parts = clean.split("/").filter(Boolean);
