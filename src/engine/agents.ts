@@ -11,6 +11,7 @@ import { buildProjectContextPack, parseProjectMemoryCommand, sanitizeProjectMemo
 import { GH } from "./github";
 import { inspectGitHubRepository } from "./live-repository-intelligence";
 import type { AgentName, AssistantData, Block, Brief, Message, PlanStep, Role } from "./types";
+import { executionOutcome } from "./execution-status";
 
 export type Scope = "app" | "self";
 export const SELF_PID = "__self";
@@ -515,7 +516,7 @@ async function run(live: Live, fn: () => Promise<void>) {
       if (b.type === "plan") b.steps.forEach((s) => { if (s.status === "doing") s.status = controller!.signal.aborted ? "todo" : "error"; });
     }
     if (controller.signal.aborted) live.data.blocks.push({ type: "route", text: "Stopped." });
-    live.data.outcome = controller.signal.aborted ? "stopped" : live.data.error ? "failed" : "completed";
+    live.data.outcome = executionOutcome({ aborted: controller.signal.aborted, error: live.data.error });
     live.data.done = true;
     live.flush(true);
     db.set({ busy: false });
