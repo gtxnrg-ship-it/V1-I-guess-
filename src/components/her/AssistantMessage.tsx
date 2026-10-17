@@ -180,11 +180,11 @@ function BriefCard({ b, ctx }: { b: Extract<Block, { type: "brief" }>; ctx: Ctx 
         {(br.design || br.backend) && (
           <div className="mt-3 grid gap-2 sm:grid-cols-2">
             {br.design && <div className="border-l border-border pl-3 py-1"><div className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Design</div><div className="mt-0.5 text-[13px] leading-snug">{br.design}</div></div>}
-            {br.backend && <div className="rounded-lg bg-muted/70 px-3 py-2"><div className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Backend</div><div className="mt-0.5 text-[13px] leading-snug">{br.backend}</div></div>}
+            {br.backend && <div className="border-l border-border pl-3 py-1"><div className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Backend</div><div className="mt-0.5 text-[13px] leading-snug">{br.backend}</div></div>}
           </div>
         )}
       </div>
-      <div className="flex flex-wrap items-center gap-2 border-t border-border bg-muted/30 px-4 py-3">
+      <div className="flex flex-wrap items-center gap-2 pt-3">
         {b.status === "pending" ? (
           <>
             <button data-testid="button-build-it" disabled={busy || ctx.live} onClick={() => agents.approve(ctx.pid, ctx.msgId, b.id, ctx.scope)}
