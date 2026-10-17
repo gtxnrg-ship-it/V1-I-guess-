@@ -1,6 +1,6 @@
-const API = "https://api.github.com";
-
 import { findCredentialLeaks, describeCredentialFindings } from "./secrets";
+
+const API = "https://api.github.com";
 
 export const b64 = (s: string) => {
   const bytes = new TextEncoder().encode(s);

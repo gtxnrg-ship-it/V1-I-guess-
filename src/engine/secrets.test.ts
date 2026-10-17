@@ -9,7 +9,7 @@ function testDetectsKnownCredentialsWithoutReturningValues() {
   const openAi = "sk-proj-" + "a".repeat(32);
   const google = "AIza" + "B".repeat(35);
   const github = "ghp_" + "c".repeat(40);
-  const privateKey = "-----BEGIN PRIVATE KEY-----";
+  const privateKey = "-----BEGIN " + "PRIVATE KEY-----";
   const findings = findCredentialLeaks([
     { path: "src/config.ts", content: `const apiKey = "${openAi}";` },
     { path: ".env", content: `GOOGLE_API_KEY=${google}` },
