@@ -60,15 +60,34 @@ async function idbAll(): Promise<Record<string, any> | null> {
     } catch { res(null); }
   });
 }
-async function idbPut(key: string, value: any) {
+async function idbWrite(key: string, value: any, remove = false): Promise<boolean> {
   const db = await open();
-  if (!db) return;
-  try { db.transaction("kv", "readwrite").objectStore("kv").put(value, key); } catch { /* quota etc */ }
+  if (!db) return false;
+  return new Promise((resolve) => {
+    let settled = false;
+    const finish = (ok: boolean) => {
+      if (settled) return;
+      settled = true;
+      resolve(ok);
+    };
+    try {
+      const tx = db.transaction("kv", "readwrite");
+      const store = tx.objectStore("kv");
+      if (remove) store.delete(key);
+      else store.put(value, key);
+      tx.oncomplete = () => finish(true);
+      tx.onerror = () => finish(false);
+      tx.onabort = () => finish(false);
+    } catch {
+      finish(false);
+    }
+  });
 }
-async function idbDel(key: string) {
-  const db = await open();
-  if (!db) return;
-  try { db.transaction("kv", "readwrite").objectStore("kv").delete(key); } catch { /* */ }
+async function idbPut(key: string, value: any): Promise<boolean> {
+  return idbWrite(key, value);
+}
+async function idbDel(key: string): Promise<boolean> {
+  return idbWrite(key, undefined, true);
 }
 
 // ───────────── reactive store ─────────────
@@ -84,28 +103,55 @@ export function useKuro(): State {
   return useSyncExternalStore((l) => { listeners.add(l); return () => listeners.delete(l); }, () => state);
 }
 
-const dirty = new Set<string>();
-let saveTimer: any = null;
+// The version lets a write remove a dirty key only if no newer edit arrived
+// while IndexedDB was committing the earlier snapshot.
+const dirty = new Map<string, number>();
+let dirtyVersion = 0;
+let saveTimer: ReturnType<typeof setTimeout> | null = null;
+let flushInFlight: Promise<void> | null = null;
+
 function persist(...keys: string[]) {
-  keys.forEach((k) => dirty.add(k));
+  keys.forEach((k) => dirty.set(k, ++dirtyVersion));
   emit();
   if (saveTimer) return;
-  saveTimer = setTimeout(flush, 350);
+  saveTimer = setTimeout(() => { void flush(); }, 350);
 }
-export function flush() {
+
+function persistedValue(key: string): any {
+  if (key === "keys") return filterPersistableCredentials(state.keys);
+  if (key === "projects") return state.projects;
+  if (key === "settings") return state.settings;
+  if (key.startsWith("messages:")) return state.messages[key.slice(9)] || [];
+  if (key.startsWith("snapshots:")) return state.snapshots[key.slice(10)] || [];
+  return undefined;
+}
+
+/**
+ * Wait for IndexedDB transaction completion. Dirty keys remain queued if storage
+ * is unavailable or a transaction fails, so a later explicit flush/edit can retry.
+ * Concurrent flushes share one promise; edits made during a write keep a newer
+ * version and cannot be accidentally cleared by the older transaction.
+ */
+export function flush(): Promise<void> {
   if (saveTimer) { clearTimeout(saveTimer); saveTimer = null; }
-  const ks = [...dirty]; dirty.clear();
-  for (const k of ks) {
-    if (k === "keys") idbPut(k, filterPersistableCredentials(state.keys));
-    else if (k === "projects") idbPut(k, state.projects);
-    else if (k === "settings") idbPut(k, state.settings);
-    else if (k.startsWith("messages:")) idbPut(k, state.messages[k.slice(9)] || []);
-    else if (k.startsWith("snapshots:")) idbPut(k, state.snapshots[k.slice(10)] || []);
-  }
+  if (flushInFlight) return flushInFlight;
+
+  const work = async () => {
+    const pending = [...dirty.entries()];
+    for (const [key, version] of pending) {
+      const ok = await idbPut(key, persistedValue(key));
+      if (ok && dirty.get(key) === version) dirty.delete(key);
+    }
+  };
+  flushInFlight = work().finally(() => { flushInFlight = null; });
+  return flushInFlight;
 }
 if (typeof window !== "undefined") {
-  window.addEventListener("pagehide", flush);
-  window.addEventListener("beforeunload", flush);
+  // Lifecycle events are best-effort; ordinary debounced writes still do the
+  // durable work, and failed writes remain dirty rather than being discarded.
+  const flushOnHide = () => { void flush(); };
+  window.addEventListener("pagehide", flushOnHide);
+  window.addEventListener("beforeunload", flushOnHide);
 }
 
 export function set(patch: Partial<State>) { state = { ...state, ...patch }; emit(); }
