@@ -37,7 +37,7 @@ assert(db.getState().projects.find((p) => p.id === first.id)?.files["src/main.ts
   "restore must bring back the checkpoint file contents");
 assert(db.getState().projects.find((p) => p.id === first.id)?.files["src/new-file.ts"] === undefined,
   "restore must remove files absent from the checkpoint");
-assert(db.snapshots(first.id).some((s) => s.id === restored.safetySnapshotId
+assert(restored.ok && db.snapshots(first.id).some((s) => s.id === restored.safetySnapshotId
   && s.files["src/main.ts"] === "corrupted change"
   && s.files["src/new-file.ts"] === "should disappear after restore"),
   "restore must preserve the pre-restore files in a safety checkpoint");
