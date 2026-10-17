@@ -113,3 +113,10 @@ The last confirmed default-branch commit before this change is `f9e551c040f7e336
 ## Update: remote GitHub Actions verification runner (PR #145)
 
 A dedicated tool dispatches the repository fixed `check.yml` workflow, polls for the newly created run, checks the run exact commit SHA against the branch SHA observed before dispatch, and reports a run link plus passed/failed/running/blocked status. It does not claim to test uncommitted local workspace edits; those must first be published to the selected branch. The linked credential must have Actions write and run-read permissions. Automated tests cover pass, failure, pending timeout, branch movement, and missing Actions permission. CI passed on PR #145, but a live dispatch against a user-owned repository has not been performed here.
+
+
+## User-facing APK delivery and progress-metric correction (PR in review)
+
+The README now exposes a prominent direct-download URL ending in `/releases/latest/download/Kurochan.apk`. The Android workflow copies the generated debug APK to the exact asset name `Kurochan.apk` before publishing. The direct URL is expected to resolve after the first successful post-merge `main` release; until then, the existing latest release may not yet contain the renamed asset. It remains a debug APK, not a production-signed release.
+
+The former 13/142 (9.2%) is a literal checklist count only, not an overall product-completion score. It was stale relative to merged work that had not been reconciled to acceptance criteria. The team must review checkboxes against the full criteria and publish the strict count separately from capability evidence; do not repeat 9.2% as if it described the amount of work done.

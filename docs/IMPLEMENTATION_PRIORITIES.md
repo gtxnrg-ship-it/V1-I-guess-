@@ -124,3 +124,13 @@ PR #139 is merged, and PRs #141–#143 are now merged as well: destination-head 
 - [ ] Validate a live end-to-end dispatch with an authorized GitHub App installation after the server-side broker is implemented.
 
 The tool checks the currently published branch only. It does not upload local edits or replace the in-browser QA harness.
+
+
+### Immediate delivery fix — direct APK download
+
+- [x] README exposes a direct `/releases/latest/download/Kurochan.apk` link at the top and in the Android section.
+- [x] Android CI copies the successful APK to the stable filename `Kurochan.apk` and attaches that exact name to releases.
+- [ ] Confirm the first post-merge main-branch release contains the renamed asset and the direct link downloads it from a browser/phone.
+- [ ] Replace the launcher/adaptive icon with the original approved Kuro-chan art and verify all generated Android icon sizes. The approved source artwork is present in the conversation library; do not substitute unrelated/generated art.
+
+The README explicitly warns that the APK is a debug build, not a Play Store-signed production release.

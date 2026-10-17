@@ -6,7 +6,7 @@
 
 **Bring an idea. Bring an existing codebase. Talk through the goal, inspect the project, make changes, run checks, and keep the work reviewable.**
 
-[**Android APK releases**](https://github.com/gtxnrg-ship-it/kuro-chan/releases/latest) · [Roadmap](ROADMAP.md) · [Prioritized implementation plan](docs/IMPLEMENTATION_PRIORITIES.md) · [Verified feature audit](docs/FEATURE_AUDIT.md) · [Architecture & original vision](docs/ORIGINAL_VISION.md) · [Report a bug](https://github.com/gtxnrg-ship-it/kuro-chan/issues/new?template=bug_report.yml)
+[**⬇ Download Kurochan.apk (direct download)**](https://github.com/gtxnrg-ship-it/kuro-chan/releases/latest/download/Kurochan.apk) · [Release notes](https://github.com/gtxnrg-ship-it/kuro-chan/releases/latest) · [Roadmap](ROADMAP.md) · [Prioritized implementation plan](docs/IMPLEMENTATION_PRIORITIES.md) · [Verified feature audit](docs/FEATURE_AUDIT.md) · [Architecture & original vision](docs/ORIGINAL_VISION.md) · [Report a bug](https://github.com/gtxnrg-ship-it/kuro-chan/issues/new?template=bug_report.yml)
 
 [![Android build](https://github.com/gtxnrg-ship-it/kuro-chan/actions/workflows/android.yml/badge.svg)](https://github.com/gtxnrg-ship-it/kuro-chan/actions/workflows/android.yml)
 [![Automated checks](https://github.com/gtxnrg-ship-it/kuro-chan/actions/workflows/check.yml/badge.svg)](https://github.com/gtxnrg-ship-it/kuro-chan/actions/workflows/check.yml)
@@ -16,6 +16,12 @@
 </div>
 
 ---
+
+## Download for Android
+
+**[⬇ Download Kurochan.apk now](https://github.com/gtxnrg-ship-it/kuro-chan/releases/latest/download/Kurochan.apk)** — this link downloads the APK directly instead of opening the GitHub release page. The latest-release asset is published automatically after a successful push to `main`; if a new build is still running, the previous latest release remains available until the new release is published.
+
+The file is named **`Kurochan.apk`**. It is currently a CI-built debug APK, not a Play Store-signed production release. Android may ask you to allow installation from your browser or file manager.
 
 ## Start here
 
@@ -57,18 +63,13 @@ These are product goals, not a blanket claim that every bullet is complete today
 | Local models | Curated candidate catalogue and rough device-fit guidance | **Downloading, installing, and running the listed chat models locally is not implemented as a complete end-to-end feature.** A catalogue entry is not a runnable model |
 | Android delivery | GitHub Actions workflow builds APK artifacts/releases when successful | A successful CI build does not prove the APK works on every phone; APKs are development builds, not Play Store releases |
 
-The [roadmap](ROADMAP.md) tracks the wider implementation, the [prioritized implementation plan](docs/IMPLEMENTATION_PRIORITIES.md) ranks work by impact and dependency, the [verified feature audit](docs/FEATURE_AUDIT.md) records evidence and unverified gaps, and [roadmap progress notes](docs/ROADMAP_PROGRESS.md) explain the strict checkbox count. The current strict count is **13/142 (9.2%)**; this is not an overall capability score. A broader ~25% capability estimate is provisional judgment, not a measured completion percentage.
+The [roadmap](ROADMAP.md) tracks the wider implementation, the [prioritized implementation plan](docs/IMPLEMENTATION_PRIORITIES.md) ranks work by impact and dependency, the [verified feature audit](docs/FEATURE_AUDIT.md) records evidence and unverified gaps, and [roadmap progress notes](docs/ROADMAP_PROGRESS.md) explain the strict checkbox count. The roadmap checklist was stale relative to several merged engineering slices; **13/142 (9.2%) is only the literal count of checked roadmap boxes, not a fair measure of how much code or capability has been built**. We are reconciling each checkbox against explicit acceptance evidence instead of using the checklist as a product-completion percentage. Do not interpret the old 9.2% as “only 9.2% of Kuro-chan exists.”
 
 ## Get the Android build
 
-**[Open the latest GitHub Release](https://github.com/gtxnrg-ship-it/kuro-chan/releases/latest)**
+**[⬇ Download Kurochan.apk directly](https://github.com/gtxnrg-ship-it/kuro-chan/releases/latest/download/Kurochan.apk)** — tapping this link starts the APK download rather than opening the release page. The [latest release notes](https://github.com/gtxnrg-ship-it/kuro-chan/releases/latest) are available separately.
 
-When a release contains an APK:
-
-1. Open the release page on your Android device.
-2. Download the APK asset attached to that release.
-3. Open it and follow Android's installation prompts. You may need to allow your browser or file manager to install apps from that source.
-4. Remember that this is a development build from this project, not a Play Store-certified release.
+The Android workflow publishes the asset as `Kurochan.apk` after a successful push to `main`. Until the first post-merge build finishes, the existing latest release may not yet contain the renamed asset. This is a development/debug APK, not a Play Store-certified production release. Android may ask you to allow your browser or file manager to install apps from that source.
 
 A merge does not instantly guarantee a new release. Wait for the [Android build workflow](https://github.com/gtxnrg-ship-it/kuro-chan/actions/workflows/android.yml) to finish successfully and for the release asset to appear. The [all releases page](https://github.com/gtxnrg-ship-it/kuro-chan/releases) and [workflow history](https://github.com/gtxnrg-ship-it/kuro-chan/actions) are available if you need to inspect the build evidence.
 
