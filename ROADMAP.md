@@ -1,6 +1,6 @@
 # Kuro-chan Roadmap 🌸
 
-This is the living plan for Kuro-chan: a chat-first AI coding companion that can grow from a useful mobile-friendly studio into a reliable, project-aware engineering agent. For the ranked execution order and anti-duplication rules, see [Implementation priorities](docs/IMPLEMENTATION_PRIORITIES.md).
+This is the living plan for Kuro-chan: a chat-first AI coding companion that can grow from a useful mobile-friendly studio into a reliable, project-aware engineering agent. For the ranked execution order and anti-duplication rules, see [Implementation priorities](docs/IMPLEMENTATION_PRIORITIES.md). For the evidence-based workstream inventory and unverified acceptance gates, see the [verified feature audit](docs/FEATURE_AUDIT.md).
 
 **Status key:** checked items have a foundation in the current repository; unchecked items are planned, in progress, or still require stronger verification. A roadmap is not a promise that every feature already exists.
 

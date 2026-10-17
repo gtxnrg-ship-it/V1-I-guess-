@@ -6,7 +6,7 @@
 
 **Bring an idea. Bring an existing codebase. Talk through the goal, inspect the project, make changes, run checks, and keep the work reviewable.**
 
-[**Android APK releases**](https://github.com/gtxnrg-ship-it/kuro-chan/releases/latest) · [Roadmap](ROADMAP.md) · [Prioritized implementation plan](docs/IMPLEMENTATION_PRIORITIES.md) · [Architecture & original vision](docs/ORIGINAL_VISION.md) · [Report a bug](https://github.com/gtxnrg-ship-it/kuro-chan/issues/new?template=bug_report.yml)
+[**Android APK releases**](https://github.com/gtxnrg-ship-it/kuro-chan/releases/latest) · [Roadmap](ROADMAP.md) · [Prioritized implementation plan](docs/IMPLEMENTATION_PRIORITIES.md) · [Verified feature audit](docs/FEATURE_AUDIT.md) · [Architecture & original vision](docs/ORIGINAL_VISION.md) · [Report a bug](https://github.com/gtxnrg-ship-it/kuro-chan/issues/new?template=bug_report.yml)
 
 [![Android build](https://github.com/gtxnrg-ship-it/kuro-chan/actions/workflows/android.yml/badge.svg)](https://github.com/gtxnrg-ship-it/kuro-chan/actions/workflows/android.yml)
 [![Automated checks](https://github.com/gtxnrg-ship-it/kuro-chan/actions/workflows/check.yml/badge.svg)](https://github.com/gtxnrg-ship-it/kuro-chan/actions/workflows/check.yml)
@@ -57,7 +57,7 @@ These are product goals, not a blanket claim that every bullet is complete today
 | Local models | Curated candidate catalogue and rough device-fit guidance | **Downloading, installing, and running the listed chat models locally is not implemented as a complete end-to-end feature.** A catalogue entry is not a runnable model |
 | Android delivery | GitHub Actions workflow builds APK artifacts/releases when successful | A successful CI build does not prove the APK works on every phone; APKs are development builds, not Play Store releases |
 
-The [roadmap](ROADMAP.md) tracks the wider implementation, the [prioritized implementation plan](docs/IMPLEMENTATION_PRIORITIES.md) ranks work by impact and dependency, and [roadmap progress notes](docs/ROADMAP_PROGRESS.md) explain how progress is counted. Checked items indicate a repository foundation; they should not be interpreted as a production-readiness percentage.
+The [roadmap](ROADMAP.md) tracks the wider implementation, the [prioritized implementation plan](docs/IMPLEMENTATION_PRIORITIES.md) ranks work by impact and dependency, the [verified feature audit](docs/FEATURE_AUDIT.md) records evidence and unverified gaps, and [roadmap progress notes](docs/ROADMAP_PROGRESS.md) explain the strict checkbox count. The current strict count is **13/142 (9.2%)**; this is not an overall capability score. A broader ~25% capability estimate is provisional judgment, not a measured completion percentage.
 
 ## Get the Android build
 
@@ -233,6 +233,7 @@ Read [SECURITY.md](SECURITY.md) for responsible vulnerability reporting and [Fee
 - [Roadmap](ROADMAP.md) — current checklist and planned work.
 - [Original vision and capability map](docs/ORIGINAL_VISION.md) — product goals and explicit implementation boundaries.
 - [Roadmap progress notes](docs/ROADMAP_PROGRESS.md) — how progress is counted and reconciled.
+- [Verified feature audit](docs/FEATURE_AUDIT.md) — workstream-by-workstream implementation evidence, unverified gaps, acceptance gates, and cross-conversation handoff.
 - [Live repository intelligence](docs/LIVE_REPOSITORY_INTELLIGENCE.md) — repository inspection and context behavior.
 - [Repository diagnosis](docs/REPOSITORY_DIAGNOSIS.md) — diagnosis workflow and limits.
 - [Project memory](docs/PROJECT_MEMORY.md) and [memory integration](docs/PERSISTENT_PROJECT_MEMORY_INTEGRATION.md).

@@ -57,7 +57,7 @@ Source of truth: [ROADMAP.md](../ROADMAP.md). This ledger separates **roadmap ch
 2. Distinguish **passed**, **failed**, **pending**, and **not run**; never infer a pass from an absent check.
 3. Run unit tests, TypeScript, production build, E2E, CodeQL, and Android build where applicable. If any required check fails, repair the cause and rerun the affected checks before calling the PR verified.
 4. A merged PR is evidence of merged code, not proof every roadmap acceptance criterion is complete.
-5. Update the overall percentage from the current roadmap checkbox counts rather than estimating from PR count or lines of code.
+5. Report the strict roadmap checkbox ratio separately from any overall capability estimate. Never present a subjective capability estimate as an exact measured percentage. See [Verified feature audit](FEATURE_AUDIT.md).
 
 
 ## Original-vision alignment audit (2026-10-17)
@@ -69,6 +69,6 @@ The repository has a useful engineering-agent foundation, but the intended produ
 
 - **PR #137 — voice settings persistence: merged.** Check, CodeQL, and Android APK build passed. Browser E2E covers provider selection, speech speed, auto-speak/auto-send, and reload persistence.
 - **PR #138 — voice output interruption: merged.** Check, CodeQL, and Android APK build passed. Browser E2E verifies cancellation and UI lifecycle for mocked browser speech; native/remote audio still needs physical-device acceptance.
-- **PR #139 — repository snapshot consistency: pending merge at the time of this update.** The source-context builder accepts the exact inspected commit SHA, reads the recursive tree from that immutable SHA, and the agent passes the diagnosis baseline into context loading. Regression tests cover immutable-SHA reads and continuing with the known SHA if a redundant moving-ref lookup is unavailable. Check, CodeQL, and APK build passed for head 2f2eba64efb9420890c198ed77551a77ee9e1003; merge state must be checked before treating it as shipped.
+- **PR #139 — repository snapshot consistency: merged.** The source-context builder accepts the exact inspected commit SHA, reads the recursive tree from that immutable SHA, and the agent passes the diagnosis baseline into context loading. Regression tests cover immutable-SHA reads and continuing with the known SHA if a redundant moving-ref lookup is unavailable. The remaining edge cases (branch movement, truncated trees, large files, permission/rate-limit failures, target-branch concurrency) remain open; see [Verified feature audit](FEATURE_AUDIT.md).
 - The strict roadmap count remains **13/142 = 9.2%** until a roadmap acceptance item is fully met. Recent merged work does not automatically change the checkbox count.
-- Use [Implementation priorities](IMPLEMENTATION_PRIORITIES.md) as the ranked next-work queue. The current order is repository evidence/write safety, end-to-end build/repair reliability, secure GitHub installation flow, real local inference, physical-device acceptance, Visual Intent Studio, then secondary polish.
+- Use [Implementation priorities](IMPLEMENTATION_PRIORITIES.md) as the ranked next-work queue. The next work is remaining repository evidence/write-safety edge cases, then a real build/test/repair/retest proof, then secure GitHub installation flow. Local inference, physical-device acceptance, Visual Intent Studio and secondary polish follow. The strict checklist is **13/142 = 9.2%**; a whole-product capability percentage is not yet measured.
