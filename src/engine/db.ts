@@ -305,10 +305,10 @@ export function updateKey(id: string, patch: Partial<KeyRec>) { state.keys = sta
 export function removeKey(id: string) { state.keys = state.keys.filter((k) => k.id !== id); persist("keys"); }
 export const keyOf = (provider: string): KeyRec | undefined => {
   const saved = state.keys.find((key) => key.provider === provider && key.status !== "disabled");
-  if (saved || provider !== "github") return saved;
+  if (provider !== "github") return saved;
   const token = getGitHubSessionToken();
   const session = getGitHubSession();
-  if (!token || !session) return undefined;
+  if (!token || !session) return saved;
   return {
     id: "github-runtime-session", label: `GitHub · ${session.login}`, kind: "github", provider: "github",
     secret: token, hint: "Runtime-only sign-in session", models: [], status: "active",
