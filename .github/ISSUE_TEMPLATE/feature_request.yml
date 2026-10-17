@@ -3,6 +3,9 @@ description: Suggest an improvement or new capability
 title: "[Feature]: "
 labels: ["enhancement"]
 body:
+  - type: markdown
+    attributes:
+      value: "This issue is public. Do not include API keys, access tokens, private repository URLs, private source code, chat transcripts, or personal data."
   - type: textarea
     id: problem
     attributes:
@@ -17,6 +20,16 @@ body:
       description: Describe the ideal behavior. Screenshots or sketches are welcome.
     validations:
       required: true
+  - type: textarea
+    id: impact
+    attributes:
+      label: Who is affected and how often?
+      description: Describe the user group, platform, frequency, or workflow impact.
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: How would we know this is solved?
+      description: Optional concrete outcome or acceptance criteria.
   - type: textarea
     id: alternatives
     attributes:
