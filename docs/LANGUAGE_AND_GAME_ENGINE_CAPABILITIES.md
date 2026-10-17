@@ -14,6 +14,19 @@ Recognized engine markers include Unity, Unreal Engine, Godot, Bevy (detected fr
 
 The report includes candidate commands and notes where a build depends on a particular editor/runtime, platform target, export template, target name, cloud editor, or licensed installation. Generic files such as `Cargo.toml` are not enough to infer Bevy; the manifest dependency must be present. Engine detection based on filenames/configuration is necessarily incomplete for projects that declare their engine only inside a package manifest or source code.
 
+## Scientific and statistical stack evidence
+
+The capability inspector also checks supported project manifests for scientific/statistical dependencies, including:
+
+- **Python:** NumPy, SciPy, pandas, Polars, statsmodels, scikit-learn, PyTorch, TensorFlow, JAX, XGBoost, PyMC, and SymPy.
+- **R:** tidyverse, data.table, ggplot2, tidymodels, brms, rstan, forecast, and lme4.
+- **Julia:** DataFrames.jl, Distributions.jl, Turing.jl, Flux.jl, JuMP, and DifferentialEquations.jl.
+- **JavaScript:** TensorFlow.js, simple-statistics, ml-matrix, and Danfo.js.
+- **Rust:** ndarray, nalgebra, Linfa, and tch-rs.
+- **Data pipelines:** dbt project markers and dbt package evidence.
+
+Results include the manifest/path evidence, the likely purpose of the dependency, and a suggested validation concern. Detection is dependency evidence only: a manifest may be stale, optional, or describe a package that is not installed. It does not inspect arbitrary source semantics, download data/models, confirm GPU availability, run numerical workloads, or validate scientific conclusions. Those require a real runner and known-answer/project-specific acceptance tests.
+
 ## Honest execution boundary
 
 - This detector does not install compilers, engines, SDKs, dependencies, or model weights.
