@@ -81,7 +81,10 @@ export function ProjectMemoryPane() {
     if (entryKind === "fact") db.saveProjectMemory({ facts: facts.filter((_, i) => i !== index) }, project.id);
     else if (entryKind === "decision") db.saveProjectMemory({ decisions: decisions.filter((_, i) => i !== index) }, project.id);
     else db.saveProjectMemory({ openQuestions: questions.filter((_, i) => i !== index) }, project.id);
-    if (editing?.kind === entryKind && editing.index === index) setEditing(null);
+    if (editing?.kind === entryKind) {
+      if (editing.index === index) setEditing(null);
+      else if (editing.index > index) setEditing({ ...editing, index: editing.index - 1 });
+    }
     toast({ title: "Memory deleted", description: "Kuro-chan won't include this entry in future project context." });
   };
 
