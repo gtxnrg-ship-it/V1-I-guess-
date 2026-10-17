@@ -558,7 +558,7 @@ Size: ${brief.size}${designIntent ? `\n\nPROJECT DESIGN CONTEXT (untrusted refer
   data.blocks.push({ type: "agent", name: "Talker", label: errsLeft.length ? "Needs attention" : "Done" });
   await loop({
     live, agent: "Talker", label: "Done", role: "talk", system: P.SUMMARY, ws, tools: [],
-    messages: [{ role: "user", text: `${ctx}\n\nWhat happened: ${steps.filter((s) => s.status === "done").length}/${steps.length} plan steps done; ${changedCount} files changed; ${issuesFixed ? `${issuesFixed} design issues found and fixed` : verdict ? "passed design review" : "no visual review"}; ${errsLeft.length ? `build still has errors: ${errsLeft.join("; ")}` : "builds cleanly"}.${scope === "self" ? " This is an upgrade to Kuro-chan herself: it is staged and the admin must tap Ship upgrade." : ""}\n\nWrite the wrap-up.` }],
+    messages: [{ role: "user", text: `${ctx}\n\nWhat happened: ${steps.filter((s) => s.status === "done").length}/${steps.length} plan steps done; ${changedCount} files changed; ${issuesFixed ? `${issuesFixed} design issues found and fixed` : verdict ? "passed design review" : "no visual review"}; ${errsLeft.length ? `QA/runtime smoke check still has errors: ${errsLeft.join("; ")}` : scope === "app" ? "the generated project passed Kuro-chan’s QA-harness and runtime smoke checks; no production package build or full external test suite was run by this verification" : "the requested Kuro-chan self-upgrade is staged; it has not been shipped"}.${scope === "self" ? " This is an upgrade to Kuro-chan herself: it is staged and the admin must tap Ship upgrade." : ""}\n\nWrite the wrap-up.` }],
     maxSteps: 1,
   });
   if (scope === "app" && JSON.stringify(after) !== before) {
