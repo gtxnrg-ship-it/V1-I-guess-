@@ -108,3 +108,8 @@ The Settings UI now names GitHub App installation as the target architecture and
 The agent pipeline now rechecks the final workspace after visual review/polish. If that final check finds build/runtime errors, it makes one bounded Builder repair attempt and reruns the QA harness before producing the wrap-up. Persistent errors remain visible as a failed outcome; attempting a repair is not reported as success. This closes a gap where visual polishing could introduce errors after the earlier automatic-fix loop. The check remains an isolated browser/esbuild QA smoke test, not a real dependency install, production build, full test suite, or physical-device run.
 
 The last confirmed default-branch commit before this change is `f9e551c040f7e33664bb25deaf90daffc5a009ef`. PR #143 is merged with Check, CodeQL, TypeScript analysis, and APK packaging all green. PR #142 is merged and the repository inspection snapshot is reused. Keep the strict roadmap figure at **13/142 = 9.2%** until a checklist acceptance gate is actually met.
+
+
+## Update: remote GitHub Actions verification runner (PR #145)
+
+A dedicated tool dispatches the repository fixed `check.yml` workflow, polls for the newly created run, checks the run exact commit SHA against the branch SHA observed before dispatch, and reports a run link plus passed/failed/running/blocked status. It does not claim to test uncommitted local workspace edits; those must first be published to the selected branch. The linked credential must have Actions write and run-read permissions. Automated tests cover pass, failure, pending timeout, branch movement, and missing Actions permission. CI passed on PR #145, but a live dispatch against a user-owned repository has not been performed here.
