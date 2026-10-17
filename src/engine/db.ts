@@ -223,14 +223,16 @@ export function switchProject(id: string): boolean {
   return true;
 }
 
-export function writeFile(path: string, content: string) {
-  const p = project();
-  updateProject(p.id, { files: { ...p.files, [path]: content } });
+export function writeFile(path: string, content: string, projectId = project().id) {
+  const target = state.projects.find((p) => p.id === projectId);
+  if (!target) throw new Error("Cannot write to a project that no longer exists.");
+  updateProject(target.id, { files: { ...target.files, [path]: content } });
 }
-export function deleteFile(path: string) {
-  const p = project();
-  const f = { ...p.files }; delete f[path];
-  updateProject(p.id, { files: f });
+export function deleteFile(path: string, projectId = project().id) {
+  const target = state.projects.find((p) => p.id === projectId);
+  if (!target) throw new Error("Cannot delete a file from a project that no longer exists.");
+  const nextFiles = { ...target.files }; delete nextFiles[path];
+  updateProject(target.id, { files: nextFiles });
 }
 export function replaceFiles(f: Record<string, string>) { updateProject(project().id, { files: { ...f } }); }
 
@@ -267,8 +269,10 @@ function snapshotProject(target: Project, label: string): Snapshot {
   return s;
 }
 
-export function takeSnapshot(label: string): Snapshot {
-  return snapshotProject(project(), label);
+export function takeSnapshot(label: string, projectId = project().id): Snapshot {
+  const target = state.projects.find((p) => p.id === projectId);
+  if (!target) throw new Error("Cannot create a checkpoint for a project that no longer exists.");
+  return snapshotProject(target, label);
 }
 
 export type SnapshotRestoreResult =

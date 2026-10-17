@@ -16,14 +16,21 @@ export interface Workspace {
   remove(p: string): void;
   env(): Record<string, string>;
 }
-export const appWorkspace = (): Workspace => ({
-  kind: "app",
-  get name() { return project().name; },
-  all: () => project().files,
-  write: (p, c) => writeFile(p, c),
-  remove: (p) => deleteFile(p),
-  env: () => project().env,
-});
+export const appWorkspace = (projectId = project().id): Workspace => {
+  const target = () => {
+    const current = getState().projects.find((candidate) => candidate.id === projectId);
+    if (!current) throw new Error("The project for this task no longer exists; refusing to write into another workspace.");
+    return current;
+  };
+  return {
+    kind: "app",
+    get name() { return target().name; },
+    all: () => target().files,
+    write: (p, c) => writeFile(p, c, projectId),
+    remove: (p) => deleteFile(p, projectId),
+    env: () => target().env,
+  };
+};
 export function memoryWorkspace(name: string, files: Record<string, string>): Workspace & { changed: Set<string>; base: Record<string, string> } {
   const base = { ...files };
   const cur = { ...files };
