@@ -130,7 +130,7 @@ export function detectGameEngineCapabilities(paths: Iterable<string>, fileConten
   const files = [...new Set([...paths].map(normalize).filter(Boolean))];
   const contents = new Map(Object.entries(fileContents).map(([path, content]) => [normalize(path), content]));
   const manifestEngines: Array<{ id: GameEngineId; evidence: string; matches: (path: string, content: string) => boolean }> = [
-    { id: "bevy", evidence: "Cargo.toml dependency", matches: (path, content) => path.endsWith("Cargo.toml") && /(?:^|\\n)\\s*(?:bevy\\s*=|\\[dependencies\\.bevy\\])/m.test(content) },
+    { id: "bevy", evidence: "Cargo.toml dependency", matches: (path, content) => path.endsWith("Cargo.toml") && /(?:^|\n)\s*(?:bevy\s*=|\[dependencies\.bevy\])/m.test(content) },
     { id: "phaser", evidence: "package.json dependency", matches: (path, content) => path.endsWith("package.json") && dependencyPresent(content, "phaser") },
     { id: "threejs", evidence: "package.json dependency", matches: (path, content) => path.endsWith("package.json") && dependencyPresent(content, "three") },
     { id: "babylonjs", evidence: "package.json dependency", matches: (path, content) => path.endsWith("package.json") && dependencyPresent(content, "@babylonjs/core") },
