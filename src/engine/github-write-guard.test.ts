@@ -74,7 +74,7 @@ async function run() {
     const ref = path.match(/\/git\/ref\/heads\/(.+)$/);
     if (ref && method === "GET") {
       const key = decodeURIComponent(ref[1]), count = reads[key] = (reads[key] || 0) + 1;
-      return new Response(JSON.stringify({ object: { sha: count >= 2 ? "raced-sha" : "base-sha" } }), { status: 200 });
+      return new Response(JSON.stringify({ object: { sha: count >= 3 ? "raced-sha" : "base-sha" } }), { status: 200 });
     }
     if (path.endsWith("/git/commits/base-sha")) return new Response(JSON.stringify({ tree: { sha: "tree-sha" } }), { status: 200 });
     if (path.endsWith("/git/trees")) return new Response(JSON.stringify({ sha: "new-tree" }), { status: 201 });
