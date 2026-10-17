@@ -90,3 +90,5 @@ assert((values.get("settings") as any).freeStarter === false,
   "dirty data must remain queued and succeed on a later flush after storage recovers");
 
 console.log("Durable IndexedDB flush regression tests passed");
+
+export {};
