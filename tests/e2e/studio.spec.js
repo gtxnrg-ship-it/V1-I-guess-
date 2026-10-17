@@ -298,4 +298,22 @@ test.describe("Kuro-chan studio", () => {
     await expect(page.getByText("I want a tiny voice demo app")).toBeVisible({ timeout: 10_000 });
     await expect.poll(() => providerRequests, { timeout: 10_000 }).toBeGreaterThan(0);
   });
+
+  test("creates and restores a checkpoint safely", async ({ page }) => {
+    await page.goto("/studio", { waitUntil: "domcontentloaded" });
+    await page.getByTestId("sidebar-checkpoints").click();
+    await expect(page.getByRole("heading", { name: "Checkpoints" })).toBeVisible();
+
+    await page.locator("#checkpoint-label").fill("Before recovery test");
+    await page.getByRole("button", { name: "Save checkpoint" }).click();
+
+    const checkpoint = page.locator("article").filter({ hasText: "Before recovery test" });
+    await expect(checkpoint).toBeVisible();
+    await checkpoint.getByRole("button", { name: "Restore" }).click();
+    await expect(checkpoint.getByText(/Replace current files\?/)).toBeVisible();
+    await checkpoint.getByRole("button", { name: "Confirm restore" }).click();
+
+    await expect(page.getByText("Before restore", { exact: true })).toBeVisible();
+    await expect(page.getByText(/A safety checkpoint of the previous files was created first/)).toBeVisible();
+  });
 });
