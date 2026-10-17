@@ -7,7 +7,7 @@ Source of truth: [ROADMAP.md](../ROADMAP.md). This ledger separates **roadmap ch
 
 - **10 of 122 roadmap checkboxes complete: 8.2%.**
 - Calculation: checked boxes divided by all checklist items currently in `ROADMAP.md`, rounded to one decimal place.
-- This is a strict checklist percentage, not a claim that only 7.4% of the product code exists. Several merged changes are not yet represented by checked roadmap items, and partial features do not count as complete.
+- This is a strict checklist percentage, not a claim that only 8.2% of the product code exists. Several merged changes are not yet represented by checked roadmap items, and partial features do not count as complete.
 - Reconcile this ledger whenever roadmap items are added, removed, or verified. Only check a roadmap item when its acceptance criteria are implemented and verified; record evidence below.
 
 ## Progress by roadmap section
