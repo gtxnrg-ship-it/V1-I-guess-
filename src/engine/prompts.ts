@@ -92,7 +92,7 @@ Investigate, in this order, only what the brief actually needs:
 4. Domain knowledge: real facts, names, terminology and copy ideas so the app's content is specific and believable (web_search, read_url).
 5. Design: a concrete art direction (palette with hex values, Google Fonts pairing, layout pattern, motion) suited to the subject, and 3-6 image prompts for Pollinations if images help.
 Work fast: run several searches per step when you can. Stop after at most 6-8 tool calls, then call save_research once with dense, organised markdown notes (max ~700 words). Notes must be actionable: package@version, import lines, code snippets, URLs, hex colors.
-For statistical, scientific, simulation, or game-engine briefs, call `inspect_project_capabilities` early and inspect the actual dependency manifests, scripts, lockfiles, and version pins before recommending a stack. Distinguish manifest evidence from installed runtimes and executed checks; recommend domain-specific validation rather than treating a successful bundle as scientific or gameplay correctness.`;
+For statistical, scientific, simulation, or game-engine briefs, call inspect_project_capabilities early and inspect the actual dependency manifests, scripts, lockfiles, and version pins before recommending a stack. Distinguish manifest evidence from installed runtimes and executed checks; recommend domain-specific validation rather than treating a successful bundle as scientific or gameplay correctness.`;
 
 
 export const PLANNER = `${PERSONA}
@@ -101,7 +101,7 @@ You are the PLANNER. Turn the approved brief and the research notes into a short
 - 2-8 steps for a full build, 1-2 for a quick change. Each step is one coherent chunk the Builder can finish in a few file writes: name it, say exactly what to build, and list the files it touches.
 - Order: design tokens and fonts first (index.html + src/index.css), then shared components and data, then screens, then polish (motion, empty states, responsive checks).
 - Be specific (component names, props, sections, copy direction) so a weaker coding model can't go wrong.
-- For scientific or game-engine work, call `inspect_project_capabilities` and plan staged vertical slices: establish the smallest runnable core, add domain behavior, then acceptance tests and performance checks. Statistical plans need known-answer fixtures, explicit assumptions, provenance/reproducibility, and uncertainty checks; game plans need input, state, asset/import, gameplay-smoke, and target-performance checks.`;
+- For scientific or game-engine work, call inspect_project_capabilities and plan staged vertical slices: establish the smallest runnable core, add domain behavior, then acceptance tests and performance checks. Statistical plans need known-answer fixtures, explicit assumptions, provenance/reproducibility, and uncertainty checks; game plans need input, state, asset/import, gameplay-smoke, and target-performance checks.`;
 
 export const BUILDER = `${PERSONA}
 
@@ -112,9 +112,9 @@ Rules:
 - Keep files small and focused. Import every component you use. Every import path must exist.
 - When you finish the step, call verify_project. If it reports errors, fix them before finishing.
 - If the app needs a database table, call share_sql with the SQL.
-- Before a scientific, numerical, simulation, or game-engine implementation, call `inspect_project_capabilities` and read the relevant manifests/scripts. Do not guess dependency versions or blindly run generic candidate commands.
+- Before a scientific, numerical, simulation, or game-engine implementation, call inspect_project_capabilities and read the relevant manifests/scripts. Do not guess dependency versions or blindly run generic candidate commands.
 - For numerical/statistical results, add known-answer tests, edge cases, reproducible seeds where applicable, and checks for assumptions/data leakage. For games, verify the loop/state/input path and target-specific behavior in stages.
-- `verify_project` is not a universal compiler: in the app workspace it uses the browser QA harness, and in Kuro-chan's own workspace it syntax-checks changed files. Never report native toolchain, scientific correctness, game export, or device performance as verified unless a real matching check ran.
+- verify_project is not a universal compiler: in the app workspace it uses the browser QA harness, and in Kuro-chan's own workspace it syntax-checks changed files. Never report native toolchain, scientific correctness, game export, or device performance as verified unless a real matching check ran.
 - When the step is done, reply with ONE short sentence on what you did. No code in the reply.
 
 ${STACK}
