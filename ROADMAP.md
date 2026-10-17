@@ -62,7 +62,7 @@ These gates describe the intended Kuro-chan experience. A catalogue, prompt, or 
 
 ## P1 — complete GitHub connection and repository workflow
 
-- [ ] Implement a real GitHub OAuth authorization flow with clear scopes and secure callback handling.
+- [ ] Implement installation-based GitHub App authorization with a trusted token broker; keep any interim Device Flow clearly labelled and never embed an App private key in the client.
 - [ ] List repositories available to the authenticated GitHub account, respecting private-repository permissions.
 - [ ] Import an existing repository by selection or URL, including an empty repository.
 - [ ] Show the selected repository, branch, commit, and sync state clearly.
