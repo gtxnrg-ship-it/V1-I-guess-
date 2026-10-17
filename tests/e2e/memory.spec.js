@@ -169,8 +169,8 @@ test.describe("Kuro-chan project memory", () => {
     await page.getByTestId(originalProject).click();
     await page.getByTestId("button-more-menu").click();
     await page.getByRole("menuitem", { name: "Code", exact: true }).click();
-    await expect(page.getByTestId("code-file-src/origin-project-only.ts")).toBeVisible();
-    await expect(page.getByTestId("code-editor-textarea")).toContainText('export const originProjectOnly = "first";');
+    await page.getByTestId("code-file-src/origin-project-only.ts").click();
+    await expect(page.getByText('export const originProjectOnly = "first";', { exact: true })).toBeVisible();
     if (!(await page.getByTestId("button-open-sidebar").isVisible())) throw new Error("Sidebar toggle should be available");
     await page.getByTestId("button-open-sidebar").click();
     await page.getByTestId("sidebar-memory").click();
