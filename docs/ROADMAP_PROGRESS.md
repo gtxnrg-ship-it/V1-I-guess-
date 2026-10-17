@@ -5,8 +5,8 @@ Source of truth: [ROADMAP.md](../ROADMAP.md). This ledger separates **roadmap ch
 
 ## Overall checklist progress
 
-- **13 of 133 roadmap checkboxes complete: 9.8%.**
-- Calculation: checked boxes divided by all checklist items currently in `ROADMAP.md`, rounded to one decimal place. The latest reconciliation includes merged checkpoint-recovery, project-memory, personality-preference, and local-model-advisor work, plus 11 new original-vision acceptance gates.
+- **13 of 142 roadmap checkboxes complete: 9.2%.**
+- Calculation: checked boxes divided by all checklist items currently in `ROADMAP.md`, rounded to one decimal place. The latest reconciliation includes merged checkpoint-recovery, project-memory, personality-preference, and local-model-advisor work, 11 original-vision acceptance gates, and 9 public-feedback/model-evolution gates.
 - This is a strict checklist percentage, not a claim that only 8.2% of the product code exists. Several merged changes are not yet represented by checked roadmap items, and partial features do not count as complete.
 - Reconcile this ledger whenever roadmap items are added, removed, or verified. Only check a roadmap item when its acceptance criteria are implemented and verified; record evidence below.
 
@@ -28,6 +28,7 @@ Source of truth: [ROADMAP.md](../ROADMAP.md). This ledger separates **roadmap ch
 | P2 — delivery, releases, and quality of life | 0 | 8 |
 | P3 — longer-term experiments | 0 | 6 |
 | Original-vision alignment | 0 | 11 |
+| Public feedback and model evolution | 0 | 9 |
 | **Total** | **13** | **133** |
 
 ## Shipped capability evidence

@@ -87,7 +87,9 @@ test.describe("Kuro-chan project memory", () => {
           features: ["Create a single TypeScript file"],
           design: "Minimal and clear",
           backend: "none",
-          size: "full",
+          // This test targets workspace isolation, not the research/planning stages.
+          // A quick build makes the mocked provider sequence deterministic.
+          size: "quick",
         }) },
       }] } }],
     };
