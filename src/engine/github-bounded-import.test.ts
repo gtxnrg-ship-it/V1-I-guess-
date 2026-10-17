@@ -42,7 +42,7 @@ try {
   blobRequests = 0;
   truncatedTree = true;
   const truncated = await gh.readTreeBounded("owner", "repo", "main", () => true, { maxFiles: 10 });
-  assert(!truncated.complete && truncated.reason?.includes("truncated"), "GitHub tree truncation must be explicit");
+  assert(!truncated.complete && Boolean(truncated.reason?.includes("truncated")), "GitHub tree truncation must be explicit");
   console.log("Bounded GitHub repository import tests passed");
 } finally {
   globalThis.fetch = originalFetch;
