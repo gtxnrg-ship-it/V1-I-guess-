@@ -235,7 +235,8 @@ test.describe("Kuro-chan studio", () => {
 
     const playfulness = page.getByRole("slider", { name: "Playfulness" });
     await expect(playfulness).toHaveValue("2");
-    await playfulness.fill("3");
+    await playfulness.focus();
+    await playfulness.press("End");
     await page.getByLabel("Reply length").selectOption("detailed");
     const memory = page.getByRole("switch", { name: "Use saved project memory" });
     await memory.click();
