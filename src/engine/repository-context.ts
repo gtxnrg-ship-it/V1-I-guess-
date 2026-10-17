@@ -56,7 +56,7 @@ export async function buildRepositoryContext(
   const repository = safeRepo(input);
   const [metadata, commits] = await Promise.all([
     request(client, `/repos/${repository}/`),
-    client.req("GET", `/repos/${repository}/commits?sha=${encodeURIComponent(options.branch?.trim() || "")}&per_page=1`),
+    client.req("GET", `/repos/${repository}/commits${options.branch?.trim() ? `?sha=${encodeURIComponent(options.branch.trim())}&per_page=1` : "?per_page=1"}`),
   ]);
   const defaultBranch = typeof metadata.default_branch === "string" && metadata.default_branch ? metadata.default_branch : "main";
   const requestedBranch = options.branch?.trim();
