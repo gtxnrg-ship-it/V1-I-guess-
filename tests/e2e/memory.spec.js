@@ -71,18 +71,38 @@ test.describe("Kuro-chan project memory", () => {
     await expect(page.getByTestId("memory-fact-0")).toContainText("This memory belongs to the original project only.");
   });
 
-  test("keeps a running task's completion summary in the project where it started", async ({ page }) => {
-    let releaseFirst;
-    let requestStarted;
-    const firstRequestStarted = new Promise((resolve) => { requestStarted = resolve; });
-    const release = new Promise((resolve) => { releaseFirst = resolve; });
+  test("keeps a running build's files and summary in the project where it started", async ({ page }) => {
+    let releaseBuilder;
+    let builderRequestStarted;
+    const builderStarted = new Promise((resolve) => { builderRequestStarted = resolve; });
+    const holdBuilder = new Promise((resolve) => { releaseBuilder = resolve; });
     let requestCount = 0;
-    const reply = [
-      'data: {"choices":[{"delta":{"content":"I reviewed the project and completed the requested task."}}]}',
-      "",
-      "data: [DONE]",
-      "",
-    ].join("\n");
+    const eventStream = (event) => `data: ${JSON.stringify(event)}\n\ndata: [DONE]\n\n`;
+    const brief = {
+      choices: [{ delta: { tool_calls: [{
+        index: 0, id: "call_brief_project_scope", type: "function",
+        function: { name: "propose_brief", arguments: JSON.stringify({
+          title: "Project-scoped file test",
+          summary: "Create one small source file to verify project isolation.",
+          features: ["Create a single TypeScript file"],
+          design: "Minimal and clear",
+          backend: "none",
+          size: "full",
+        }) },
+      }] } }],
+    };
+    const writeFile = {
+      choices: [{ delta: { tool_calls: [{
+        index: 0, id: "call_write_project_scope", type: "function",
+        function: { name: "write_file", arguments: JSON.stringify({
+          path: "src/origin-project-only.ts",
+          content: 'export const originProjectOnly = "first";',
+        }) },
+      }] } }],
+    };
+    const textReply = {
+      choices: [{ delta: { content: "The requested change is complete and ready for review." } }],
+    };
 
     await page.route("https://text.pollinations.ai/openai/chat/completions", async (route) => {
       if (route.request().method() === "OPTIONS") {
@@ -91,22 +111,24 @@ test.describe("Kuro-chan project memory", () => {
       }
       requestCount += 1;
       if (requestCount === 1) {
-        requestStarted();
-        await release;
+        await route.fulfill({ status: 200, headers: { "access-control-allow-origin": "*", "content-type": "text/event-stream; charset=utf-8", "cache-control": "no-cache" }, body: eventStream(brief) });
+        return;
       }
-      await route.fulfill({
-        status: 200,
-        headers: { "access-control-allow-origin": "*", "content-type": "text/event-stream; charset=utf-8", "cache-control": "no-cache" },
-        body: reply,
-      });
+      if (requestCount === 2) {
+        builderRequestStarted();
+        await holdBuilder;
+        await route.fulfill({ status: 200, headers: { "access-control-allow-origin": "*", "content-type": "text/event-stream; charset=utf-8", "cache-control": "no-cache" }, body: eventStream(writeFile) });
+        return;
+      }
+      await route.fulfill({ status: 200, headers: { "access-control-allow-origin": "*", "content-type": "text/event-stream; charset=utf-8", "cache-control": "no-cache" }, body: eventStream(textReply) });
     });
 
     await page.goto("/studio", { waitUntil: "domcontentloaded" });
     const originalProject = await page.locator('[data-testid^="sidebar-project-"]').first().getAttribute("data-testid");
     expect(originalProject).toBeTruthy();
+    await page.evaluate((id) => localStorage.removeItem(`kuro_last_summary_${id}`), originalProject);
 
-    // Create a second workspace before the model request so the test can switch
-    // between existing projects while the first request is held open.
+    // Create a second workspace before starting the build.
     const newChat = page.getByTestId("button-new-chat");
     if (!(await newChat.isVisible())) await page.getByTestId("button-open-sidebar").click();
     await newChat.click();
@@ -117,28 +139,41 @@ test.describe("Kuro-chan project memory", () => {
     const secondProject = projectIds.find((id) => id !== originalProject);
     expect(secondProject).toBeTruthy();
     await page.getByTestId(originalProject).click();
-    if (!(await page.getByTestId("input-message").isVisible())) await page.getByTestId("button-open-sidebar").click();
 
-    await page.getByTestId("input-message").fill("Please inspect this project and tell me what you completed.");
+    await page.getByTestId("input-message").fill("Please create the tiny source file described in the brief.");
     await page.getByTestId("button-send").click();
-    await firstRequestStarted;
+    await expect(page.getByTestId("button-build-it")).toBeVisible({ timeout: 10_000 });
+    await page.getByTestId("button-build-it").click();
+    await builderStarted;
 
-    // Switch while the provider response is pending, as a user might when
-    // moving between project chats during a longer task.
+    // Switch projects while the Builder's provider response is still pending.
     if (!(await page.getByTestId(secondProject).isVisible())) await page.getByTestId("button-open-sidebar").click();
     await page.getByTestId(secondProject).click();
-    releaseFirst();
+    releaseBuilder();
 
-    await expect(page.getByText(/I reviewed the project and completed the requested task/)).toBeVisible({ timeout: 15_000 });
-    await expect(page.getByTestId("button-stop")).toHaveCount(0, { timeout: 15_000 });
-    if (!(await page.getByTestId("sidebar-memory").isVisible())) await page.getByTestId("button-open-sidebar").click();
+    await page.waitForFunction((id) => Boolean(localStorage.getItem(`kuro_last_summary_${id}`)), originalProject, { timeout: 20_000 });
+
+    // The second workspace must have neither the file nor the summary.
+    if (!(await page.getByTestId("button-more-menu").isVisible())) throw new Error("Project menu should remain available");
+    await page.getByTestId("button-more-menu").click();
+    await page.getByRole("menuitem", { name: "Code", exact: true }).click();
+    await expect(page.getByTestId("code-file-src/origin-project-only.ts")).toHaveCount(0);
+
+    if (!(await page.getByTestId("button-open-sidebar").isVisible())) throw new Error("Sidebar toggle should be available");
+    await page.getByTestId("button-open-sidebar").click();
     await page.getByTestId("sidebar-memory").click();
     await expect(page.getByLabel("Project summary")).toHaveValue("");
 
+    // Returning to the original workspace should reveal both the file and summary.
     if (!(await page.getByTestId(originalProject).isVisible())) await page.getByTestId("button-open-sidebar").click();
     await page.getByTestId(originalProject).click();
-    if (!(await page.getByTestId("sidebar-memory").isVisible())) await page.getByTestId("button-open-sidebar").click();
+    await page.getByTestId("button-more-menu").click();
+    await page.getByRole("menuitem", { name: "Code", exact: true }).click();
+    await expect(page.getByTestId("code-file-src/origin-project-only.ts")).toBeVisible();
+    await expect(page.getByTestId("code-editor-textarea")).toContainText('export const originProjectOnly = "first";');
+    if (!(await page.getByTestId("button-open-sidebar").isVisible())) throw new Error("Sidebar toggle should be available");
+    await page.getByTestId("button-open-sidebar").click();
     await page.getByTestId("sidebar-memory").click();
-    await expect(page.getByLabel("Project summary")).not.toHaveValue("", { timeout: 15_000 });
+    await expect(page.getByLabel("Project summary")).not.toHaveValue("", { timeout: 10_000 });
   });
 });
