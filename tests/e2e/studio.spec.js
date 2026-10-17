@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 
 test.describe("Kuro-chan studio", () => {
-  test("loads the engineering workspace without a live-preview feature", async ({ page }) => {
+  test("loads the engineering workspace and isolated live preview", async ({ page }) => {
     const pageErrors = [];
     page.on("pageerror", (error) => pageErrors.push(error.message));
 
@@ -24,8 +24,12 @@ test.describe("Kuro-chan studio", () => {
     await page.getByTestId("sidebar-settings").click();
     await page.getByRole("button", { name: /AI & models/i }).click();
     await expect(page.getByTestId("local-models-pane")).toBeVisible();
-    await expect(page.getByTestId("tab-preview")).toHaveCount(0);
-    await expect(page.getByTestId("iframe-preview")).toHaveCount(0);
+    await page.getByTestId("button-open-sidebar").click();
+    await page.getByTestId("sidebar-preview").click();
+    await expect(page.getByTestId("project-preview")).toBeVisible();
+    const previewFrame = page.getByTestId("project-preview-frame");
+    await expect(previewFrame).toBeVisible({ timeout: 10_000 });
+    await expect(previewFrame).toHaveAttribute("sandbox", "allow-scripts");
     expect(pageErrors).toEqual([]);
   });
 
@@ -49,6 +53,9 @@ test.describe("Kuro-chan studio", () => {
     await page.getByTestId("button-open-sidebar").click();
     await page.getByTestId("sidebar-code").click();
     await expect(page.getByText("Files", { exact: true })).toBeVisible();
+    await page.getByTestId("button-open-sidebar").click();
+    await page.getByTestId("sidebar-preview").click();
+    await expect(page.getByTestId("project-preview-frame")).toBeVisible({ timeout: 10_000 });
     await page.getByTestId("button-open-sidebar").click();
     await page.getByTestId("button-new-chat").click();
     await expect(page.getByTestId("input-message")).toBeVisible();
