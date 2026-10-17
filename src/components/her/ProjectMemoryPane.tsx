@@ -2,11 +2,12 @@ import { useState } from "react";
 import { Brain, Plus, Pencil, Trash2, Save, X, ShieldCheck, AlertTriangle, MessageSquareText, Lightbulb, CircleHelp, RotateCcw } from "lucide-react";
 import * as db from "@/engine/db";
 import { containsSensitiveMemoryText, type ProjectMemoryFact } from "@/engine/project-memory";
+import type { Project } from "@/engine/types";
 import { useToast } from "@/hooks/use-toast";
 
 type EntryKind = "fact" | "decision" | "question";
 type EditableKind = "fact" | "decision";
-const EMPTY_MEMORY = { facts: [] as ProjectMemoryFact[], decisions: [] as ProjectMemoryFact[], openQuestions: [] as string[] };
+const EMPTY_MEMORY: NonNullable<Project["memory"]> = { facts: [], decisions: [], openQuestions: [] };
 
 function sourceLabel(source: ProjectMemoryFact["source"]) {
   if (source === "user-confirmed") return "Confirmed by you";
