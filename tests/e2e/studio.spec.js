@@ -94,7 +94,6 @@ test.describe("Kuro-chan studio", () => {
 
   test("sends a natural chat message and renders Kuro-chan's streamed reply", async ({ page }) => {
     let requests = 0;
-    let providerRequests = 0;
     await page.route("https://text.pollinations.ai/openai/chat/completions", async (route) => {
       if (route.request().method() === "OPTIONS") {
         await route.fulfill({
@@ -270,6 +269,7 @@ test.describe("Kuro-chan studio", () => {
       const synthesis = window.speechSynthesis;
       if (synthesis) synthesis.speak = (utterance) => { utterance.onstart?.(); utterance.onend?.(); };
     });
+    let providerRequests = 0;
     await page.route("https://text.pollinations.ai/openai/chat/completions", async (route) => {
       if (route.request().method() === "OPTIONS") {
         await route.fulfill({ status: 204, headers: { "access-control-allow-origin": "*", "access-control-allow-methods": "POST, OPTIONS", "access-control-allow-headers": "authorization, content-type" } });
