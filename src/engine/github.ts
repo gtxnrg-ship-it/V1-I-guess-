@@ -122,7 +122,7 @@ export class GH {
     // branch may move while this commit is being assembled.
     const targetHeadAtStart = await this.headSha(owner, name, branch);
     if (!opts.fromBranch && targetHeadAtStart !== parent) {
-      throw new Error("The repository changed before this publish could start. Nothing was pushed. Refresh the project from GitHub and review the changes before trying again.");
+      throw new Error("The repository changed while preparing this publish. Nothing was pushed. Refresh the project from GitHub and review the changes before trying again.");
     }
     const tree = await this.ok("POST", `/repos/${owner}/${name}/git/trees`, {
       ...(opts.full ? {} : { base_tree: parentCommit.tree.sha }),
