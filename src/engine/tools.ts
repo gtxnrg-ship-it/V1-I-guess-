@@ -4,7 +4,9 @@ import type { Brief, PlanStep, Question } from "./types";
 import { buildQaHarness } from "./qa-harness";
 import { runtimeCheck, look } from "./eyes";
 import * as R from "./research";
-import { getState, project, writeFile, deleteFile, set } from "./db";
+import { getState, project, writeFile, deleteFile, set, keyOf } from "./db";
+import { GH } from "./github";
+import { readRepositoryFile, searchRepositoryCode } from "./repository-files";
 import { credentialGuardMessage } from "./secrets";
 
 /** Files an agent can work on: the user's app, or (admin only) Kuro-chan's own source. */
@@ -15,6 +17,7 @@ export interface Workspace {
   write(p: string, c: string): void;
   remove(p: string): void;
   env(): Record<string, string>;
+  remoteRepository?(): { repository: string; token: string } | null;
 }
 export const appWorkspace = (projectId = project().id): Workspace => {
   const target = () => {
@@ -29,6 +32,11 @@ export const appWorkspace = (projectId = project().id): Workspace => {
     write: (p, c) => writeFile(p, c, projectId),
     remove: (p) => deleteFile(p, projectId),
     env: () => target().env,
+    remoteRepository: () => {
+      const repository = target().repo;
+      const credential = keyOf("github");
+      return repository && credential?.secret ? { repository, token: credential.secret } : null;
+    },
   };
 };
 export function memoryWorkspace(name: string, files: Record<string, string>): Workspace & { changed: Set<string>; base: Record<string, string> } {
@@ -67,6 +75,8 @@ export const TOOLS: Record<string, Def> = {
   list_files: { name: "list_files", description: "List every file in the project with sizes.", parameters: obj({}), title: () => "Listed files" },
   read_file: { name: "read_file", description: "Read a file.", parameters: obj({ path: str("File path, e.g. src/App.tsx") }, ["path"]), title: (a) => `Read ${a.path}` },
   search_code: { name: "search_code", description: "Find which files contain some text (case-insensitive). Returns file:line matches.", parameters: obj({ text: str("Text to look for") }, ["text"]), title: (a) => `Searched the code for “${String(a.text).slice(0, 40)}”` },
+  read_repository_file: { name: "read_repository_file", description: "Read actual contents of a path from the linked GitHub repository default branch. Use for files outside the initial context pack. Read-only.", parameters: obj({ path: str("Repository-relative file path, e.g. src/engine/router.ts") }, ["path"]), title: (a) => "Read GitHub file " + String(a.path).slice(0, 45) },
+  search_repository_code: { name: "search_repository_code", description: "Search the linked GitHub repository code index for a distinctive symbol or phrase. Returns matching paths and GitHub links; then read relevant files with read_repository_file.", parameters: obj({ query: str("Distinctive code symbol or phrase to search for") }, ["query"]), title: (a) => "Searched GitHub code for “" + String(a.query).slice(0, 40) + "”" },
   write_file: { name: "write_file", description: "Create or fully overwrite a file. Always write the complete content.", parameters: obj({ path: str("File path"), content: str("Full file content") }, ["path", "content"]), title: (a) => `Wrote ${a.path}` },
   edit_file: { name: "edit_file", description: "Replace an exact snippet in a file (find must match exactly once). Best for small changes.", parameters: obj({ path: str("File path"), find: str("Exact existing text"), replace: str("Replacement text") }, ["path", "find", "replace"]), title: (a) => `Edited ${a.path}` },
   delete_file: { name: "delete_file", description: "Delete a file.", parameters: obj({ path: str("File path") }, ["path"]), title: (a) => `Deleted ${a.path}` },
@@ -87,10 +97,10 @@ export const TOOLS: Record<string, Def> = {
 };
 
 export const SETS = {
-  talk: ["list_files", "read_file", "web_search", "ask_user", "propose_brief"],
-  research: ["web_search", "read_url", "search_npm", "search_github", "get_docs", "find_photos", "list_files", "read_file", "save_research"],
-  plan: ["list_files", "read_file", "search_code", "submit_plan"],
-  build: ["list_files", "read_file", "search_code", "write_file", "edit_file", "delete_file", "verify_project", "get_docs", "web_search", "find_photos", "generate_image", "share_sql"],
+  talk: ["list_files", "read_file", "read_repository_file", "search_repository_code", "web_search", "ask_user", "propose_brief"],
+  research: ["web_search", "read_url", "search_npm", "search_github", "get_docs", "find_photos", "list_files", "read_file", "read_repository_file", "search_repository_code", "save_research"],
+  plan: ["list_files", "read_file", "search_code", "read_repository_file", "search_repository_code", "submit_plan"],
+  build: ["list_files", "read_file", "search_code", "read_repository_file", "search_repository_code", "write_file", "edit_file", "delete_file", "verify_project", "get_docs", "web_search", "find_photos", "generate_image", "share_sql"],
   check: ["report_issues"],
 } as const;
 export const toolDefs = (names: readonly string[]): ToolDef[] => names.map((n) => { const { title, ...d } = TOOLS[n]; return d; });
@@ -133,6 +143,16 @@ export async function runTool(ws: Workspace, name: string, a: any): Promise<Tool
       const hits: string[] = [];
       for (const [p, c] of Object.entries(files)) c.split("\n").forEach((l, i) => { if (hits.length < 60 && l.toLowerCase().includes(t)) hits.push(`${p}:${i + 1}: ${l.trim().slice(0, 160)}`); });
       return { result: hits.join("\n") || "No matches.", stat: `${hits.length} matches` };
+    }
+    case "read_repository_file": {
+      const remote = ws.remoteRepository?.();
+      if (!remote) return { result: "No linked GitHub repository or GitHub connection is available for this project. Connect GitHub and select a repository first." };
+      return readRepositoryFile(new GH(remote.token), remote.repository, a.path);
+    }
+    case "search_repository_code": {
+      const remote = ws.remoteRepository?.();
+      if (!remote) return { result: "No linked GitHub repository or GitHub connection is available for this project. Connect GitHub and select a repository first." };
+      return searchRepositoryCode(new GH(remote.token), remote.repository, a.query);
     }
     case "write_file": {
       const p = norm(a.path);
