@@ -140,9 +140,10 @@ The former 13/142 (9.2%) is a literal checklist count only, not an overall produ
 - PR #149 is merged but its initial main-branch Check and APK workflows failed; CodeQL passed. Do not treat that merge as successful verification.
 - PR #150 repairs the R test-command syntax, passes manifest contents into the combined project report, tests Bevy and JavaScript game-engine dependencies, and updates this checklist. At code head `1f9bb1b0c93663e7130397559cbe10551a37f4aa`, Check, APK build, and CodeQL all passed. This verification is SHA-specific; any new commit must be checked again.
 - The discovery layer recognizes 26 language families and 10 engine families. It reports evidence, toolchain prerequisites, and candidate commands. It does not install or execute compilers, runtimes, dependencies, model weights, or engines.
+- PR #152 adds scientific/statistical manifest discovery for Python, R, Julia, JavaScript, Rust, and dbt. `npm test`, TypeScript, production build, and browser E2E passed on code head `15e6cc8c4944421519f75e560c0719d4893b7bfb`. PR #152 is stacked on PR #150; APK and CodeQL must run after it is retargeted to `main`. The feature reports dependency evidence and validation cautions only.
 
 ### Next required capability slice
-1. PR #150's Check, APK build, and CodeQL are green on code head `1f9bb1b0c93663e7130397559cbe10551a37f4aa`. Recheck all workflows on the current head before merge; fix any failures and do not merge while a required check is red or pending.
+1. PR #150's Check, APK build, and CodeQL are green on code head `a8c97966680d98f8c578c34e314123233d45d3a1`. PR #152's Check suite is green on code head `15e6cc8c4944421519f75e560c0719d4893b7bfb`; it is stacked on PR #150, so merge #150 first, retarget #152 to `main`, then recheck Check/APK/CodeQL on the latest head.
 2. Implement a permissioned isolated runner with explicit command allowlists, time/memory/output limits, cancellation, controlled filesystem/network access, and auditable command/exit-code/log results.
 3. Use actual project manifests/scripts/lockfiles/version pins to choose commands; don't run generic suggestions blindly.
 4. Prove one scientific/statistical project using known-answer numerical tests, provenance/assumptions, reproducibility and uncertainty checks.

@@ -116,6 +116,7 @@ Kuro-chan must recognize the kind of project before proposing commands, then use
 
 - [x] Detect 26 language families from repository evidence and expose candidate toolchains/build/test guidance through the agent capability-inspection tool. (PR #149; regression checks in PR #150.)
 - [x] Detect 10 game-engine families from explicit project markers and supported Cargo/package.json dependency evidence, without assuming every Rust or JavaScript project is a game.
+- [x] Detect supported scientific/statistical stack dependencies across Python, R, Julia, JavaScript, Rust, and dbt manifests; return evidence and domain-specific validation guidance. (PR #152; Check suite passed on code head `15e6cc8c4944421519f75e560c0719d4893b7bfb`.)
 - [ ] Inspect actual manifests, scripts, lockfiles, versions, and CI configuration before selecting exact build/test commands; distinguish candidates from commands actually run.
 - [ ] Provide a permissioned isolated runner with explicit allowlists, resource/time limits, cancellation, controlled network/filesystem access, and exact command/exit-code/log evidence.
 - [ ] Support bounded dependency installation and build/test adapters for the detected toolchain, including actionable missing-SDK/runtime and unsupported-platform failures.
