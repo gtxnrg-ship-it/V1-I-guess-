@@ -213,7 +213,8 @@ test.describe("Kuro-chan studio", () => {
     await page.getByTestId("input-message").fill("I want a tiny habit tracker for my phone. Keep it calm and simple.");
     await page.getByTestId("button-send").click();
 
-    await expect(page.getByRole("heading", { name: "Tiny habit tracker" })).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByTestId("card-brief")).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByText("Tiny habit tracker", { exact: true })).toBeVisible();
     await expect(page.getByTestId("button-build-it")).toBeVisible();
     await expect(page.getByText(/A calm, phone-friendly habit tracker/)).toBeVisible();
     // This test intentionally does not approve the brief: the user remains in control of code generation.
