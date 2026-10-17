@@ -16,7 +16,7 @@ import { shipUpgrade } from "@/engine/self";
 import * as db from "@/engine/db";
 
 const ICONS: Record<string, any> = {
-  list_files: FolderTree, read_file: FileText, write_file: FilePen, edit_file: FilePen, delete_file: Trash2, search_code: Search,
+  list_files: FolderTree, read_file: FileText, read_repository_file: FileText, search_repository_code: Github, write_file: FilePen, edit_file: FilePen, delete_file: Trash2, search_code: Search,
   verify_project: Eye, look: Camera, web_search: Globe, read_url: BookOpen, search_npm: Package, search_github: Github, get_docs: BookOpen,
   save_research: Telescope, report_issues: ScanEye,
 };
