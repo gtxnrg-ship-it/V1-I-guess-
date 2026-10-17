@@ -95,3 +95,13 @@ The repository has a useful engineering-agent foundation, but the intended produ
 ## Checklist percentage correction
 
 The earlier **13/142 = 9.2%** was mechanically correct only for the boxes checked at that moment; it was not a measurement of code shipped or actual product capability. Multiple merged PRs added code and tests without reconciling the corresponding roadmap acceptance gates. We will update individual boxes only where the complete stated acceptance criteria are met and will report the literal checkbox count separately from the capability audit. No unsupported overall percentage should be inferred from 9.2%.
+
+## Capability reliability correction — PR #155
+
+- Fixed malformed nested quotes in the R and PowerShell toolchain command suggestions that broke TypeScript parsing, npm test, and the production/APK build.
+- Fixed the project-level capability detector contract: it now accepts manifest contents and passes them into game-engine detection, so dependency-based evidence can reach the tool output.
+- Fixed tool-block status classification so syntax errors, build errors, runtime crashes, and failed remote checks are not shown as successful actions.
+- Added regression tests for command quoting, manifest-driven Phaser detection, and tool failure classification.
+- Code head ca477a1ff8798c688eaa65c73e82e35efbfa92ba passed Check, APK build, and CodeQL. This evidence applies to that exact code head; the next docs-only head must be rechecked.
+- PR: https://github.com/gtxnrg-ship-it/kuro-chan/pull/155
+- This is a reliability fix, not completion of the broader create-anything goal. The next priority remains a genuinely executable, permissioned, isolated build/test/repair loop across supported runtimes, with evidence-backed capability reporting.
