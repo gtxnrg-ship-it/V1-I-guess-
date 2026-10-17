@@ -22,7 +22,7 @@
     "@radix-ui/react-tooltip": "^1.2.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
-    "esbuild-wasm": "0.25.0",
+    "esbuild-wasm": "0.28.2",
     "kokoro-js": "^1.2.1",
     "lucide-react": "^0.453.0",
     "modern-screenshot": "^4.6.0",
