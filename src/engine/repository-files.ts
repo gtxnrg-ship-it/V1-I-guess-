@@ -67,10 +67,10 @@ export async function readRepositoryFile(client: RepositoryFileClient, input: st
  * Bounded fallback used when GitHub's indexed code-search API is forbidden/unavailable.
  * It scans a small, prioritized sample of text blobs and explicitly reports partial coverage.
  */
-async function searchRepositoryTree(client: RepositoryFileClient, repo: ReturnType<typeof parseRepo>, query: string): Promise<RepositoryFileResult> {
+async function searchRepositoryTree(client: RepositoryFileClient, repo: ReturnType<typeof parseRepo>, query: string, branchInput?: unknown): Promise<RepositoryFileResult> {
   const meta = await client.req("GET", `/repos/${repo.owner}/${repo.name}`);
   if (meta.status >= 300) return { result: `GitHub code search was unavailable and repository metadata could not be read (HTTP ${meta.status}). No fallback search was performed.` };
-  const branch = String(meta.json?.default_branch || "main");
+  const branch = cleanBranch(branchInput) || String(meta.json?.default_branch || "main");
   const treeResponse = await client.req("GET", `/repos/${repo.owner}/${repo.name}/git/trees/${encodeURIComponent(branch)}?recursive=1`);
   if (treeResponse.status >= 300 || !Array.isArray(treeResponse.json?.tree)) {
     return { result: `GitHub code search was unavailable and the repository tree could not be read (HTTP ${treeResponse.status}). No search results were fabricated.` };
@@ -119,9 +119,12 @@ async function searchRepositoryTree(client: RepositoryFileClient, repo: ReturnTy
 }
 
 /** Search GitHub's authenticated code index; fall back to a bounded tree scan when unavailable. */
-export async function searchRepositoryCode(client: RepositoryFileClient, input: string, queryInput: unknown): Promise<RepositoryFileResult> {
+export async function searchRepositoryCode(client: RepositoryFileClient, input: string, queryInput: unknown, branchInput?: unknown): Promise<RepositoryFileResult> {
   const repo = parseRepo(input), query = String(queryInput ?? "").trim().slice(0, 160);
   if (query.length < 2) return { result: "Enter at least two characters to search repository code." };
+  const selectedBranch = cleanBranch(branchInput);
+  // GitHub indexed search can return matches from a different ref. For a selected ref, use the bounded tree scan instead.
+  if (selectedBranch) return searchRepositoryTree(client, repo, query, selectedBranch);
   const path = `/search/code?q=${encodeURIComponent(query + " repo:" + repo.fullName)}&per_page=10`;
   const response = await client.req("GET", path);
   if (response.status === 401 || response.status === 403) return searchRepositoryTree(client, repo, query);
