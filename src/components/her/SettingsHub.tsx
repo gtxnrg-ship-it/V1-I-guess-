@@ -97,7 +97,7 @@ export function SettingsHub() {
           </>}
           {section === "repositories" && <>
             <Card title="GitHub connection" subtitle="Connect only the account and repositories you want Kuro-chan to access.">
-              <SettingRow title="Connection status" detail="The app stores the GitHub credential in this browser’s local app storage."><span className={`rounded-full border px-2.5 py-1 text-[10px] ${st.keys.some((k) => k.provider === "github") ? "border-emerald-500/25 text-emerald-300" : "border-amber-500/25 text-amber-300"}`}>{st.keys.some((k) => k.provider === "github") ? "Connected" : "Not connected"}</span></SettingRow>
+              <SettingRow title="Connection status" detail="GitHub access tokens stay in memory for this session and are not saved in the ordinary browser key store. Reconnect after restarting Kuro-chan."><span className={`rounded-full border px-2.5 py-1 text-[10px] ${st.keys.some((k) => k.provider === "github") ? "border-emerald-500/25 text-emerald-300" : "border-amber-500/25 text-amber-300"}`}>{st.keys.some((k) => k.provider === "github") ? "Connected" : "Not connected"}</span></SettingRow>
               <SettingRow title="Repository workspace" detail="Projects are isolated. Import a repository from the project menu in the top bar."><span className="text-xs text-muted-foreground">{st.projects.length} project{st.projects.length === 1 ? "" : "s"}</span></SettingRow>
               <SettingRow title="Publishing review" detail="Review changes and confirm before pushing code or creating a pull request."><span className="text-xs text-muted-foreground">User-controlled</span></SettingRow>
             </Card>
@@ -106,7 +106,7 @@ export function SettingsHub() {
             <Card title="Local data" subtitle="Kuro-chan stores workspace data in this browser's IndexedDB where available.">
               <SettingRow title="Storage status" detail="If browser storage is unavailable, the app may fall back to temporary in-memory state."><span className={`rounded-full border px-2.5 py-1 text-[10px] ${st.persistent ? "border-emerald-500/25 text-emerald-300" : "border-amber-500/25 text-amber-300"}`}>{st.persistent ? "Persistent storage" : "Session fallback"}</span></SettingRow>
               <SettingRow title="Diagnostic reporting" detail="No automatic upload is configured here. Share diagnostic details only when you choose to."><span className="text-xs text-muted-foreground">Manual only</span></SettingRow>
-              <SettingRow title="Credentials" detail="Provider keys are kept in local app storage. Avoid using a shared or untrusted device."><span className="inline-flex items-center gap-1 text-xs text-muted-foreground"><LockKeyhole className="h-3.5 w-3.5" /> Local storage</span></SettingRow>
+              <SettingRow title="Credentials" detail="AI provider keys are kept in local app storage. GitHub access tokens are session-only and cleared when Kuro-chan restarts. Avoid using shared or untrusted devices."><span className="inline-flex items-center gap-1 text-xs text-muted-foreground"><LockKeyhole className="h-3.5 w-3.5" /> Local storage</span></SettingRow>
             </Card>
           </>}
           {section === "device" && <>
