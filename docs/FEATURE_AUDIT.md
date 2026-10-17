@@ -2,7 +2,7 @@
 
 **Audit date:** 2026-10-17  
 **Repository:** [gtxnrg-ship-it/kuro-chan](https://github.com/gtxnrg-ship-it/kuro-chan)  
-**Baseline reviewed:** `main` at `168778d36c91a997efca332071c064c54412f0d7`  
+**Baseline reviewed:** `main` at `d68c71d0106bc5f701906727d6cde4aee351f163`  
 **Purpose:** durable handoff and evidence-based implementation queue. Update this file whenever an acceptance gate materially changes.
 
 ## How to read this audit
@@ -13,7 +13,7 @@ This is a repository-evidence audit, not a claim that every tracked file was man
 - **Automated test** may use mocked providers, speech APIs, or browser state. It proves the tested path, not a live external service or physical phone.
 - **CI green** proves only the checks that actually ran on the recorded commit. APK packaging is not device acceptance.
 - **Not verified** means no adequate evidence was found in this audit; it must not be reported as working.
-- The roadmap's **13/142 = 9.2%** is a strict checkbox count. It is not a valid estimate of overall capability. A broader **~25% capability estimate** is provisional judgment only, not a measured completion score.
+- The roadmap's current **15/150 = 10.0%** is a strict checkbox count, not an overall capability score. Eight explicit capability gates were added and two discovery gates were verified; this is scope refinement, not a claim that total capability can be measured by the checkbox ratio. The broader **~25% capability estimate** remains provisional judgment only, not a measured completion score.
 
 ## Workstream status
 
@@ -21,6 +21,7 @@ This is a repository-evidence audit, not a claim that every tracked file was man
 | --- | --- | --- | --- |
 | Conversational chat and continuity | Chat-first React studio; multi-turn mocked-provider acceptance test; project and conversation persistence work; personality/preferences settings | Live-provider behavior, robust long-task continuity, cancellation/retry and full real-world conversation quality are not established by mocks alone | P1 |
 | Repository understanding | GitHub metadata/tree/source-context path; bounded file reading; evidence and truncation reporting; immutable commit SHA source reads in PR #139 | Branch movement, truncated tree, large files, missing permissions, API rate limits, and one shared snapshot object need targeted tests; context is bounded, not a claim that every file was read | P0 |
+| Multi-language and game-engine discovery | PR #149 added evidence-based detection for 26 language families and 10 engine families plus an agent inspection tool; PR #150 fixes manifest evidence propagation and adds regression coverage | PR #149 merged despite failing Check/APK runs; PR #150 Check and CodeQL passed on head `8ae75f4136e181aa8f3f71a9b03c6b5dd79cf658`, APK was pending at last observation, and docs updates require a fresh run. This discovers candidate toolchains; it does not execute them | P1 — verify PR #150, then build isolated runner |
 | Safe repository writes | Project checkpoints/restore and review-oriented workflow foundations exist | Before-write target branch/head guard, concurrent edits/conflict behavior, exact diff and commit evidence, least-privilege write authorization, and safe recovery need end-to-end validation | P0 |
 | Build, test, diagnose, repair, retest | Talker/Researcher/Planner/Builder/Checker roles; QA harness, runtime diagnostics, bounded repair path, seeded syntax-error repair foundations; final post-review QA now gets one bounded repair/retest attempt | A representative real project has not been proven through real dependency install + production build + tests + seeded failure + repair + successful retest on a supported runner | P1 — central product promise |
 | GitHub sign-in and delivery | GitHub API client, Device Flow/session foundations, token identity verification and tests | Complete installation-based GitHub App flow needs a trusted server-side token broker; real permissions, token expiry/revocation, secure native session lifecycle, branch writes, conflicts and PR creation need E2E | P1 |
@@ -120,3 +121,27 @@ A dedicated tool dispatches the repository fixed `check.yml` workflow, polls for
 The README now exposes a prominent direct-download URL ending in `/releases/latest/download/Kurochan.apk`. The Android workflow copies the generated debug APK to the exact asset name `Kurochan.apk` before publishing. The direct URL is expected to resolve after the first successful post-merge `main` release; until then, the existing latest release may not yet contain the renamed asset. It remains a debug APK, not a production-signed release.
 
 The former 13/142 (9.2%) is a literal checklist count only, not an overall product-completion score. It was stale relative to merged work that had not been reconciled to acceptance criteria. The team must review checkboxes against the full criteria and publish the strict count separately from capability evidence; do not repeat 9.2% as if it described the amount of work done.
+
+
+## Capability-discovery audit and cross-chat handoff (2026-10-17)
+
+### Repository review scope
+- Current default-branch baseline reviewed: `d68c71d0106bc5f701906727d6cde4aee351f163`.
+- Enumerated the complete recursive tree: 173 tracked entries. The source-text inventory excluding binary artwork and `package-lock.json` contains 144 files. Reviewed the roadmap, original vision, README, feature audit, progress ledger, priorities, runtime/auth docs, CI workflows, package scripts, main UI, agent/tool/router/provider code, repository context/diagnostics, GitHub auth/write paths, project memory, QA harness, representative unit tests, and browser E2E suites. This is a repository-wide structural/code-path audit, not a claim that every line or binary asset was manually inspected.
+- Confirmed the repo already has meaningful foundations: agent roles, provider routing, project memory/checkpoints, repository context, guarded GitHub writes, QA diagnostics, UI/voice features, Android packaging, and extensive mocked/unit/E2E coverage. Their existence does not establish complete real-world execution.
+
+### Capability discovery
+- PR #149 is merged but its initial main-branch Check and APK workflows failed; CodeQL passed. Do not treat that merge as successful verification.
+- PR #150 repairs the R test-command syntax, passes manifest contents into the combined project report, tests Bevy and JavaScript game-engine dependencies, and updates this checklist. The source/test head `8ae75f4136e181aa8f3f71a9b03c6b5dd79cf658` had Check and CodeQL green; APK was pending. The current docs changes will trigger fresh checks.
+- The discovery layer recognizes 26 language families and 10 engine families. It reports evidence, toolchain prerequisites, and candidate commands. It does not install or execute compilers, runtimes, dependencies, model weights, or engines.
+
+### Next required capability slice
+1. Recheck all PR #150 workflows on the latest head; fix failures and do not merge while any required check is red or pending.
+2. Implement a permissioned isolated runner with explicit command allowlists, time/memory/output limits, cancellation, controlled filesystem/network access, and auditable command/exit-code/log results.
+3. Use actual project manifests/scripts/lockfiles/version pins to choose commands; don't run generic suggestions blindly.
+4. Prove one scientific/statistical project using known-answer numerical tests, provenance/assumptions, reproducibility and uncertainty checks.
+5. Prove one game-engine vertical slice through imports, engine/headless checks, target build/export, gameplay smoke tests and performance checks.
+6. Demonstrate a seeded failure, diagnosis, repair, and successful retest on the same supported runner.
+7. After each accepted capability slice, update `ROADMAP.md`, this audit, `docs/ROADMAP_PROGRESS.md`, and `docs/IMPLEMENTATION_PRIORITIES.md` in the same change.
+
+**Current stop line:** no universal multi-language execution, production-scale game-engine generation, local inference runtime, deployed GitHub App token broker, or physical Android acceptance is claimed complete. Front-end polish remains behind the capability/reliability gates.
