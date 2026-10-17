@@ -71,4 +71,60 @@ test.describe("Kuro-chan project memory", () => {
     await expect(page.getByTestId("memory-fact-0")).toContainText("This memory belongs to the original project only.");
   });
 
+  test("keeps a running task's completion summary in the project where it started", async ({ page }) => {
+    let releaseFirst;
+    let requestStarted;
+    const firstRequestStarted = new Promise((resolve) => { requestStarted = resolve; });
+    const release = new Promise((resolve) => { releaseFirst = resolve; });
+    let requestCount = 0;
+    const reply = [
+      'data: {"choices":[{"delta":{"content":"I reviewed the project and completed the requested task."}}]}',
+      "",
+      "data: [DONE]",
+      "",
+    ].join("\n");
+
+    await page.route("https://text.pollinations.ai/openai/chat/completions", async (route) => {
+      if (route.request().method() === "OPTIONS") {
+        await route.fulfill({ status: 204, headers: { "access-control-allow-origin": "*", "access-control-allow-methods": "POST, OPTIONS", "access-control-allow-headers": "authorization, content-type" } });
+        return;
+      }
+      requestCount += 1;
+      if (requestCount === 1) {
+        requestStarted();
+        await release;
+      }
+      await route.fulfill({
+        status: 200,
+        headers: { "access-control-allow-origin": "*", "content-type": "text/event-stream; charset=utf-8", "cache-control": "no-cache" },
+        body: reply,
+      });
+    });
+
+    await page.goto("/studio", { waitUntil: "domcontentloaded" });
+    const originalProject = await page.locator('[data-testid^="sidebar-project-"]').first().getAttribute("data-testid");
+    expect(originalProject).toBeTruthy();
+
+    await page.getByTestId("input-message").fill("Please inspect this project and tell me what you completed.");
+    await page.getByTestId("button-send").click();
+    await firstRequestStarted;
+
+    // Switch while the provider response is still pending, like a user moving
+    // between project chats on a phone during a longer task.
+    await page.getByTestId("button-open-sidebar").click();
+    await page.getByTestId("button-new-chat").click();
+    releaseFirst();
+
+    await expect(page.getByText(/I reviewed the project and completed the requested task/)).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByTestId("button-stop")).toHaveCount(0, { timeout: 15_000 });
+    await page.getByTestId("button-open-sidebar").click();
+    await page.getByTestId("sidebar-memory").click();
+    await expect(page.getByLabel("Project summary")).toHaveValue("");
+
+    await page.getByTestId("button-open-sidebar").click();
+    await page.getByTestId(originalProject).click();
+    await page.getByTestId("button-open-sidebar").click();
+    await page.getByTestId("sidebar-memory").click();
+    await expect(page.getByLabel("Project summary")).not.toHaveValue("", { timeout: 15_000 });
+  });
 });
