@@ -60,7 +60,7 @@ export async function buildRepositoryContext(
   ]);
   const defaultBranch = typeof metadata.default_branch === "string" && metadata.default_branch ? metadata.default_branch : "main";
   const requestedBranch = options.branch?.trim();
-  if (requestedBranch && (requestedBranch.length > 255 || requestedBranch.startsWith("-") || requestedBranch.includes("..") || requestedBranch.includes("\\") || /[\u0000-\u0020~^:?*\[\]]/.test(requestedBranch))) {
+  if (requestedBranch && (requestedBranch.length > 255 || requestedBranch.startsWith("-") || requestedBranch.includes("..") || /[\u0000-\u0020~^:?*\[\]\\]/.test(requestedBranch))) {
     throw new Error("The selected repository branch/ref is malformed.");
   }
   const branch = requestedBranch || defaultBranch;
