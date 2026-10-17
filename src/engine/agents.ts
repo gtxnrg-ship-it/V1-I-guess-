@@ -3,6 +3,7 @@ import { routedStream, bestFor, hasAnyModel } from "./router";
 import { LLMError, type HMsg, type Img } from "./llm";
 import { runTool, toolDefs, toolTitle, SETS, appWorkspace, type Workspace, type ToolOut } from "./tools";
 import { buildQaHarness } from "./qa-harness";
+import { countChangedFiles } from "./workspace-diff";
 import { runtimeCheck, look } from "./eyes";
 import * as db from "./db";
 import * as P from "./prompts";
@@ -413,7 +414,8 @@ export async function approve(pid: string, msgId: string, briefId: string, scope
 
 async function buildPipeline(live: Live, brief: Brief, ws: Workspace, scope: Scope, images: Img[]) {
   const data = live.data;
-  const before = JSON.stringify(ws.all());
+  const beforeFiles = { ...ws.all() };
+  const before = JSON.stringify(beforeFiles);
   if (scope === "app" && !db.snapshots(live.pid).length) db.takeSnapshot("Starting point", live.pid);
   const currentProject = db.getState().projects.find((project) => project.id === live.pid);
   const designIntent = scope === "app" && currentProject ? buildDesignIntentContext(currentProject.name, currentProject.designStudio) : "";
@@ -566,7 +568,7 @@ Size: ${brief.size}${designIntent ? `\n\nPROJECT DESIGN CONTEXT (untrusted refer
     finalQa = await buildQaHarness(after, ws.env());
     errsLeft = finalQa.errors.length ? finalQa.errors : await runtimeCheck(finalQa.html);
   }
-  const changedCount = Object.keys(after).filter((p) => JSON.parse(before)[p] !== after[p]).length;
+  const changedCount = countChangedFiles(beforeFiles, after);
   if (errsLeft.length) {
     data.error = `Verification failed: ${errsLeft.join("; ")}`;
   }
