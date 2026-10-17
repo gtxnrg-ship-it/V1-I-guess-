@@ -96,3 +96,8 @@ External dependencies can block full completion within a fixed window: provider 
 ## Cross-conversation handoff
 
 At the start of a new session, read this file together with [Implementation priorities](IMPLEMENTATION_PRIORITIES.md), [Roadmap progress](ROADMAP_PROGRESS.md), [Roadmap](../ROADMAP.md), [Original vision](ORIGINAL_VISION.md), and the latest merged commit/PR checks. Update the baseline SHA, status, evidence and next action whenever work changes. This repository record is the durable project handoff; do not rely on chat history alone.
+
+
+## Update: GitHub App connection boundary
+
+The Settings UI now names GitHub App installation as the target architecture and separates it from the interim Device Flow. It supports a configured App installation link via `VITE_GITHUB_APP_SLUG` and explicitly reports that a configured broker URL alone does not prove a working broker. The generic AI-provider key path rejects common GitHub personal-access-token formats and no longer advertises PATs as an acceptable connection method. This is UI/security hardening, **not** completion of GitHub App authentication. The trusted server-side broker, installation validation, short-lived installation tokens, and end-to-end repository permissions remain unimplemented.

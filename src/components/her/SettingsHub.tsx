@@ -49,6 +49,9 @@ export function SettingsHub() {
   const patch = (value: Parameters<typeof db.setSettings>[0]) => db.setSettings(value);
   const sectionMeta = SECTIONS.find((item) => item.id === section)!;
   const isDark = typeof document !== "undefined" && document.documentElement.classList.contains("dark");
+  const githubAppSlug = String((import.meta as any).env?.VITE_GITHUB_APP_SLUG || "").trim();
+  const githubAppBrokerUrl = String((import.meta as any).env?.VITE_GITHUB_APP_BROKER_URL || "").trim();
+  const githubAppInstallUrl = /^[a-zA-Z0-9-]+$/.test(githubAppSlug) ? `https://github.com/apps/${githubAppSlug}/installations/new` : "";
   useEffect(() => { if (typeof document !== "undefined") document.documentElement.dataset.reduceMotion = settings.reduceMotion ? "true" : "false"; }, [settings.reduceMotion]);
 
   return <div className="her-scroll h-full min-h-0 overflow-y-auto">
@@ -124,11 +127,19 @@ export function SettingsHub() {
             <Card title="Local models" subtitle="Inspect the local model options currently supported by this build."><LocalModelsPane /></Card>
           </>}
           {section === "repositories" && <>
-            <Card title="GitHub connection" subtitle="Connect only the account and repositories you want Kuro-chan to access.">
-              <SettingRow title="Connect or manage GitHub" detail="Sign in with GitHub's one-time device code from AI & models, or manage an existing session there.">
+            <Card title="GitHub App installation" subtitle="The intended connection is an installed GitHub App with access limited to repositories you choose—not a personal access token pasted into AI settings.">
+              <div className="rounded-xl border border-primary/20 bg-primary/5 p-3.5">
+                <div className="text-sm font-medium">Repository access, with explicit boundaries</div>
+                <p className="mt-1 text-xs leading-relaxed text-muted-foreground">A GitHub App installation can grant only the repository permissions you approve. Its private key must stay on a trusted server; the app must receive short-lived installation tokens from that broker. Kuro-chan must never put an App private key in browser code or an APK.</p>
+                {githubAppInstallUrl ? <a href={githubAppInstallUrl} target="_blank" rel="noreferrer" className="mt-3 inline-flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-xs font-medium text-primary-foreground"><Github className="h-3.5 w-3.5" /> Install GitHub App</a> : <p className="mt-3 text-xs text-amber-700 dark:text-amber-300">This build has no GitHub App slug configured. Set VITE_GITHUB_APP_SLUG to the registered App's slug to show its installation link.</p>}
+                <p className="mt-2 text-xs text-muted-foreground">{githubAppBrokerUrl ? "Broker endpoint configured. It still must implement installation verification, short-lived token minting, session protection, and repository permission checks." : "No server-side GitHub App token broker is configured. Installation alone cannot safely give this browser API credentials; do not treat the current device sign-in as the final App installation architecture."}</p>
+              </div>
+              <SettingRow title="Current connection status" detail="The existing device sign-in is a temporary account-auth flow, not proof of a repository-scoped GitHub App installation. Tokens are runtime-only.">
+                <span className={`rounded-full border px-2.5 py-1 text-[10px] ${db.keyOf("github") ? "border-amber-500/25 text-amber-300" : "border-border text-muted-foreground"}`}>{db.keyOf("github") ? "Temporary session" : "Not connected"}</span>
+              </SettingRow>
+              <SettingRow title="Temporary connection controls" detail="The legacy device sign-in can be managed from AI & models while the server-side GitHub App broker is built and configured. Do not paste a GitHub token into the AI provider key field.">
                 <button type="button" onClick={() => setSection("models")} className="rounded-lg border border-border px-3 py-1.5 text-xs hover:bg-muted">Open AI & models</button>
               </SettingRow>
-              <SettingRow title="Connection status" detail="GitHub access tokens stay in memory for this session and are not saved in the ordinary browser key store. Reconnect after restarting Kuro-chan."><span className={`rounded-full border px-2.5 py-1 text-[10px] ${db.keyOf("github") ? "border-emerald-500/25 text-emerald-300" : "border-amber-500/25 text-amber-300"}`}>{db.keyOf("github") ? "Connected" : "Not connected"}</span></SettingRow>
               {db.keyOf("github") && <SettingRow title="Disconnect GitHub" detail="Clear the runtime session and remove any separately saved GitHub token. To revoke authorization completely, also remove it in GitHub settings."><button type="button" onClick={() => { clearGitHubSession(); st.keys.filter((key) => key.provider === "github").forEach((key) => db.removeKey(key.id)); refreshSessionStatus((value) => value + 1); toast({ title: "GitHub disconnected", description: "Kuro-chan cleared the session. Revoke app access in GitHub settings if you want to remove authorization too." }); }} className="rounded-lg border border-border px-3 py-1.5 text-xs hover:bg-muted">Disconnect</button></SettingRow>}
               <SettingRow title="Revoke app access" detail="Open GitHub's authorized applications page to review or revoke Kuro-chan's access."><a href="https://github.com/settings/apps/authorizations" target="_blank" rel="noreferrer" className="text-xs text-primary underline">Manage authorization</a></SettingRow>
               <SettingRow title="Repository source branch" detail="Choose the branch or exact ref Kuro-chan should inspect for this project. Leave blank to follow the repository's default branch. File reads and initial source context use this ref; publishing remains a separate workflow.">
@@ -145,7 +156,7 @@ export function SettingsHub() {
             <Card title="Local data" subtitle="Kuro-chan stores workspace data in this browser's IndexedDB where available.">
               <SettingRow title="Storage status" detail="If browser storage is unavailable, the app may fall back to temporary in-memory state."><span className={`rounded-full border px-2.5 py-1 text-[10px] ${st.persistent ? "border-emerald-500/25 text-emerald-300" : "border-amber-500/25 text-amber-300"}`}>{st.persistent ? "Persistent storage" : "Session fallback"}</span></SettingRow>
               <SettingRow title="Diagnostic reporting" detail="No automatic upload is configured here. Share diagnostic details only when you choose to."><span className="text-xs text-muted-foreground">Manual only</span></SettingRow>
-              <SettingRow title="Credentials" detail="AI provider keys are kept in local app storage. GitHub access tokens are session-only and cleared when Kuro-chan restarts. Avoid using shared or untrusted devices."><span className="inline-flex items-center gap-1 text-xs text-muted-foreground"><LockKeyhole className="h-3.5 w-3.5" /> Local storage</span></SettingRow>
+              <SettingRow title="Credentials" detail="AI provider keys are kept in local app storage. GitHub device-flow credentials are temporary and cleared when Kuro-chan restarts; the final GitHub App flow requires a trusted server-side token broker. Avoid using shared or untrusted devices."><span className="inline-flex items-center gap-1 text-xs text-muted-foreground"><LockKeyhole className="h-3.5 w-3.5" /> Local storage</span></SettingRow>
             </Card>
           </>}
           {section === "device" && <>

@@ -34,7 +34,7 @@ Kuro-chan is a chat-first AI engineering companion for non-coders. Ordinary conv
 
 ## GitHub App target
 
-The intended experience is a built-in GitHub App connection. The user installs the App and chooses repository access. Kuro-chan receives only granted permissions and works on isolated feature branches. The App private key stays in a trusted server-side token broker; the client receives short-lived installation tokens. If no broker is deployed, do not claim seamless GitHub App installation is available. An interim Device Flow must not be mistaken for the final architecture.
+The intended experience is a built-in GitHub App installation. The user installs the App and chooses repository access. Kuro-chan receives only granted permissions and works on isolated feature branches. The App private key stays in a trusted server-side token broker; the client receives short-lived installation tokens. The UI must distinguish an installation link from a working authenticated session. If no broker is deployed, do not claim seamless GitHub App installation is available. The existing Device Flow is an interim account-auth path, not the final architecture. Personal access tokens must not be accepted as a substitute for the App installation.
 
 Acceptance requires in-app installation/connection, clear permissions, repository and branch listing, base commit and sync state, repository inspection before planning, readable diffs, checks, pull requests, and safe recovery from expired access, rate limits, network failures, and conflicts. Publishing, merging, and destructive actions require confirmation.
 
