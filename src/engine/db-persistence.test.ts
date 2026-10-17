@@ -1,4 +1,4 @@
-// Exercise the store persistence path with an asynchronous IndexedDB fake.
+// Regression test: exercise durable flush behavior with an asynchronous IndexedDB fake.
 const values = new Map<string, unknown>();
 let failWrites = false;
 const fakeDb: any = {
