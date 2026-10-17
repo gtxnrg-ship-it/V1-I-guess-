@@ -183,6 +183,7 @@ function filesSummary(ws: Workspace) {
 let repositoryInspectionCache: { key: string; at: number; text: string } | null = null;
 
 async function talkerContext(scope: Scope, pid: string): Promise<string> {
+  if (scope === "self") return "";
   const current = db.getState().projects.find((project) => project.id === pid);
   if (!current) return "The project that started this task no longer exists. Do not use or write to another project.";
   const env = Object.keys(current.env);
@@ -231,7 +232,7 @@ async function talkerContext(scope: Scope, pid: string): Promise<string> {
   }
 
   const appContext = `Current app: "${current.name}". ${current.repo ? `GitHub: ${current.repo}.` : "Not on GitHub yet (the Publish button ships it as a website + Android APK)."} ${env.length ? `App settings set: ${env.join(", ")}.` : "No app settings (Supabase keys) yet."}\n\n${projectMemory}${repositoryEvidence ? `\n\n${repositoryEvidence}` : ""}`;
-  return scope === "self" ? "" : appContext;
+  return appContext;
 }
 
 function talkerSystem(scope: Scope): string {
