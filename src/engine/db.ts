@@ -214,12 +214,49 @@ export function clearMessages(pid = project().id) { state.messages = { ...state.
 
 // ───────────── restore points ─────────────
 export const snapshots = (pid = project().id) => state.snapshots[pid] || [];
-export function takeSnapshot(label: string): Snapshot {
-  const p = project();
-  const s: Snapshot = { id: uid(), projectId: p.id, label, files: { ...p.files }, createdAt: Date.now() };
-  state.snapshots = { ...state.snapshots, [p.id]: [...snapshots(p.id), s].slice(-40) };
-  persist(`snapshots:${p.id}`);
+
+function snapshotProject(target: Project, label: string): Snapshot {
+  const s: Snapshot = {
+    id: uid(),
+    projectId: target.id,
+    label,
+    files: { ...target.files },
+    createdAt: Date.now(),
+  };
+  state.snapshots = {
+    ...state.snapshots,
+    [target.id]: [...snapshots(target.id), s].slice(-40),
+  };
+  persist(`snapshots:${target.id}`);
   return s;
+}
+
+export function takeSnapshot(label: string): Snapshot {
+  return snapshotProject(project(), label);
+}
+
+export type SnapshotRestoreResult =
+  | { ok: true; safetySnapshotId: string }
+  | { ok: false; reason: "project-not-found" | "snapshot-not-found" | "invalid-snapshot" };
+
+/**
+ * Restore a checkpoint only within its owning project. A safety checkpoint is
+ * recorded before replacing files so the operation itself can be undone.
+ */
+export function restoreSnapshot(snapshotId: string, projectId = project().id): SnapshotRestoreResult {
+  const target = state.projects.find((p) => p.id === projectId);
+  if (!target) return { ok: false, reason: "project-not-found" };
+
+  const saved = snapshots(projectId).find((s) => s.id === snapshotId && s.projectId === projectId);
+  if (!saved) return { ok: false, reason: "snapshot-not-found" };
+  if (!saved.files || typeof saved.files !== "object" || Array.isArray(saved.files)
+    || Object.entries(saved.files).some(([path, content]) => !path || typeof content !== "string")) {
+    return { ok: false, reason: "invalid-snapshot" };
+  }
+
+  const safety = snapshotProject(target, "Before restore");
+  updateProject(projectId, { files: { ...saved.files } });
+  return { ok: true, safetySnapshotId: safety.id };
 }
 
 // ───────────── keys ─────────────
