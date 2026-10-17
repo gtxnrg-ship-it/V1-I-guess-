@@ -233,7 +233,7 @@ export function ChatPanel({ scope = "app", onOpenKeys, draft, setDraft, onSent }
   const nativeVoiceAvailable = typeof window !== "undefined" && isNativeApp();
   const speechAvailable = nativeVoiceAvailable || (typeof window !== "undefined" && "speechSynthesis" in window);
   const premiumVoiceReady = !!db.keyOf("openai");
-  const voiceProvider = st.settings.voiceProvider === "kokoro" ? "kokoro" : st.settings.voiceProvider === "openai" && premiumVoiceReady ? "openai" : "browser";
+  const voiceProvider = st.settings.voiceProvider === "kokoro" || (!st.settings.voiceProvider && st.settings.preferOfflineVoice) ? "kokoro" : st.settings.voiceProvider === "openai" && premiumVoiceReady ? "openai" : "browser";
   const voiceOutputAvailable = speechAvailable || premiumVoiceReady || voiceProvider === "kokoro";
   const fileRef = useRef<HTMLInputElement>(null);
   const dict = useDictation(draft, setDraft, (m) => { haptic("error"); toast({ title: "Voice input", description: m }); });
