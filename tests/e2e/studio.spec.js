@@ -285,12 +285,15 @@ test.describe("Kuro-chan studio", () => {
     await page.getByTestId("sidebar-settings").click();
     await page.getByRole("button", { name: /Voice & speech/i }).click();
     await page.getByRole("switch", { name: "Auto-send recognized voice turns" }).click();
+    await expect(page.getByTestId("button-mic")).toHaveAttribute("aria-label", "Speak and send when finished");
     await page.getByTestId("button-open-sidebar").click();
     await page.getByTestId(/^sidebar-project-/).first().click();
 
     await page.getByTestId("button-mic").click();
     await page.evaluate(() => window.__kuroMockRecognition.emitTranscript("I want a tiny voice demo app"));
-    await page.evaluate(() => window.__kuroMockRecognition.finish());
+    await expect(page.getByText("I want a tiny voice demo app")).toBeVisible({ timeout: 10_000 });
+    // End the turn through the same mic-stop path a phone user can tap.
+    await page.getByTestId("button-mic").click();
 
     await expect(page.getByText("I want a tiny voice demo app")).toBeVisible({ timeout: 10_000 });
     await expect.poll(() => providerRequests, { timeout: 10_000 }).toBeGreaterThan(0);
