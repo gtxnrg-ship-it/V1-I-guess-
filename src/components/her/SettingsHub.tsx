@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import * as db from "@/engine/db";
+import { clearGitHubSession } from "@/engine/github-session";
 import { KeysPane } from "@/components/her/KeysPane";
 import { LocalModelsPane } from "@/components/her/LocalModelsPane";
 
@@ -42,6 +43,7 @@ function Card({ title, subtitle, children }: { title: string; subtitle?: string;
 export function SettingsHub() {
   const st = db.useKuro();
   const [section, setSection] = useState<Section>("appearance");
+  const [, refreshSessionStatus] = useState(0);
   const { toast } = useToast();
   const settings = st.settings;
   const patch = (value: Parameters<typeof db.setSettings>[0]) => db.setSettings(value);
@@ -123,8 +125,8 @@ export function SettingsHub() {
           </>}
           {section === "repositories" && <>
             <Card title="GitHub connection" subtitle="Connect only the account and repositories you want Kuro-chan to access.">
-              <SettingRow title="Connection status" detail="GitHub access tokens stay in memory for this session and are not saved in the ordinary browser key store. Reconnect after restarting Kuro-chan."><span className={`rounded-full border px-2.5 py-1 text-[10px] ${st.keys.some((k) => k.provider === "github") ? "border-emerald-500/25 text-emerald-300" : "border-amber-500/25 text-amber-300"}`}>{st.keys.some((k) => k.provider === "github") ? "Connected" : "Not connected"}</span></SettingRow>
-              {st.keys.some((key) => key.provider === "github") && <SettingRow title="Disconnect GitHub" detail="Remove this session's GitHub token from Kuro-chan. To revoke the app's authorization completely, also remove it in GitHub settings."><button type="button" onClick={() => { st.keys.filter((key) => key.provider === "github").forEach((key) => db.removeKey(key.id)); toast({ title: "GitHub disconnected", description: "The session token was removed from Kuro-chan. Revoke app access in GitHub settings if you want to remove authorization too." }); }} className="rounded-lg border border-border px-3 py-1.5 text-xs hover:bg-muted">Disconnect</button></SettingRow>}
+              <SettingRow title="Connection status" detail="GitHub access tokens stay in memory for this session and are not saved in the ordinary browser key store. Reconnect after restarting Kuro-chan."><span className={`rounded-full border px-2.5 py-1 text-[10px] ${db.keyOf("github") ? "border-emerald-500/25 text-emerald-300" : "border-amber-500/25 text-amber-300"}`}>{db.keyOf("github") ? "Connected" : "Not connected"}</span></SettingRow>
+              {db.keyOf("github") && <SettingRow title="Disconnect GitHub" detail="Clear the runtime session and remove any separately saved GitHub token. To revoke authorization completely, also remove it in GitHub settings."><button type="button" onClick={() => { clearGitHubSession(); st.keys.filter((key) => key.provider === "github").forEach((key) => db.removeKey(key.id)); refreshSessionStatus((value) => value + 1); toast({ title: "GitHub disconnected", description: "Kuro-chan cleared the session. Revoke app access in GitHub settings if you want to remove authorization too." }); }} className="rounded-lg border border-border px-3 py-1.5 text-xs hover:bg-muted">Disconnect</button></SettingRow>}
               <SettingRow title="Revoke app access" detail="Open GitHub's authorized applications page to review or revoke Kuro-chan's access."><a href="https://github.com/settings/apps/authorizations" target="_blank" rel="noreferrer" className="text-xs text-primary underline">Manage authorization</a></SettingRow>
               <SettingRow title="Repository workspace" detail="Projects are isolated. Import a repository from the project menu in the top bar."><span className="text-xs text-muted-foreground">{st.projects.length} project{st.projects.length === 1 ? "" : "s"}</span></SettingRow>
               <SettingRow title="Publishing review" detail="Review changes and confirm before pushing code or creating a pull request."><span className="text-xs text-muted-foreground">User-controlled</span></SettingRow>
