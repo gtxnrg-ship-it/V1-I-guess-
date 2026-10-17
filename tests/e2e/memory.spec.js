@@ -87,7 +87,7 @@ test.describe("Kuro-chan project memory", () => {
           features: ["Create a single TypeScript file"],
           design: "Minimal and clear",
           backend: "none",
-          size: "full",
+          size: "quick",
         }) },
       }] } }],
     };
