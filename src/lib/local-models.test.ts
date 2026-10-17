@@ -14,6 +14,8 @@ function testLocalModelCatalog() {
   assert(gradeLocalModel(large, 6) === "yellow", "4B model should be a cautious candidate on 6 GB RAM");
   assert(gradeLocalModel(large, 3) === "red", "4B model should be red on 3 GB RAM");
   assert(localModelRecommendation(6).includes("0.5B–1.7B"), "6 GB guidance should prioritize smaller models");
+  assert(gradeLocalModel(large, Number.NaN) === "yellow", "unknown RAM should stay uncertain instead of rejecting every model");
+  assert(localModelRecommendation(Number.NaN).includes("Memory information isn't exposed"), "unknown RAM should ask the user to choose instead of assuming 6 GB");
   console.log("✓ local model catalog tests passed");
 }
 testLocalModelCatalog();

@@ -61,6 +61,26 @@ test.describe("Kuro-chan studio", () => {
     await expect(page.getByTestId("input-message")).toBeVisible();
   });
 
+
+  test("does not invent a RAM estimate when the browser hides device memory", async ({ page }) => {
+    await page.addInitScript(() => {
+      Object.defineProperty(navigator, "deviceMemory", { configurable: true, value: undefined });
+    });
+    await page.goto("/studio", { waitUntil: "domcontentloaded" });
+    await page.getByTestId("sidebar-settings").click();
+    await page.getByRole("button", { name: /AI & models/i }).click();
+
+    const ram = page.getByTestId("local-model-ram");
+    await expect(ram).toHaveValue("unknown");
+    await expect(page.getByTestId("local-model-recommendation")).toContainText("Memory information isn't exposed");
+    await ram.selectOption("4");
+    await expect(page.getByTestId("local-model-recommendation")).toContainText("Try tiny models first");
+
+    await page.getByRole("button", { name: "Red" }).click();
+    await expect(page.getByTestId("local-model-qwen3-4b")).toBeVisible();
+    await expect(page.getByTestId("local-model-qwen3-0.6b")).toHaveCount(0);
+  });
+
   test("exports the current project as a downloadable ZIP", async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 900 });
     await page.goto("/studio", { waitUntil: "domcontentloaded" });
