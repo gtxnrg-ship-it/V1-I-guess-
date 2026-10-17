@@ -106,6 +106,28 @@ async function run() {
   assert(snapshotPack.commitSha === "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", "uses the snapshot's immutable commit");
   assert(snapshotPack.files[0]?.content.includes("fromSnapshot"), "reads file bodies referenced by the supplied snapshot tree");
   assert(!snapshotRequests.some((path) => path.includes("/commits") || path.includes("/git/trees/")), "does not refetch commits or recursive tree when reusing a snapshot");
+  const coverageClient: RepositoryContextClient = {
+    async req(_method, path) {
+      if (path === "/repos/acme/coverage/") return { status: 200, json: { default_branch: "main" } };
+      if (path.endsWith("/git/blobs/coverage-app")) return { status: 200, json: { encoding: "base64", content: b64("export const included = true;") } };
+      throw new Error("Unexpected coverage request: " + path);
+    },
+  };
+  const coveragePack = await buildRepositoryContext(coverageClient, "acme/coverage", {
+    snapshot: {
+      commitSha: "cccccccccccccccccccccccccccccccccccccccc",
+      treeComplete: false,
+      tree: [
+        { type: "blob", path: "src/App.tsx", sha: "coverage-app", size: 29 },
+        { type: "blob", path: "src/generated-large.ts", sha: "too-large", size: 90_001 },
+      ],
+    },
+  });
+  assert(coveragePack.includedCount === 1 && coveragePack.skippedCount === 1, "counts oversized text sources as omitted instead of hiding them from coverage");
+  assert(coveragePack.warnings.some((warning) => warning.includes("exceeded the 90000-byte read limit")), "explains why an oversized text file was skipped");
+  assert(coveragePack.warnings.some((warning) => warning.includes("tree was truncated")), "warns when repository inventory is incomplete");
+  assert(coveragePack.asPrompt().includes("Source bodies omitted: 1"), "reports omitted source bodies in the prompt given to the agent");
+  assert(coveragePack.inventory.includes("src/generated-large.ts"), "keeps oversized text paths visible in the repository inventory");
   console.log("Repository context pack tests passed");
 }
 void run();
