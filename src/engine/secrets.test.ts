@@ -35,7 +35,8 @@ function testGeneratedFileGuardIsActionableAndRedacted() {
   const leaked = "sk-proj-" + "e".repeat(32);
   for (const action of ["write", "edit"] as const) {
     const message = credentialGuardMessage("src/config.ts", `export const apiKey = "${leaked}";`, action);
-    assert(!!message && message.includes(`blocked this ${action}`), `${action} guard should reject a hard-coded credential`);
+    if (!message) throw new Error(`${action} guard should reject a hard-coded credential`);
+    assert(message.includes(`blocked this ${action}`), `${action} guard should reject a hard-coded credential`);
     assert(!message.includes(leaked), `${action} diagnostics must not reveal the credential`);
   }
   assert(credentialGuardMessage(".env.example", 'API_KEY="your_api_key_here"', "write") === null, "clearly fake placeholders should be allowed");
