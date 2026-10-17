@@ -5,8 +5,9 @@ import { getState, keyOf } from "./db";
 import { memoryWorkspace } from "./tools";
 import { webSearch } from "./research";
 
-export const DEFAULT_SELF_REPO = "gtxnrg-ship-it/kuro-chan";
-export const selfRepo = () => (getState().settings.selfRepo || DEFAULT_SELF_REPO).replace(/^https?:\/\/github\.com\//, "").replace(/\.git$/, "");
+import { DEFAULT_SELF_REPO, resolveSelfRepo } from "./self-repo";
+export { DEFAULT_SELF_REPO } from "./self-repo";
+export const selfRepo = () => resolveSelfRepo(getState().settings.selfRepo);
 
 export const SELF_STACK = `YOUR OWN CODEBASE (you are editing Kuro-chan herself, not a user's app):
 - A Vite + React 18 + TypeScript single-page app that runs entirely in the browser (and inside an Android app via Capacitor). No server. It is built by GitHub Actions: "npm run build" must pass with "tsc --noEmit" clean.
