@@ -260,16 +260,7 @@ export function inspectProjectExecutionEvidence(paths: Iterable<string>, fileCon
     }
   }
 
-  // A declared packageManager is more authoritative than inferred lockfile metadata.
-  const packageJsonDeclared = runtimePins.some((pin) => pin.startsWith("package.json packageManager:"));
-  if (packageJsonDeclared) {
-    const declared = runtimePins.find((pin) => pin.startsWith("package.json packageManager:"))?.split(": ").slice(1).join(": ") || "";
-    const manager = declared.match(/^(npm|pnpm|yarn|bun)@/i)?.[1]?.toLowerCase();
-    if (manager) {
-      packageManagers.clear();
-      packageManagers.add(manager);
-    }
-  }
+  // Preserve all ecosystems' package-manager evidence; a monorepo may legitimately contain more than one.
   return {
     packageScripts: packageScripts.sort((a, b) => a.name.localeCompare(b.name)),
     lockfiles: [...new Set(lockfiles)].sort(),
