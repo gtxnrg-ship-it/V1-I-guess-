@@ -22,6 +22,19 @@ This document answers two practical questions at the start of every work session
 
 **Acceptance:** a task can explain exactly which commit it inspected, which file bodies it actually read, what it skipped, and whether the target branch changed before writing.
 
+### P1 — Replace interim GitHub account auth with a real GitHub App installation
+
+**Why:** Kuro-chan should use repository-scoped installation permissions, not ask people to paste personal access tokens or treat OAuth Device Flow as the final architecture.
+
+- [x] Remove personal GitHub access tokens from generic AI-provider setup copy and reject common PAT formats in the general key path.
+- [x] Make Settings distinguish App installation from the interim device-sign-in session and expose a configured installation link.
+- [ ] Implement and deploy a trusted server-side broker that stores the App private key only server-side, validates the installation, and mints short-lived installation tokens.
+- [ ] Bind each connected session to the verified installation and selected repository set; list only repositories the installation can access.
+- [ ] Replace the temporary Device Flow connection with the App installation flow only after broker-backed operations pass end-to-end tests.
+- [ ] Test expired/revoked installations, missing permissions, network errors, repository selection, branch listing, conflict-safe writes, and disconnect/revoke behavior.
+
+**Acceptance:** install App → select repositories → broker verifies installation → client gets short-lived scoped access → inspect/edit/check/PR works with the granted permissions and clear recovery states. Never put the App private key or long-lived user token in the client.
+
 ### P1 — Complete the real build–test–repair–retest loop
 **Why second:** this is the central promise of Kuro-chan. A good chat UI or plausible code is not enough; she must demonstrate a representative project can be built and repaired using real checks.
 

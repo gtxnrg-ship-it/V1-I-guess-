@@ -137,12 +137,12 @@ export function KeysPane() {
 
         <section>
           <h2 className="text-[15px] font-semibold">Paste any API key</h2>
-          <p className="mt-1 text-[13.5px] text-muted-foreground">Gemini, Claude, OpenRouter, Groq, Grok, Mistral, Cerebras, Hugging Face, GitHub tokens, Tavily and more. I detect the provider, find every model it unlocks, and rank them.</p>
+          <p className="mt-1 text-[13.5px] text-muted-foreground">Gemini, Claude, OpenRouter, Groq, Grok, Mistral, Cerebras, Hugging Face, Tavily and more. I detect the provider, find available models, and rank them. GitHub repository access is configured separately under Repositories—not by pasting a personal access token.</p>
           <div className="mt-4 rounded-2xl border border-border bg-card p-3">
             <div className="flex items-center gap-2 rounded-xl bg-muted px-3">
               <KeyRound className="h-4 w-4 shrink-0 text-muted-foreground" />
               <input data-testid="input-api-key" type={show ? "text" : "password"} value={key} onChange={(e) => setKey(e.target.value)} onKeyDown={(e) => e.key === "Enter" && add()}
-                placeholder="AIza…, sk-ant-…, sk-or-…, gsk_…, github_pat_…" autoComplete="off" spellCheck={false}
+                placeholder="AI provider key (Gemini, Claude, OpenRouter…)" autoComplete="off" spellCheck={false}
                 className="h-11 min-w-0 flex-1 bg-transparent font-mono text-[13px] outline-none placeholder:font-sans placeholder:text-muted-foreground/70" />
               <button aria-label="Show key" onClick={() => setShow((s) => !s)} className="text-muted-foreground hover:text-foreground">{show ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</button>
             </div>

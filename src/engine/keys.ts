@@ -2,6 +2,13 @@ import { detect, enrich, listModels, providerById } from "./providers";
 import * as db from "./db";
 import type { KeyRec } from "./types";
 
+/** Prevent GitHub credentials from being saved in the general-purpose AI provider key store. */
+export function assertNotPersonalGitHubToken(secret: string): void {
+  if (/^(?:gh[pousr]_[A-Za-z0-9_]{20,}|github_pat_[A-Za-z0-9_]{20,})$/.test(secret.trim())) {
+    throw new Error("Personal GitHub access tokens are not supported. Connect from Repositories settings; the intended GitHub App flow uses narrowly scoped, short-lived installation credentials.");
+  }
+}
+
 export const hintOf = (k: string) => (k.length > 12 ? `${k.slice(0, 6)}…${k.slice(-4)}` : "••••");
 
 /** Plugins with no recognisable key prefix: the person picks the plugin, we save the key for it. */
@@ -29,7 +36,9 @@ export async function addKey(raw: string, opts: { label?: string; baseUrl?: stri
   if (!secret && !baseUrl) throw new Error("Paste a key or enter an endpoint.");
   if (secret && db.getState().keys.some((k) => k.secret === secret)) throw new Error("That key is already saved.");
   if (!secret && db.getState().keys.some((k) => k.provider === "custom" && k.baseUrl?.replace(/\/$/, "") === baseUrl)) throw new Error("That endpoint is already connected.");
+  assertNotPersonalGitHubToken(secret);
   const d = await detect(secret, { baseUrl });
+  if (d.provider === "github") throw new Error("GitHub repository access is not an AI-provider API key. Connect GitHub from Repositories settings; personal access tokens are not accepted.");
   const count = db.getState().keys.filter((k) => k.provider === d.provider).length;
   const rec: KeyRec = {
     id: db.uid(), label: opts.label || (count ? `${d.name} ${count + 1}` : d.name), kind: d.kind, provider: d.provider, baseUrl: d.provider === "custom" ? d.base : undefined,
