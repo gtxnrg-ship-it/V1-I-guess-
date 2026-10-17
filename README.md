@@ -63,7 +63,7 @@ These are product goals, not a blanket claim that every bullet is complete today
 | Local models | Curated candidate catalogue and rough device-fit guidance | **Downloading, installing, and running the listed chat models locally is not implemented as a complete end-to-end feature.** A catalogue entry is not a runnable model |
 | Android delivery | GitHub Actions workflow builds APK artifacts/releases when successful | A successful CI build does not prove the APK works on every phone; APKs are development builds, not Play Store releases |
 
-The [roadmap](ROADMAP.md) tracks the wider implementation, the [prioritized implementation plan](docs/IMPLEMENTATION_PRIORITIES.md) ranks work by impact and dependency, the [verified feature audit](docs/FEATURE_AUDIT.md) records evidence and unverified gaps, and [roadmap progress notes](docs/ROADMAP_PROGRESS.md) explain the strict checkbox count. The roadmap checklist was stale relative to several merged engineering slices; **13/142 (9.2%) is only the literal count of checked roadmap boxes, not a fair measure of how much code or capability has been built**. We are reconciling each checkbox against explicit acceptance evidence instead of using the checklist as a product-completion percentage. Do not interpret the old 9.2% as “only 9.2% of Kuro-chan exists.”
+The [roadmap](ROADMAP.md) tracks the wider implementation, the [prioritized implementation plan](docs/IMPLEMENTATION_PRIORITIES.md) ranks work by impact and dependency, the [verified feature audit](docs/FEATURE_AUDIT.md) records evidence and unverified gaps, and [roadmap progress notes](docs/ROADMAP_PROGRESS.md) explain the strict checkbox count. The current reconciled checklist is **15/150 (10.0%)** after adding explicit multi-language/scientific/game-engine acceptance gates; this is only the literal count of checked roadmap boxes, not a fair measure of how much code or capability has been built. We reconcile each checkbox against explicit acceptance evidence instead of using the checklist as a product-completion percentage. Do not interpret 10.0% as “only 10.0% of Kuro-chan exists.”
 
 ## Get the Android build
 
@@ -235,6 +235,8 @@ Read [SECURITY.md](SECURITY.md) for responsible vulnerability reporting and [Fee
 - [Original vision and capability map](docs/ORIGINAL_VISION.md) — product goals and explicit implementation boundaries.
 - [Roadmap progress notes](docs/ROADMAP_PROGRESS.md) — how progress is counted and reconciled.
 - [Verified feature audit](docs/FEATURE_AUDIT.md) — workstream-by-workstream implementation evidence, unverified gaps, acceptance gates, and cross-conversation handoff.
+- [Current engineering handoff](docs/CURRENT_HANDOFF.md) — exact resume point, user requirements, current PR/CI state, and next actions for a new chat.
+- [Language and game-engine capabilities](docs/LANGUAGE_AND_GAME_ENGINE_CAPABILITIES.md) — supported detection scope, limitations, and acceptance gates.
 - [Live repository intelligence](docs/LIVE_REPOSITORY_INTELLIGENCE.md) — repository inspection and context behavior.
 - [Repository diagnosis](docs/REPOSITORY_DIAGNOSIS.md) — diagnosis workflow and limits.
 - [Project memory](docs/PROJECT_MEMORY.md) and [memory integration](docs/PERSISTENT_PROJECT_MEMORY_INTEGRATION.md).

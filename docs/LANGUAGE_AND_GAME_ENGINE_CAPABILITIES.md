@@ -10,9 +10,9 @@ This includes foundations relevant to complex statistical and scientific work: P
 
 ## Game-engine coverage
 
-Recognized engine markers include Unity, Unreal Engine, Godot, Bevy (only when an explicit `bevy.toml` marker exists), Phaser, Three.js, Babylon.js, Defold, LÖVE, and PlayCanvas.
+Recognized engine markers include Unity, Unreal Engine, Godot, Bevy (detected from its Cargo.toml dependency declaration), Phaser, Three.js, Babylon.js, Defold, LÖVE, and PlayCanvas.
 
-The report includes candidate commands and notes where a build depends on a particular editor/runtime, platform target, export template, target name, cloud editor, or licensed installation. Generic files such as `Cargo.toml` are not enough to infer Bevy. Engine detection based on filenames/configuration is necessarily incomplete for projects that declare their engine only inside a package manifest or source code.
+The report includes candidate commands and notes where a build depends on a particular editor/runtime, platform target, export template, target name, cloud editor, or licensed installation. Generic files such as `Cargo.toml` are not enough to infer Bevy; the manifest dependency must be present. Engine detection based on filenames/configuration is necessarily incomplete for projects that declare their engine only inside a package manifest or source code.
 
 ## Honest execution boundary
 

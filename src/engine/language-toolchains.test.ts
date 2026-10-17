@@ -45,6 +45,29 @@ assert(game.every((x) => x.notes.length > 0), "Game-engine results should explai
 const ambiguous = detectGameEngineCapabilities(["Cargo.toml", "src/main.rs", "README.md"]);
 assert(ambiguous.length === 0, "Ordinary Rust projects must not be mislabeled as Bevy games");
 
+const manifestDetected = detectGameEngineCapabilities(
+  ["Cargo.toml", "package.json"],
+  {
+    "Cargo.toml": '[dependencies]\nbevy = "0.15"',
+    "package.json": JSON.stringify({ dependencies: { three: "^0.170.0", phaser: "^3.80.0", "@babylonjs/core": "^7.0.0" } }),
+  },
+);
+assert(manifestDetected.some((x) => x.id === "bevy" && x.evidence.includes("Cargo.toml dependency")), "Bevy should be detected from its Cargo manifest dependency");
+assert(manifestDetected.some((x) => x.id === "threejs" && x.evidence.includes("package.json dependency")), "Three.js should be detected from package.json dependencies");
+assert(manifestDetected.some((x) => x.id === "phaser"), "Phaser should be detected from package.json dependencies");
+assert(manifestDetected.some((x) => x.id === "babylonjs"), "Babylon.js should be detected from package.json dependencies");
+
+const reportWithManifest = detectProjectToolchains(
+  ["Cargo.toml", "package.json"],
+  {
+    "Cargo.toml": '[dependencies]\nbevy = "0.15"',
+    "package.json": JSON.stringify({ dependencies: { phaser: "^3.80.0" } }),
+  },
+);
+assert(reportWithManifest.gameEngines.some((x) => x.id === "bevy"), "project reports should pass manifest evidence through to game-engine detection");
+assert(reportWithManifest.gameEngines.some((x) => x.id === "phaser"), "project reports should include package.json engine dependencies");
+assert(reportWithManifest.note.includes("manifest contents"), "project report should describe its manifest evidence source");
+
 const unknown = detectProjectToolchains(["README.md", "assets/logo.png"]);
 assert(unknown.languages.length === 0 && unknown.gameEngines.length === 0 && unknown.confidence === "none", "documentation-only repos should not be assigned a language or game engine");
 assert(unknown.note.includes("not proof"), "the detector must not claim commands were run");
