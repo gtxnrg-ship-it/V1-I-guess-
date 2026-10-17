@@ -63,6 +63,10 @@ export async function runDailySelfSearch(router: any): Promise<void> {
       localStorage.setItem(SELF_SUGGESTIONS_KEY, "I can't inspect or upgrade my own repository yet. Connect GitHub in Keys first; I won't pretend a generic checklist is a review of my actual code.");
       return;
     }
+    if (!(router && typeof router.call === "function") && !hasAnyModel()) {
+      localStorage.setItem(SELF_SUGGESTIONS_KEY, "I found the repository, but I can't rank code improvements until an AI model is connected in Settings → AI & Models. I won't substitute canned suggestions and call them a code review.");
+      return;
+    }
 
     const repository = selfRepo();
     const queries = [
