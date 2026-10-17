@@ -120,3 +120,8 @@ A dedicated tool dispatches the repository fixed `check.yml` workflow, polls for
 The README now exposes a prominent direct-download URL ending in `/releases/latest/download/Kurochan.apk`. The Android workflow copies the generated debug APK to the exact asset name `Kurochan.apk` before publishing. The direct URL is expected to resolve after the first successful post-merge `main` release; until then, the existing latest release may not yet contain the renamed asset. It remains a debug APK, not a production-signed release.
 
 The former 13/142 (9.2%) is a literal checklist count only, not an overall product-completion score. It was stale relative to merged work that had not been reconciled to acceptance criteria. The team must review checkboxes against the full criteria and publish the strict count separately from capability evidence; do not repeat 9.2% as if it described the amount of work done.
+
+
+## Launcher icon build path (PR in review)
+
+The approved Kuro-chan character artwork already exists in `public/icon-512.png` (square 512px source). The Android workflow now feeds that exact source into `@capacitor/assets` and generates native Android launcher icon sizes as part of the APK build. This avoids replacing the artwork with a new/generated design. CI must pass before this change is considered integrated; a physical launcher check is still needed to confirm how Android/OEM launchers mask the adaptive icon.

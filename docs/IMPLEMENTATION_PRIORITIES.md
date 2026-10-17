@@ -134,3 +134,9 @@ The tool checks the currently published branch only. It does not upload local ed
 - [ ] Replace the launcher/adaptive icon with the original approved Kuro-chan art and verify all generated Android icon sizes. The approved source artwork is present in the conversation library; do not substitute unrelated/generated art.
 
 The README explicitly warns that the APK is a debug build, not a Play Store-signed production release.
+
+
+### Launcher icon fix
+
+- [x] Wire the existing approved `public/icon-512.png` artwork into the Android build's native icon generation step.
+- [ ] Confirm generated Android icon resources are included in the APK and inspect on a physical Android launcher (masking/adaptive appearance may vary by OEM).

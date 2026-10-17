@@ -95,3 +95,10 @@ The repository has a useful engineering-agent foundation, but the intended produ
 ## Checklist percentage correction
 
 The earlier **13/142 = 9.2%** was mechanically correct only for the boxes checked at that moment; it was not a measurement of code shipped or actual product capability. Multiple merged PRs added code and tests without reconciling the corresponding roadmap acceptance gates. We will update individual boxes only where the complete stated acceptance criteria are met and will report the literal checkbox count separately from the capability audit. No unsupported overall percentage should be inferred from 9.2%.
+
+
+## Android launcher icon correction (PR in review)
+
+- The existing approved square character artwork is `public/icon-512.png`; no replacement artwork is needed from the user for this change.
+- The APK workflow now generates Android launcher assets from that source via `@capacitor/assets` rather than relying on Capacitor's default generated icon.
+- CI/APK checks and a real Android launcher visual check remain acceptance requirements; don't mark the physical-device item complete based on generated assets alone.
