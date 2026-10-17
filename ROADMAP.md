@@ -30,6 +30,22 @@ This is the living plan for Kuro-chan: a chat-first AI coding companion that can
 - [ ] Improve loading, empty, offline, error, retry, and success states.
 - [ ] Add reproducible device/build information to bug reports without collecting private prompts or code by default.
 
+## Original-vision alignment — product acceptance gates
+
+These gates describe the intended Kuro-chan experience. A catalogue, prompt, or UI button is not proof of an end-to-end feature.
+
+- [ ] Default interaction remains normal, continuous chat for brainstorming and everyday questions; build orchestration starts when the user's intent calls for it.
+- [ ] Kuro-chan adapts naturally to recent conversation style while respecting explicit settings and serious contexts.
+- [ ] Chat defaults to readable conversation with inline progress and expandable tool details; remove prominent action-card clutter where it adds no value.
+- [ ] Repository understanding reads the accessible tree and key source/config/test files before planning, records skipped files, and tracks the exact base commit.
+- [ ] GitHub App installation uses a trusted server-side broker for short-lived installation tokens; never ship an App private key in the client. Keep Device Flow explicitly interim if retained.
+- [ ] The GPT-OSS label accurately identifies the actual endpoint/model. Never describe a remote endpoint as on-device inference.
+- [ ] Local chat-model downloads use verified artifacts and a supported Android inference runtime; the UI reports Ready only after load and inference smoke test.
+- [ ] Voice acceptance tests cover physical Android devices, interruption/cancellation, permissions, lifecycle, and offline/local speech. Speaking a completed reply is not the same as live voice conversation.
+- [ ] A representative app is created, built, tested, repaired after a seeded failure, and retested end-to-end before claiming autonomous workflow reliability.
+- [ ] Large projects are delivered as tested vertical slices with architecture notes, subsystem boundaries, performance budgets, and release evidence.
+- [ ] README, roadmap, and release notes separate implemented, partial, planned, and device-unverified features.
+
 ## P0 — trustworthy engineering and safety
 
 - [ ] Make every significant change reviewable with a clear summary and file diff.
