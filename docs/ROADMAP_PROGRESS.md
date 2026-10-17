@@ -5,7 +5,7 @@ Source of truth: [ROADMAP.md](../ROADMAP.md). This ledger separates **roadmap ch
 
 ## Overall checklist progress
 
-- **13 of 142 roadmap checkboxes complete: 9.2%.**
+- **15 of 150 roadmap checkboxes complete: 10.0%.**
 - Calculation: checked boxes divided by all checklist items currently in `ROADMAP.md`, rounded to one decimal place. The latest reconciliation includes merged checkpoint-recovery, project-memory, personality-preference, and local-model-advisor work, 11 original-vision acceptance gates, and 9 public-feedback/model-evolution gates.
 - This is a strict checklist percentage, not a claim that only 8.2% of the product code exists. Several merged changes are not yet represented by checked roadmap items, and partial features do not count as complete.
 - Reconcile this ledger whenever roadmap items are added, removed, or verified. Only check a roadmap item when its acceptance criteria are implemented and verified; record evidence below.
@@ -20,6 +20,7 @@ Source of truth: [ROADMAP.md](../ROADMAP.md). This ledger separates **roadmap ch
 | P1 — GitHub connection and repository workflow | 0 | 12 |
 | P1 — project understanding and task memory | 1 | 8 |
 | P1 — specialist agents and autonomous work | 0 | 9 |
+| P1 — multi-language, scientific, and game-engine capabilities | 2 | 8 |
 | P1 — models, routing, and cost transparency | 0 | 11 |
 | P1 — voice and natural conversation | 2 | 9 |
 | P1 — UI, accessibility, and device support | 0 | 9 |
@@ -29,7 +30,7 @@ Source of truth: [ROADMAP.md](../ROADMAP.md). This ledger separates **roadmap ch
 | P3 — longer-term experiments | 0 | 6 |
 | Original-vision alignment | 0 | 11 |
 | Public feedback and model evolution | 0 | 9 |
-| **Total** | **13** | **142** |
+| **Total** | **15** | **150** |
 
 ## Shipped capability evidence
 
@@ -81,7 +82,7 @@ The repository has a useful engineering-agent foundation, but the intended produ
 - **PR #142 — snapshot reuse: merged.** Reuses the immutable repository tree observed during inspection rather than refetching it for context construction.
 - **PR #143 — GitHub App migration boundary: merged.** Check, CodeQL, TypeScript analysis, and APK packaging all passed. Generic AI-provider setup no longer advertises PATs, common GitHub PAT formats are rejected, and Settings explains App installation vs interim Device Flow. This is not a deployed App token broker.
 - **Current change under review:** final post-review QA can now trigger one bounded Builder repair and a second QA run. This guards against errors introduced by visual polish after the original fix loop. Production package builds, full external test suites, and physical-device acceptance are still not proven by the in-browser QA harness.
-- **Strict roadmap count remains 13/142 = 9.2%.** Do not inflate it from merged changes that have not met and been checked against roadmap acceptance gates.
+- **At this historical audit snapshot the count was 13/142 = 9.2%.** The current reconciled count is 15/150 = 10.0% after adding eight explicit multi-language/game-engine gates and verifying the two discovery gates. Do not inflate it from changes that have not met their acceptance criteria.
 
 - **PR #145 — guarded GitHub Actions verification runner: CI passed, merge pending conflict resolution.** The tool dispatches the fixed `check.yml`, compares the run SHA with the pre-dispatch branch SHA, and returns a direct run URL plus passed/failed/running/blocked status. Automated tests cover common outcomes. A live dispatch is still pending App broker/permission setup; the tool checks published remote contents, not unsaved workspace files.
 
@@ -95,3 +96,15 @@ The repository has a useful engineering-agent foundation, but the intended produ
 ## Checklist percentage correction
 
 The earlier **13/142 = 9.2%** was mechanically correct only for the boxes checked at that moment; it was not a measurement of code shipped or actual product capability. Multiple merged PRs added code and tests without reconciling the corresponding roadmap acceptance gates. We will update individual boxes only where the complete stated acceptance criteria are met and will report the literal checkbox count separately from the capability audit. No unsupported overall percentage should be inferred from 9.2%.
+
+
+## Capability work and current cross-chat handoff (2026-10-17)
+
+- **Repository baseline audited:** `main` at `d68c71d0106bc5f701906727d6cde4aee351f163`; recursive Git tree contained 173 tracked entries. The review covered all top-level docs/config/workflows and the core agent, tool, model/provider, repository context, GitHub auth/write, memory, QA, UI, and E2E-test paths. Binary artwork and the 230 KB package lock were inventoried rather than manually reviewed as source text.
+- **PR #149 — language/game-engine discovery:** merged, but its initial main-branch Check and APK workflows failed. Do not describe that merge itself as verified success.
+- **PR #150 — repair discovery integration:** [open PR](https://github.com/gtxnrg-ship-it/kuro-chan/pull/150). It fixes the R command string, makes the project report pass manifest content into engine detection, and tests Bevy/Phaser/Three.js/Babylon.js manifest evidence. On head `8ae75f4136e181aa8f3f71a9b03c6b5dd79cf658`, Check and CodeQL passed; APK build was still running at the last observation. Documentation edits trigger a fresh CI run, so re-check the latest head before merge.
+- **PR #148 — honest repository source coverage:** remains open; do not merge until its own Check, APK, and CodeQL results are green.
+- **PR #147 — approved Android launcher artwork:** remains open; source artwork exists in the repository, but physical launcher appearance is not device-verified.
+- **Next work after PR #150 is green:** implement a permissioned isolated multi-language runner with command allowlists, resource/time limits, cancellation, controlled network/filesystem access, and exact command/exit-code/log evidence. Then prove one real scientific/statistical project and one game-engine vertical slice through build, tests, seeded failure, repair, and successful retest.
+- **Do not jump to front-end polish yet.** The README's direct APK URL is `https://github.com/gtxnrg-ship-it/kuro-chan/releases/latest/download/Kurochan.apk`; current release assets must be checked separately from workflow status. The latest published artifact is a debug APK, not a production-signed release.
+- **No PR is merged by this handoff.** Ask for or follow CI, update the roadmap/audit/ledger when a meaningful acceptance gate changes, and never claim a workflow is green based on a previous SHA.
