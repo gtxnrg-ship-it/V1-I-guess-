@@ -27,7 +27,8 @@ Source of truth: [ROADMAP.md](../ROADMAP.md). This ledger separates **roadmap ch
 | P2 — templates, tools, and integrations | 0 | 9 |
 | P2 — delivery, releases, and quality of life | 0 | 8 |
 | P3 — longer-term experiments | 0 | 6 |
-| Original-vision alignment | 0 | 11 |\n| **Total** | **13** | **133** |
+| Original-vision alignment | 0 | 11 |
+| **Total** | **13** | **133** |
 
 ## Shipped capability evidence
 
