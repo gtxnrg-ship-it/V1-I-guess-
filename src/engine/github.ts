@@ -49,7 +49,9 @@ export class GH {
 
   /** Resolve an existing repository without ever creating or initializing one. Use for import flows. */
   async getExistingRepo(spec: string) {
-    const clean = spec.trim().replace(/^https?:\\/\\/github\\.com\\//, "").replace(/\\.git$/, "").replace(/\\/$/, "");
+    let clean = spec.trim().replace("https://github.com/", "").replace("http://github.com/", "");
+    if (clean.endsWith(".git")) clean = clean.slice(0, -4);
+    if (clean.endsWith("/")) clean = clean.slice(0, -1);
     const parts = clean.split("/").filter(Boolean);
     if (!clean || parts.length > 2 || parts.length === 0) {
       throw new Error("Enter a repository name or a GitHub repository URL such as owner/repository. Branch, file, and extra path segments are not supported.");
