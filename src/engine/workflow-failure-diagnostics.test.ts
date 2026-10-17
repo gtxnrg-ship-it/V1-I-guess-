@@ -9,6 +9,16 @@ async function run() {
   assert(clues.some((line) => line.includes("Cannot find module")), "extracts relevant build error clues");
   assert(!clues.some((line) => line.includes(sampleToken)), "never returns raw GitHub tokens");
   assert(clues.some((line) => line.includes("[REDACTED_ENV_SECRET]")), "redacts secret environment values");
+  const providerTokens = [
+    "AKIA1234567890ABCDEF",
+    "AIza1234567890abcdefghijklmnopqrstuv",
+    "xoxb-1234567890-abcdefghijkl",
+    "npm_12345678901234567890123456789012",
+  ];
+  const providerClues = extractLogClues(providerTokens.map((token, index) => `Error: provider ${index} credential ${token}`).join("\n"));
+  assert(providerClues.length === providerTokens.length, "retains diagnostic clues after provider-token redaction");
+  assert(providerTokens.every((token) => !providerClues.some((line) => line.includes(token))), "never exposes AWS, Google, Slack, or npm credentials in log clues");
+  assert(providerClues.every((line) => line.includes("[REDACTED_")), "marks provider credentials as redacted");
 
   const client: WorkflowClient = {
     async req(_method, path) {

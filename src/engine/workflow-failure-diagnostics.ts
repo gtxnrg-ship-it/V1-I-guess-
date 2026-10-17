@@ -23,6 +23,10 @@ function safeLogLine(line: string): string {
   return clip(line
     .replace(/\b(gh[pousr]_[A-Za-z0-9_]{20,})\b/g, "[REDACTED_TOKEN]")
     .replace(/\bgithub_pat_[A-Za-z0-9_]{20,}\b/g, "[REDACTED_TOKEN]")
+    .replace(/\bAKIA[0-9A-Z]{16}\b/g, "[REDACTED_AWS_KEY]")
+    .replace(/\bAIza[0-9A-Za-z_-]{30,}\b/g, "[REDACTED_GOOGLE_KEY]")
+    .replace(/\bxox[baprs]-[A-Za-z0-9-]{10,}\b/ig, "[REDACTED_SLACK_TOKEN]")
+    .replace(/\bnpm_[A-Za-z0-9]{30,}\b/ig, "[REDACTED_NPM_TOKEN]")
     .replace(/\b[A-Z0-9_]*(?:TOKEN|SECRET|PASSWORD|API_KEY)[A-Z0-9_]*=[^\s]+/g, "[REDACTED_ENV_SECRET]")
     .replace(/(authorization\s*:\s*bearer\s+)\S+/ig, "$1[REDACTED]")
     .replace(/((?:password|secret|token|api[_-]?key)\s*[=:]\s*)[^\s,;]+/ig, "$1[REDACTED]")
