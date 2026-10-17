@@ -136,14 +136,25 @@ export function flush(): Promise<void> {
   if (saveTimer) { clearTimeout(saveTimer); saveTimer = null; }
   if (flushInFlight) return flushInFlight;
 
+  const pending = [...dirty.entries()];
   const work = async () => {
-    const pending = [...dirty.entries()];
     for (const [key, version] of pending) {
       const ok = await idbPut(key, persistedValue(key));
       if (ok && dirty.get(key) === version) dirty.delete(key);
     }
   };
-  flushInFlight = work().finally(() => { flushInFlight = null; });
+  flushInFlight = work().finally(() => {
+    flushInFlight = null;
+    // If edits arrived while the transaction was in flight, drain those newer
+    // versions once the current batch settles. Failed unchanged keys stay dirty
+    // for a later retry rather than creating a tight retry loop.
+    const newerEditsRemain = [...dirty.entries()].some(([key, version]) =>
+      !pending.some(([pendingKey, pendingVersion]) => pendingKey === key && pendingVersion === version)
+    );
+    if (newerEditsRemain && !saveTimer) {
+      saveTimer = setTimeout(() => { void flush(); }, 0);
+    }
+  });
   return flushInFlight;
 }
 if (typeof window !== "undefined") {
