@@ -5,8 +5,9 @@ import { getState, keyOf } from "./db";
 import { memoryWorkspace } from "./tools";
 import { webSearch } from "./research";
 
-export const DEFAULT_SELF_REPO = "gtxnrg-ship-it/V1-I-guess-";
-export const selfRepo = () => (getState().settings.selfRepo || DEFAULT_SELF_REPO).replace(/^https?:\/\/github\.com\//, "").replace(/\.git$/, "");
+import { resolveSelfRepo } from "./self-repo";
+export { DEFAULT_SELF_REPO } from "./self-repo";
+export const selfRepo = () => resolveSelfRepo(getState().settings.selfRepo);
 
 export const SELF_STACK = `YOUR OWN CODEBASE (you are editing Kuro-chan herself, not a user's app):
 - A Vite + React 18 + TypeScript single-page app that runs entirely in the browser (and inside an Android app via Capacitor). No server. It is built by GitHub Actions: "npm run build" must pass with "tsc --noEmit" clean.
@@ -27,7 +28,7 @@ export async function selfWorkspace(fresh = false) {
   if (cache && cache.repo === repo && !fresh) return cache.ws;
   const gh = new GH(ghToken());
   const [owner, name] = repo.split("/");
-  const info = await gh.ensureRepo(repo);
+  const info = await gh.getExistingRepo(repo);
   const files = await gh.readTree(owner, name, info.defaultBranch, (p) => !/^(node_modules|dist|android)\//.test(p) && p !== "package-lock.json");
   if (!Object.keys(files).length) throw new Error(`${repo} is empty.`);
   cache = { repo, ws: memoryWorkspace("Kuro-chan", files) };
@@ -39,7 +40,7 @@ export async function shipUpgrade(title: string, summary: string, files: Record<
   const gh = new GH(ghToken());
   const repo = selfRepo();
   const [owner, name] = repo.split("/");
-  const info = await gh.ensureRepo(repo);
+  const info = await gh.getExistingRepo(repo);
   const branch = `kuro-upgrade-${Date.now().toString(36)}`;
   const list = Object.entries(files).map(([path, content]) => ({ path, content }));
   await gh.commitFiles(owner, name, branch, list, `Kuro-chan upgrade: ${title}`, { fromBranch: info.defaultBranch });
@@ -73,7 +74,8 @@ export async function runDailySelfSearch(router: any): Promise<void> {
       .filter(Boolean)
       .join("\n\n");
 
-    const promptText = `You are reviewing your own codebase (Kuro-chan AI builder at gtxnrg-ship-it/V1-I-guess-). Based on these web research results about best practices:\n\n${context}\n\nList 3-5 specific, concrete improvements for THIS codebase. For each: which file, what change, why it matters. Keep each suggestion under 40 words. Respond as Kuro-chan (tsundere voice, honest, no fluff).`;
+    const repository = selfRepo();
+    const promptText = `You are reviewing your own codebase (Kuro-chan AI builder at ${repository}). Based on these web research results about best practices:\n\n${context}\n\nList 3-5 specific, concrete improvements for THIS codebase. For each: which file, what change, why it matters. Keep each suggestion under 40 words. Respond as Kuro-chan (tsundere voice, honest, no fluff).`;
 
     let suggestions = "";
     if (router && typeof router.call === "function") {
