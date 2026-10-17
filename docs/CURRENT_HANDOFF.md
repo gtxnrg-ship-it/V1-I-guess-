@@ -46,7 +46,7 @@ Existing foundations include agent roles, provider routing, project memory/check
 - Detects declared scientific/statistical dependencies across Python, R, Julia, JavaScript, Rust, and dbt, returning manifest evidence, likely purpose, and validation cautions.
 - Also reports exact `package.json` script bodies (including custom test/E2E scripts), lockfiles/package-manager signals, and runtime pins/constraints from Node, Python, Rust, Go, .NET, Unity, Swift, and version-manager files.
 - Regression tests cover supported scientific manifests, package scripts, pnpm manager precedence, lockfiles, Node/Python/Go pins, and Unity editor version.
-- Code head `15e6cc8c4944421519f75e560c0719d4893b7bfb` passed `npm test`, TypeScript, production build, and browser E2E before the execution-evidence extension. The latest branch head must pass the complete Check workflow; APK and CodeQL must be rechecked after the PR is retargeted to `main`.
+- Code head `ff083f0a774e5a64825e7b9cd1cc6d3eb30e0e16` passed the complete Check workflow after the execution-evidence extension (`npm test`, TypeScript, production build, and browser E2E). The latest documentation-only head is still being rechecked; APK and CodeQL must be rechecked after the PR is retargeted to `main`.
 - Everything reported is manifest evidence only. It does not install packages, execute scripts, prove runtime availability, or validate numerical/gameplay correctness.
 
 ### PR #148 — repository source-coverage reporting
