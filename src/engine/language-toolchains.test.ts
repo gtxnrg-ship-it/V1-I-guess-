@@ -49,4 +49,11 @@ const unknown = detectProjectToolchains(["README.md", "assets/logo.png"]);
 assert(unknown.languages.length === 0 && unknown.gameEngines.length === 0 && unknown.confidence === "none", "documentation-only repos should not be assigned a language or game engine");
 assert(unknown.note.includes("not proof"), "the detector must not claim commands were run");
 
+const rProject = detectLanguageCapabilities(["analysis/model.R"]);
+const rCommands = rProject.find((x) => x.id === "r")?.testCommands || [];
+assert(
+  rCommands.includes("Rscript -e 'testthat::test_dir(\"tests/testthat\")'"),
+  "R test command must preserve its nested quotes and remain valid TypeScript",
+);
+
 console.log("Language and game-engine capability detection tests passed");
