@@ -6,10 +6,10 @@
 
 **Tell her what you want to build. Work through the idea in conversation. Inspect code, coordinate specialist agents, and deliver projects through a workflow you can review.**
 
-[**⬇ Download the latest Android APK**](https://github.com/gtxnrg-ship-it/V1-I-guess-/releases/latest) · [Roadmap](ROADMAP.md) · [Report a bug](https://github.com/gtxnrg-ship-it/V1-I-guess-/issues/new?template=bug_report.yml) · [Request a feature](https://github.com/gtxnrg-ship-it/V1-I-guess-/issues/new?template=feature_request.yml)
+[**⬇ Download the latest Android APK**](https://github.com/gtxnrg-ship-it/kuro-chan/releases/latest) · [Roadmap](ROADMAP.md) · [Report a bug](https://github.com/gtxnrg-ship-it/kuro-chan/issues/new?template=bug_report.yml) · [Request a feature](https://github.com/gtxnrg-ship-it/kuro-chan/issues/new?template=feature_request.yml)
 
-[![Android build](https://github.com/gtxnrg-ship-it/V1-I-guess-/actions/workflows/android.yml/badge.svg)](https://github.com/gtxnrg-ship-it/V1-I-guess-/actions/workflows/android.yml)
-[![Checks](https://github.com/gtxnrg-ship-it/V1-I-guess-/actions/workflows/check.yml/badge.svg)](https://github.com/gtxnrg-ship-it/V1-I-guess-/actions/workflows/check.yml)
+[![Android build](https://github.com/gtxnrg-ship-it/kuro-chan/actions/workflows/android.yml/badge.svg)](https://github.com/gtxnrg-ship-it/kuro-chan/actions/workflows/android.yml)
+[![Checks](https://github.com/gtxnrg-ship-it/kuro-chan/actions/workflows/check.yml/badge.svg)](https://github.com/gtxnrg-ship-it/kuro-chan/actions/workflows/check.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 </div>
@@ -28,7 +28,7 @@ The interface is chat-first and responsive, with a collapsible sidebar for proje
 
 ## 📲 Download Kuro-chan for Android
 
-### [Download the latest APK from GitHub Releases](https://github.com/gtxnrg-ship-it/V1-I-guess-/releases/latest)
+### [Download the latest APK from GitHub Releases](https://github.com/gtxnrg-ship-it/kuro-chan/releases/latest)
 
 The release page contains the newest APK published by the Android build workflow. The latest successful build is not necessarily available the instant a code change is merged; wait until the workflow completes and a new release appears.
 
@@ -37,9 +37,9 @@ The release page contains the newest APK published by the Android build workflow
 3. Open the downloaded file and follow Android's installation prompts. You may need to allow your browser or file manager to install unknown apps.
 4. If Android warns that the app is from outside the Play Store, install only if you trust the source and understand that this is a development build.
 
-- [View Android build history](https://github.com/gtxnrg-ship-it/V1-I-guess-/actions/workflows/android.yml)
-- [View automated checks](https://github.com/gtxnrg-ship-it/V1-I-guess-/actions/workflows/check.yml)
-- [Browse all releases](https://github.com/gtxnrg-ship-it/V1-I-guess-/releases)
+- [View Android build history](https://github.com/gtxnrg-ship-it/kuro-chan/actions/workflows/android.yml)
+- [View automated checks](https://github.com/gtxnrg-ship-it/kuro-chan/actions/workflows/check.yml)
+- [Browse all releases](https://github.com/gtxnrg-ship-it/kuro-chan/releases)
 
 These are development APKs, not Play Store releases. Back up important project data before testing, and report reproducible issues through GitHub Issues.
 
@@ -49,14 +49,14 @@ Kuro-chan's repository import dialog includes an in-context GitHub Device Flow s
 
 **One-time maintainer setup is required before the sign-in button can complete authorization:**
 
-1. Create a GitHub OAuth App in GitHub Developer Settings and enable **Device Flow** for it.
+1. Create a GitHub App in GitHub Developer Settings and enable **Device Flow** for it.
 2. Set the app's homepage URL to this repository's public project page.
-3. Add the OAuth App's **Client ID** as the repository Actions variable `VITE_GITHUB_CLIENT_ID` (Settings → Secrets and variables → Actions → Variables). The client ID is public; never add a client secret to the Vite app, APK, or repository.
+3. Add the GitHub App's **Client ID** as the repository Actions variable `VITE_GITHUB_APP_CLIENT_ID` (Settings → Secrets and variables → Actions → Variables). The client ID is public; never add a client secret to the Vite app, APK, or repository.
 4. Rebuild the web app or run the Android build workflow after setting the variable.
 
-The panel requests `repo` and `workflow` scopes because coding tasks may need to read/write private repositories and manage workflow files. Users must review and approve GitHub's authorization screen. Access tokens are stored in the app's existing local IndexedDB key store; use a dedicated device and revoke Kuro-chan's OAuth access from GitHub settings when no longer needed. The app must not claim to be connected unless it validates the returned token against GitHub.
+The panel requests `repo` and `workflow` scopes because coding tasks may need to read/write private repositories and manage workflow files. Users must review and approve GitHub's authorization screen. GitHub tokens are kept in runtime memory for the current session and are not intentionally persisted across app restarts. Reconnect after restarting Kuro-chan, and revoke Kuro-chan's access from GitHub settings when no longer needed. The app must not claim to be connected unless it validates the returned token against GitHub.
 
-If the OAuth Client ID is not configured, the panel explains the missing setup instead of simulating a successful connection.
+If the GitHub App client ID is not configured, the panel explains the missing setup instead of simulating a successful connection.
 
 ## 🧭 What is here today?
 
@@ -162,7 +162,7 @@ See [SECURITY.md](SECURITY.md) for responsible vulnerability reporting.
 ### Install and start
 
 ```bash
-git clone https://github.com/gtxnrg-ship-it/V1-I-guess-.git
+git clone https://github.com/gtxnrg-ship-it/kuro-chan.git
 cd V1-I-guess-
 npm ci
 npm run dev
@@ -192,7 +192,7 @@ Issues, bug reports, and thoughtful contributions are welcome.
 4. Keep pull requests focused and include tests for behavior changes where practical.
 5. Do not describe planned functionality as implemented unless the code and verification support that claim.
 
-Useful links: [Contributing guide](CONTRIBUTING.md) · [Code of Conduct](CODE_OF_CONDUCT.md) · [Security policy](SECURITY.md) · [GitHub Issues](https://github.com/gtxnrg-ship-it/V1-I-guess-/issues)
+Useful links: [Contributing guide](CONTRIBUTING.md) · [Code of Conduct](CODE_OF_CONDUCT.md) · [Security policy](SECURITY.md) · [GitHub Issues](https://github.com/gtxnrg-ship-it/kuro-chan/issues)
 
 ## 📄 License
 
