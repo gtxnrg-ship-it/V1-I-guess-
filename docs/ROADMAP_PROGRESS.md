@@ -5,7 +5,7 @@ Source of truth: [ROADMAP.md](../ROADMAP.md). This ledger separates **roadmap ch
 
 ## Overall checklist progress
 
-- **9 of 121 roadmap checkboxes complete: 7.4%.**
+- **10 of 122 roadmap checkboxes complete: 8.2%.**
 - Calculation: checked boxes divided by all checklist items currently in `ROADMAP.md`, rounded to one decimal place.
 - This is a strict checklist percentage, not a claim that only 7.4% of the product code exists. Several merged changes are not yet represented by checked roadmap items, and partial features do not count as complete.
 - Reconcile this ledger whenever roadmap items are added, removed, or verified. Only check a roadmap item when its acceptance criteria are implemented and verified; record evidence below.
@@ -15,7 +15,7 @@ Source of truth: [ROADMAP.md](../ROADMAP.md). This ledger separates **roadmap ch
 | Roadmap section | Verified complete | Tracked items |
 | --- | ---: | ---: |
 | Current foundations | 9 | 9 |
-| Next reliability work | 0 | 8 |
+| Next reliability work | 1 | 9 |
 | P0 — trustworthy engineering and safety | 0 | 11 |
 | P1 — GitHub connection and repository workflow | 0 | 12 |
 | P1 — project understanding and task memory | 0 | 8 |
@@ -27,7 +27,7 @@ Source of truth: [ROADMAP.md](../ROADMAP.md). This ledger separates **roadmap ch
 | P2 — templates, tools, and integrations | 0 | 9 |
 | P2 — delivery, releases, and quality of life | 0 | 8 |
 | P3 — longer-term experiments | 0 | 6 |
-| **Total** | **9** | **121** |
+| **Total** | **10** | **122** |
 
 ## Shipped capability evidence
 
@@ -42,6 +42,9 @@ Source of truth: [ROADMAP.md](../ROADMAP.md). This ledger separates **roadmap ch
 | Persistent GitHub session | Not complete | This branch deliberately keeps the token in memory only. Users reconnect after restart. A native secure-storage adapter and Android end-to-end coverage are still required before persistent sessions can be claimed. |
 | GitHub App registration/configuration | External setup required | A GitHub App must be registered, Device Flow enabled, and `VITE_GITHUB_APP_CLIENT_ID` configured in the build environment. No client secret belongs in the browser or APK. |
 | Visual region selection and live preview | Not complete | Explicitly remains outside PR #83/#86 scope. |
+
+| Native Android speech input bridge | Pushed to `main` | Commit [`b118fbf`](https://github.com/gtxnrg-ship-it/kuro-chan/commit/b118fbf19601a756524b908e5275bef03c40c254); native Capacitor speech-recognition path, permission checks, partial results, explicit stop, listener cleanup, and web fallback. Check, CodeQL, and APK build passed on follow-up commit [`289232c`](https://github.com/gtxnrg-ship-it/kuro-chan/commit/289232cafbf691d243d2bc04cca021466198d2f8). Physical Android microphone behavior remains unverified. |
+| GitHub Device Flow | Partially implemented; external setup remains | `src/pages/studio.tsx` contains Device Flow initiation and polling. It is not usable in a published build until a GitHub App is registered with Device Flow enabled and its public client ID is supplied as `VITE_GITHUB_APP_CLIENT_ID`. Tokens are session-only; no secret belongs in the APK. |
 
 ## Verification rules
 
