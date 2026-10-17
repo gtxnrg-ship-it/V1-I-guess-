@@ -5,8 +5,8 @@ Source of truth: [ROADMAP.md](../ROADMAP.md). This ledger separates **roadmap ch
 
 ## Overall checklist progress
 
-- **10 of 122 roadmap checkboxes complete: 8.2%.**
-- Calculation: checked boxes divided by all checklist items currently in `ROADMAP.md`, rounded to one decimal place.
+- **13 of 122 roadmap checkboxes complete: 10.7%.**
+- Calculation: checked boxes divided by all checklist items currently in `ROADMAP.md`, rounded to one decimal place. The latest reconciliation includes merged checkpoint-recovery, project-memory, personality-preference, and local-model-advisor work.
 - This is a strict checklist percentage, not a claim that only 8.2% of the product code exists. Several merged changes are not yet represented by checked roadmap items, and partial features do not count as complete.
 - Reconcile this ledger whenever roadmap items are added, removed, or verified. Only check a roadmap item when its acceptance criteria are implemented and verified; record evidence below.
 
@@ -15,26 +15,29 @@ Source of truth: [ROADMAP.md](../ROADMAP.md). This ledger separates **roadmap ch
 | Roadmap section | Verified complete | Tracked items |
 | --- | ---: | ---: |
 | Current foundations | 9 | 9 |
-| Next reliability work | 1 | 9 |
-| P0 — trustworthy engineering and safety | 0 | 11 |
+| Next reliability work | 0 | 9 |
+| P0 — trustworthy engineering and safety | 1 | 11 |
 | P1 — GitHub connection and repository workflow | 0 | 12 |
-| P1 — project understanding and task memory | 0 | 8 |
+| P1 — project understanding and task memory | 1 | 8 |
 | P1 — specialist agents and autonomous work | 0 | 9 |
 | P1 — models, routing, and cost transparency | 0 | 11 |
-| P1 — voice and natural conversation | 0 | 9 |
+| P1 — voice and natural conversation | 2 | 9 |
 | P1 — UI, accessibility, and device support | 0 | 9 |
 | P1 — Visual Intent Studio | 0 | 12 |
 | P2 — templates, tools, and integrations | 0 | 9 |
 | P2 — delivery, releases, and quality of life | 0 | 8 |
 | P3 — longer-term experiments | 0 | 6 |
-| **Total** | **10** | **122** |
+| **Total** | **13** | **122** |
 
 ## Shipped capability evidence
 
 | Capability | State | Evidence / boundary |
 | --- | --- | --- |
-| Project checkpoint list and restore confirmation | Merged | [PR #81](https://github.com/gtxnrg-ship-it/kuro-chan/pull/81); Check and CodeQL passed before merge. |
+| Project checkpoint list, safe restore, and end-to-end recovery coverage | Merged | [PR #81](https://github.com/gtxnrg-ship-it/kuro-chan/pull/81) added the flow; [PR #94](https://github.com/gtxnrg-ship-it/kuro-chan/pull/94) added E2E coverage. Checks, CodeQL, and APK build passed. |
 | Project deletion/switch recovery guards | Merged | [PR #84](https://github.com/gtxnrg-ship-it/kuro-chan/pull/84); lifecycle regression tests, Check, and CodeQL passed. |
+| Editable project-scoped memory | Merged | [PR #95](https://github.com/gtxnrg-ship-it/kuro-chan/pull/95); editable/deletable facts and decisions, open questions, hand-off summary, credential filtering, and project-isolation tests. All checks passed. |
+| Conversation personality preferences | Merged | [PR #96](https://github.com/gtxnrg-ship-it/kuro-chan/pull/96); playfulness, reply length, and memory-context preferences persist across navigation and have regression coverage. |
+| Honest local-model hardware estimates | Merged | [PR #98](https://github.com/gtxnrg-ship-it/kuro-chan/pull/98) removed guessed RAM assumptions and clarified runtime limitations; [PR #100](https://github.com/gtxnrg-ship-it/kuro-chan/pull/100) added unknown-RAM UI E2E coverage. All checks and APK packaging passed. |
 | Truthful execution outcomes | Merged | [PR #85](https://github.com/gtxnrg-ship-it/kuro-chan/pull/85); unresolved build/runtime errors are no longer reported as successful completion. |
 | Visual Intent Studio reference board and project design brief | Merged | [PR #83](https://github.com/gtxnrg-ship-it/kuro-chan/pull/83); first slice only, not region annotation or live before/after preview. |
 | Approved visual intent passed to app-scoped engineering context | Verification passed; merge pending | [PR #86](https://github.com/gtxnrg-ship-it/kuro-chan/pull/86); after fixing the malformed newline, Check, TypeScript, build, E2E, and CodeQL passed on commit `b00996bf57100db3eaf71040cd1eefae1efb83a3`. Keep it separate from GitHub session hardening so each change is reviewed against its own security results. |

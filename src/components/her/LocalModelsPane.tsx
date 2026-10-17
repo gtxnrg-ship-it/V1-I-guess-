@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { Cpu, Download, ExternalLink, Gauge, HardDrive, Smartphone } from "lucide-react";
 import { LOCAL_MODEL_CATALOG, gradeLocalModel, localModelRecommendation, type ModelGrade } from "@/engine/local-models";
+import { readDeviceCapabilities } from "@/engine/device-capabilities";
 const gradeStyle: Record<ModelGrade, string> = {
   green: "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
   yellow: "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300",
@@ -8,23 +9,33 @@ const gradeStyle: Record<ModelGrade, string> = {
 };
 const gradeLabel: Record<ModelGrade, string> = { green: "Green · good candidate", yellow: "Yellow · test carefully", red: "Red · not recommended" };
 export function LocalModelsPane() {
-  const detectedRam = typeof navigator !== "undefined" ? (navigator as Navigator & { deviceMemory?: number }).deviceMemory : undefined;
-  const [ram, setRam] = useState(String(detectedRam || 6));
+  const capabilities = readDeviceCapabilities(typeof navigator === "undefined" ? {} : {
+    deviceMemory: (navigator as Navigator & { deviceMemory?: number }).deviceMemory,
+    hardwareConcurrency: navigator.hardwareConcurrency,
+    userAgent: navigator.userAgent,
+  });
+  const detectedRam = capabilities.reportedRamGb;
+  const [ram, setRam] = useState(() => detectedRam === null ? "unknown" : String(detectedRam));
   const [filter, setFilter] = useState<"all" | ModelGrade>("all");
-  const ramGb = Number(ram);
+  const ramGb = ram === "unknown" ? 0 : Number(ram);
   const recommendation = localModelRecommendation(ramGb);
   const models = useMemo(() => LOCAL_MODEL_CATALOG.filter((model) => filter === "all" || gradeLocalModel(model, ramGb) === filter), [filter, ramGb]);
   return (
     <section data-testid="local-models-pane">
       <div className="flex items-start gap-3">
         <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary"><Cpu className="h-4 w-4" /></span>
-        <div className="min-w-0 flex-1"><h2 className="text-[15px] font-semibold">Local model library</h2><p className="mt-1 text-[13px] text-muted-foreground">Open-weight models that can run on-device without an API key. Download more than one and let Kuro-chan route different jobs to different brains.</p></div>
+        <div className="min-w-0 flex-1"><h2 className="text-[15px] font-semibold">Local model candidates</h2><p className="mt-1 text-[13px] text-muted-foreground">Compare open-weight models that may be suitable for a future on-device runtime. This catalog does not download or run models yet.</p></div>
       </div>
       <div className="mt-3 rounded-2xl border border-border bg-card p-3.5">
         <div className="flex items-center gap-2 text-[13px] font-medium"><Smartphone className="h-4 w-4 text-primary" /> Device fit estimate</div>
-        <p className="mt-1 text-[12px] text-muted-foreground">This is an early RAM-based estimate, not a hardware benchmark. The Android runtime must still verify supported model format, memory use, speed and temperature.</p>
-        <label className="mt-3 flex items-center gap-3 text-[12.5px]"><span className="shrink-0">Phone RAM</span><select aria-label="Phone RAM" value={ram} onChange={(e) => setRam(e.target.value)} className="h-9 flex-1 rounded-lg bg-muted px-2.5 text-foreground outline-none"><option value="2">2 GB</option><option value="3">3 GB</option><option value="4">4 GB</option><option value="6">6 GB</option><option value="8">8 GB</option><option value="12">12 GB</option><option value="16">16 GB</option><option value="24">24 GB+</option></select></label>
-        <div className="mt-3 flex items-start gap-2 rounded-xl border border-border bg-muted/40 p-3"><Gauge className="mt-0.5 h-4 w-4 shrink-0 text-primary" /><p className="text-[12px] text-muted-foreground">{recommendation}</p></div>
+        <p className="mt-1 text-[12px] text-muted-foreground">This is a rough planning aid, not a benchmark. Browsers may hide memory details; reported RAM is approximate and does not mean that much memory is free.</p>
+        <div className="mt-3 flex flex-wrap gap-2 text-[11px] text-muted-foreground">
+          <span className="rounded-lg border border-border px-2 py-1">{detectedRam === null ? "RAM: not exposed by browser" : `Browser RAM estimate: ${detectedRam} GB`}</span>
+          <span className="rounded-lg border border-border px-2 py-1">{capabilities.logicalCores === null ? "CPU cores: unavailable" : `${capabilities.logicalCores} logical CPU cores (browser-reported)`}</span>
+          <span className="rounded-lg border border-border px-2 py-1">{capabilities.isLikelyMobile ? "Mobile device guess" : "Desktop / unknown device"}</span>
+        </div>
+        <label className="mt-3 flex items-center gap-3 text-[12.5px]"><span className="shrink-0">RAM to estimate</span><select data-testid="local-model-ram" aria-label="RAM estimate" value={ram} onChange={(e) => setRam(e.target.value)} className="h-9 flex-1 rounded-lg bg-muted px-2.5 text-foreground outline-none"><option value="unknown">Unknown — choose manually</option><option value="0.25">0.25 GB</option><option value="0.5">0.5 GB</option><option value="1">1 GB</option><option value="2">2 GB</option><option value="3">3 GB</option><option value="4">4 GB</option><option value="6">6 GB</option><option value="8">8 GB</option><option value="12">12 GB</option><option value="16">16 GB</option><option value="24">24 GB+</option></select></label>
+        <div data-testid="local-model-recommendation" className="mt-3 flex items-start gap-2 rounded-xl border border-border bg-muted/40 p-3"><Gauge className="mt-0.5 h-4 w-4 shrink-0 text-primary" /><p className="text-[12px] text-muted-foreground">{recommendation}</p></div>
       </div>
       <div className="mt-4 flex flex-wrap items-center gap-2"><span className="mr-auto text-[12px] text-muted-foreground">{models.length} of {LOCAL_MODEL_CATALOG.length} candidates</span>{(["all", "green", "yellow", "red"] as const).map((value) => <button key={value} onClick={() => setFilter(value)} className={`rounded-lg border px-2.5 py-1.5 text-[12px] ${filter === value ? "border-primary bg-primary/10 text-foreground" : "border-border text-muted-foreground hover:bg-muted"}`}>{value === "all" ? "All models" : value[0].toUpperCase() + value.slice(1)}</button>)}</div>
       <div className="mt-3 space-y-2">
@@ -37,7 +48,7 @@ export function LocalModelsPane() {
           </article>
         ); })}
       </div>
-      <p className="mt-3 text-[11.5px] text-muted-foreground">Important: these links open upstream model cards; this phase does not download or execute model files inside Kuro-chan yet. The next phase will add a native Android download manager, supported-format validation, runtime loading, progress/resume/delete, and real device benchmarks. Model licenses and access restrictions vary.</p>
+      <p className="mt-3 text-[11.5px] text-muted-foreground">Important: these links open upstream model cards only. Kuro-chan does not download, load, or execute these models in this phase, and model routing is not enabled for this catalog. Actual support requires a compatible runtime, artifact validation, and on-device testing. Model licenses and access restrictions vary.</p>
     </section>
   );
 }
