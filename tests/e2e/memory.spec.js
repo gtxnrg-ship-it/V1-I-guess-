@@ -19,7 +19,7 @@ test.describe("Kuro-chan project memory", () => {
 
     await fact.getByRole("button", { name: "Delete fact 1" }).click();
     await expect(page.getByTestId("memory-fact-0")).toHaveCount(0);
-    await expect(page.getByText("Nothing saved here yet.")).toBeVisible();
+    await expect(page.getByText("Nothing saved here yet.").first()).toBeVisible();
   });
 
   test("requires confirmation before clearing project memory and filters credential-like text", async ({ page }) => {
